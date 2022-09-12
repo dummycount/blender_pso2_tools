@@ -1,5 +1,6 @@
+from itertools import chain
 from pathlib import Path
-from zipfile import ZipFile
+from zipfile import ZIP_DEFLATED, ZipFile
 
 REPO_PATH = Path(__file__).parent
 ADDON_PATH = REPO_PATH / "pso2_tools"
@@ -22,8 +23,13 @@ def get_version():
 def main():
     path = Path(f"pso2_tools-v{get_version()}.zip")
 
-    with ZipFile(path, "w") as zip:
-        for path in ADDON_PATH.rglob("*"):
+    with ZipFile(path, "w", compression=ZIP_DEFLATED) as zip:
+        files = ADDON_PATH.rglob("*")
+
+        # https://github.com/python/cpython/issues/77609
+        bin_files = (ADDON_PATH / "bin").rglob("*")
+
+        for path in set(chain(files, bin_files)):
             if path.suffix == ".pyc" or path.name == "__pycache__":
                 continue
 
