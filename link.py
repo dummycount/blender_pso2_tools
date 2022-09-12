@@ -21,7 +21,7 @@ def main():
     target = get_addon_path()
     source = Path(__file__).parent / "pso2_tools"
 
-    if source.exists():
+    if target.exists():
         print(f"Already installed at {target}")
     else:
         print(f"Linking {target} to {source.relative_to(Path.cwd())}")
