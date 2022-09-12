@@ -1,0 +1,3 @@
+[submodule "Pso2Cli"]
+	path = Pso2Cli
+	url = https://github.com/dummycount/Pso2Cli.git

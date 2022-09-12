@@ -1,0 +1,13 @@
+{
+    "files.exclude": {
+      "**/__pycache__": true
+    },
+    "python.formatting.provider": "black",
+    "[python]": {
+      "editor.formatOnSave": true
+    },
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.extraPaths": [
+      "C:/Program Files/WindowsApps/BlenderFoundation.Blender_3.3.0.0_x64__ppwjx1n5r4v9t/Blender/3.3/scripts/addons"
+    ]
+  }
