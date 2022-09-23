@@ -2,15 +2,6 @@ from pathlib import Path
 from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
 
-if "bpy" in locals():
-    import importlib
-
-    if "bin" in locals():
-        importlib.reload(bin)
-    if "material" in locals():
-        importlib.reload(material)
-
-
 import bpy
 from bpy.props import (
     BoolProperty,
@@ -22,9 +13,9 @@ from bpy.props import (
 from bpy.types import Context, Operator, OperatorFileListElement
 from bpy_extras.io_utils import ImportHelper
 
-from . import bin, material
-from .classes import register_class
-from .preferences import get_preferences
+
+from . import bin, classes, material, preferences
+from .shaders import colors
 
 
 BASE_BODY_ICE = {
@@ -48,24 +39,6 @@ class BaseImport(Operator, ImportHelper):
         description="Import DDS textures from the model directory",
         default=True,
     )
-    custom_color1: FloatVectorProperty(
-        name="Color 1",
-        description="Custom outfit color 1",
-        default=(0.5, 0.5, 0.5, 1.0),
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    custom_color2: FloatVectorProperty(
-        name="Color 2",
-        description="Custom outfit color 2",
-        default=(0.5, 0.5, 0.5, 1.0),
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
     body_type: EnumProperty(
         name="Body Type",
         items=(
@@ -76,10 +49,82 @@ class BaseImport(Operator, ImportHelper):
         description="Body type for skin textures",
         default="T2",
     )
-    skin_color: FloatVectorProperty(
-        name="Skin Color",
-        description="Skin color",
-        default=(1.0, 0.45, 0.33, 1.0),
+    custom_color_1: FloatVectorProperty(
+        name="Outfit 1",
+        description="Custom outfit color 1",
+        default=colors.DEFAULT_BASE_COLOR_1,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    custom_color_2: FloatVectorProperty(
+        name="Outfit 2",
+        description="Custom outfit color 2",
+        default=colors.DEFAULT_BASE_COLOR_2,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    inner_color_1: FloatVectorProperty(
+        name="Innerwear 1",
+        description="Custom innerwear color 1",
+        default=colors.DEFAULT_INNER_COLOR_1,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    inner_color_2: FloatVectorProperty(
+        name="Innerwear 2",
+        description="Custom innerwear color 2",
+        default=colors.DEFAULT_INNER_COLOR_2,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    hair_color_1: FloatVectorProperty(
+        name="Hair 1",
+        description="Hair color 1",
+        default=colors.DEFAULT_HAIR_COLOR_1,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    hair_color_2: FloatVectorProperty(
+        name="Hair 2",
+        description="Hair color 2",
+        default=colors.DEFAULT_HAIR_COLOR_2,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    eye_color: FloatVectorProperty(
+        name="Eye",
+        description="Eye color",
+        default=colors.DEFAULT_EYE_COLOR,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    main_skin_color: FloatVectorProperty(
+        name="Skin Main",
+        description="Main skin color",
+        default=colors.DEFAULT_MAIN_SKIN_COLOR,
+        min=0,
+        max=1,
+        subtype="COLOR",
+        size=4,
+    )
+    sub_skin_color: FloatVectorProperty(
+        name="Skin Sub",
+        description="Secondary skin color",
+        default=colors.DEFAULT_SUB_SKIN_COLOR,
         min=0,
         max=1,
         subtype="COLOR",
@@ -89,13 +134,7 @@ class BaseImport(Operator, ImportHelper):
     def draw(self, context):
         pass
 
-    def execute(self, context):
-        if self.use_textures:
-            self.load_body_textures(context)
-
-        return self.load_models(context)
-
-    def load_models(self, context: Context) -> set[str]:
+    def execute(self, context: Context) -> set[str]:
         if self.files:
             ret = {"CANCELLED"}
             directory = Path(self.filepath).parent
@@ -111,14 +150,23 @@ class BaseImport(Operator, ImportHelper):
     def load_model_file(self, context: Context, filepath: Path) -> set[str]:
         raise NotImplementedError()
 
-    def load_fbx_from_directory(self, context: Context, directory: Path) -> set[str]:
+    def load_files_from_directory(self, context: Context, directory: Path) -> set[str]:
         from io_scene_fbx import import_fbx
 
         colors = material.CustomColors(
-            custom_color1=self.custom_color1,
-            custom_color2=self.custom_color2,
-            skin_color=self.skin_color,
+            custom_color_1=self.custom_color_1,
+            custom_color_2=self.custom_color_2,
+            main_skin_color=self.main_skin_color,
+            sub_skin_color=self.sub_skin_color,
+            inner_color_1=self.inner_color_1,
+            inner_color_2=self.inner_color_2,
+            hair_color_1=self.hair_color_1,
+            hair_color_2=self.hair_color_2,
+            eye_color=self.eye_color,
         )
+
+        if self.use_textures:
+            material.load_textures(directory)
 
         if files := list(directory.rglob("*.fbx")):
             original_mats = set(bpy.data.materials.keys())
@@ -130,25 +178,25 @@ class BaseImport(Operator, ImportHelper):
                     filepath=str(fbxfile),
                     automatic_bone_orientation=self.automatic_bone_orientation,
                 )
+                material.delete_empty_images()
+
+            # Make to to load skin textures before creating any materials that
+            # would use them.
+            if self.use_textures and material.skin_material_exists():
+                self.load_skin_textures(context)
 
             new_mats = set(bpy.data.materials.keys())
-
-            if self.use_textures:
-                material.load_textures(directory)
-
             material.update_materials(new_mats.difference(original_mats), colors)
-            return {"FINISHED"}
 
-        self.report({"ERROR"}, "No model files found")
-        return {"CANCELLED"}
+        return {"FINISHED"}
 
-    def load_body_textures(self, context: Context):
+    def load_skin_textures(self, context: Context):
         # Import skin textures from the base body ICE archive
         body_ice = BASE_BODY_ICE.get(self.body_type, None)
         if body_ice is None:
             return
 
-        data_dir = Path(get_preferences(context).pso2_data_path)
+        data_dir = Path(preferences.get_preferences(context).pso2_data_path)
         if not data_dir.exists():
             return
 
@@ -167,21 +215,16 @@ def _is_import_browser(context: Context):
     return operator.bl_idname.startswith("PSO2_TOOLS_OT_import")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_import_textures(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
-    bl_label = "Import Textures"
+    bl_label = "Textures"
     bl_parent_id = "FILE_PT_operator"
 
     @classmethod
     def poll(cls, context):
         return _is_import_browser(context)
-
-    def draw_header(self, context):
-        operator: BaseImport = context.space_data.active_operator
-
-        self.layout.prop(operator, "use_textures", text="")
 
     def draw(self, context):
         layout = self.layout
@@ -189,14 +232,20 @@ class PSO2_PT_import_textures(bpy.types.Panel):
 
         operator: BaseImport = context.space_data.active_operator
 
-        layout.enabled = operator.use_textures
-        layout.prop(operator, "custom_color1")
-        layout.prop(operator, "custom_color2")
+        self.layout.prop(operator, "use_textures")
         layout.prop(operator, "body_type")
-        layout.prop(operator, "skin_color")
+        layout.prop(operator, "main_skin_color")
+        layout.prop(operator, "sub_skin_color")
+        layout.prop(operator, "custom_color_1")
+        layout.prop(operator, "custom_color_2")
+        layout.prop(operator, "inner_color_1")
+        layout.prop(operator, "inner_color_2")
+        layout.prop(operator, "hair_color_1")
+        layout.prop(operator, "hair_color_2")
+        layout.prop(operator, "eye_color")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_import_armature(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -215,7 +264,7 @@ class PSO2_PT_import_armature(bpy.types.Panel):
         layout.prop(operator, "automatic_bone_orientation")
 
 
-@register_class
+@classes.register_class
 class ImportAqp(BaseImport):
     """Load a PSO2 AQP model"""
 
@@ -235,9 +284,9 @@ class ImportAqp(BaseImport):
                 if self.use_textures:
                     self.convert_textures(filepath.parent, tempdir)
 
-                return self.load_fbx_from_directory(context, tempdir)
+                return self.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:
-            self.report({"ERROR"}, f"Failed to convert {filepath} to FBX:\n{ex.stderr}")
+            self.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}
 
     def convert_textures(self, source: Path, dest: Path):
@@ -246,7 +295,7 @@ class ImportAqp(BaseImport):
             bin.dds_to_png(dds, png)
 
 
-@register_class
+@classes.register_class
 class ImportIce(BaseImport):
     """Load a PSO2 AQP model from an ICE archive"""
 
@@ -262,9 +311,7 @@ class ImportIce(BaseImport):
                 tempdir = Path(name)
                 bin.unpack_ice(filepath, tempdir, "--fbx", "--png")
 
-                return self.load_fbx_from_directory(context, tempdir)
+                return self.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:
-            self.report(
-                {"ERROR"}, f"Failed to convert {filepath} to FBX:\n{ex.stderrr}"
-            )
+            self.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderrr}")
             return {"CANCELLED"}

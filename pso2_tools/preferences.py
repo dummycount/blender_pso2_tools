@@ -4,7 +4,7 @@ import re
 
 from bpy.types import AddonPreferences, Context
 from bpy.props import StringProperty
-from .classes import register_class
+from . import classes
 
 
 PROGRAM_FILES = Path(os.getenv("PROGRAMFILES(x86)"))
@@ -37,7 +37,7 @@ def get_steam_libraries() -> list[Path]:
         return []
 
 
-@register_class
+@classes.register_class
 class Pso2ToolsPreferences(AddonPreferences):
     bl_idname = __package__
 

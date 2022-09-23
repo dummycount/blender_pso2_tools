@@ -2,20 +2,12 @@ from pathlib import Path
 from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
 
-
-if "bpy" in locals():
-    import importlib
-
-    if "bin" in locals():
-        importlib.reload(bin)
-
 import bpy
 from bpy.types import Context, Operator
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper, axis_conversion
 
-from . import bin
-from .classes import register_class
+from . import bin, classes
 
 EXPORT_KWARGS = dict(
     global_scale=1.0,
@@ -229,7 +221,7 @@ def _is_export_browser(context: Context):
     return operator.bl_idname.startswith("PSO2_TOOLS_OT_export")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_export_main(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -250,7 +242,7 @@ class PSO2_PT_export_main(bpy.types.Panel):
         layout.prop(operator, "update_skeleton")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_export_include(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -277,7 +269,7 @@ class PSO2_PT_export_include(bpy.types.Panel):
         layout.prop(operator, "use_custom_props")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_export_geometry(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -304,7 +296,7 @@ class PSO2_PT_export_geometry(bpy.types.Panel):
         sub.prop(operator, "use_tspace")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_export_armature(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -328,7 +320,7 @@ class PSO2_PT_export_armature(bpy.types.Panel):
         layout.prop(operator, "use_armature_deform_only")
 
 
-@register_class
+@classes.register_class
 class PSO2_PT_export_bake_animation(bpy.types.Panel):
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -360,7 +352,7 @@ class PSO2_PT_export_bake_animation(bpy.types.Panel):
         layout.prop(operator, "bake_anim_simplify_factor")
 
 
-@register_class
+@classes.register_class
 class ExportAqp(BaseExport):
     """Save a PSO2 AQP model"""
 

@@ -1,25 +1,20 @@
 bl_info = {
     "name": "PSO2 format",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (3, 2, 0),
     "category": "Import-Export",
 }
 
 
-if "bpy" in locals():
+if "reloader" in locals():
     import importlib
 
-    if "classes" in locals():
-        importlib.reload(classes)
-    if "import_model" in locals():
-        importlib.reload(import_model)
-    if "export_model" in locals():
-        importlib.reload(export_model)
-    if "preferences" in locals():
-        importlib.reload(preferences)
+    importlib.reload(reloader)
+    reloader.reload_addon(__name__)
+
 
 import bpy
-from . import classes, import_model, export_model, preferences
+from . import classes, import_model, export_model, reloader
 
 
 def register():
