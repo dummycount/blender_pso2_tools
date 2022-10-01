@@ -15,13 +15,13 @@
 
 **File > Import > PSO2 Model (.aqp)** imports from the `.aqp` model format. If an `.aqn` skeleton file of the same name exists, it is also read. Any `.dds` textures in the same folder will also be imported.
 
-**File > Import > PSO2 ICE Archive** works the same as importing an `.aqp` file, except it imports directly from an ICE archive so you don't need to extract it first.
+**File > Import > PSO2 ICE Archive** works the same as importing an `.aqp` file, except it imports directly from an ICE archive so you don't need to extract it first. It also supports importing textures from an archive that doesn't contain a model.
 
 On the right side of the file selector, you can change the custom outfit colors, skin color, and which body type's skin texture will be imported. To skip importing skin textures, set the body type to "None". Skin textures are read from your PSO2 data folder.
 
 ### Export
 
-**File > Export > PSO2 Model (.aqp)** exports to the `.aqp` model format. An `.aqn` skeleton file of the same name is also exported (this overwrites an existing file unless the **Update Skeleton** setting is disabled).
+**File > Export > PSO2 Model (.aqp)** exports to the `.aqp` model format. An `.aqn` skeleton file of the same name is also exported (this overwrites an existing file if the **Update Skeleton** setting is enabled).
 
 ### Materials
 
@@ -33,13 +33,16 @@ The materials currently support the following features:
 - Alpha for `blendalpha` and `hollow` materials
 - Normal map
 - Custom basewear/outerwear and skin colors
+- Innerwear/body paint on skin materials
 
 They do not support:
 
 - Basewear/outerwear regions that use innerwear colors
-- Innerwear/body paint on skin materials
-- `_l`, `_o`, and `_s` textures
-- Any special shaders (fur, etc.)
+- Cast materials
+- Various special textures (`_o`, etc.)
+- Most special shaders (fur, etc.)
+
+To automatically assign textures such as innerwear, eyes, eyebrows, and eyelashes, import those ICE archives before importing the model that uses them.
 
 To adjust outfit and skin colors after import, select an object with the material to edit, open Blender's shader editor, and click the icon at the top-right of the "Colors" node.
 
@@ -49,7 +52,7 @@ Requirements:
 
 - [Python 3.10](https://www.python.org/downloads/) or newer.
 - [Visual Studio](https://visualstudio.microsoft.com/vs/community/) with the C# and C++ workflows installed.
-- [Autodesk FBX SDK](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-2-1)
+- [Autodesk FBX SDK](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-3)
 - [PowerShell](https://github.com/PowerShell/PowerShell/releases)
 
 To install and build dependencies, run the following commands in a terminal:
