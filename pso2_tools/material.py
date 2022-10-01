@@ -128,10 +128,19 @@ MAT_NAME_RE = re.compile(
     \((?P<shader>.+)\)              # (shader)
     \{(?P<blend_type>.+)\}          # {blend_type}
     (?:\[(?P<special_type>.+)\])?   # [special_type]
-    (?P<name>.+)@(?P<two_sided>\d+) # name@two_sided
+    (?P<name>.+)                    # name
+    @(?P<two_sided>\d+)             # @two_sided
+    (?:@(?P<alpha_cutoff>\d+))      # @alpha_cutoff
     """,
     re.VERBOSE,
 )
+
+
+def _try_int(text: Optional[str], default=0):
+    try:
+        return int(text)
+    except:
+        return default
 
 
 @dataclass
@@ -140,13 +149,28 @@ class MaterialInfo:
     blend_type: str = "opaque"
     special_type: str = ""
     name: str = ""
-    two_sided: str = "2"
+    two_sided: int = 2
+    alpha_cutoff: int = 0
 
     @staticmethod
     def parse(name: str) -> "MaterialInfo":
         if m := MAT_NAME_RE.search(name):
+            shader, blend_type, special_type, name, two_sided, alpha_cutoff = m.group(
+                "shader",
+                "blend_type",
+                "special_type",
+                "name",
+                "two_sided",
+                "alpha_cutoff",
+            )
+
             return MaterialInfo(
-                *m.group("shader", "blend_type", "special_type", "name", "two_sided")
+                shader=shader,
+                blend_type=blend_type,
+                special_type=special_type or "",
+                name=name,
+                two_sided=_try_int(two_sided, 2),
+                alpha_cutoff=_try_int(alpha_cutoff, 0),
             )
 
         return MaterialInfo()
@@ -160,28 +184,27 @@ class MaterialInfo:
         return self.special_type and self.special_type in ("hr", "rhr")
 
     def update_settings(self, mat: bpy.types.Material):
-        # TODO:
-        # if alpha_cutoff > 0:
-        #     mat.blend_method = "CLIP"
-        #     mat.alpha_threshold = alpha_cutoff
-
         if self.blend_type in ("add", "blendalpha", "hollow"):
-            mat.blend_method = "HASHED" if self.is_hair else "BLEND"
-            mat.show_transparent_back = False
+            if self.alpha_cutoff > 0:
+                mat.blend_method = "CLIP"
+                mat.alpha_threshold = self.alpha_cutoff / 256
+            else:
+                mat.blend_method = "HASHED" if self.is_hair else "BLEND"
+                mat.show_transparent_back = False
         else:
             mat.blend_method = "OPAQUE"
 
         match self.two_sided:
-            case "0":
+            case 0:
                 mat.use_backface_culling = True
 
-            case "1":
+            case 1:
                 mat.use_backface_culling = False
 
-            case "2":
+            case 2:
                 # Not sure about this. Turning on backface culling fixes Z fighting
                 # on some opaque models but makes some features of transparent
-                # models disappear, so just enable it if not using alpha blend.
+                # models disappear, so just enable it if not using alpha.
                 mat.use_backface_culling = mat.blend_method != "blendalpha"
 
     def get_textures(self, *tags: str):
