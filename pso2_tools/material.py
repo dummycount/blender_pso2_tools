@@ -4,21 +4,29 @@ from typing import Iterable, Optional
 import re
 
 import bpy
-from .shaders import classic, colors, ngs_default, ngs_eye, ngs_hair, ngs_skin, shader
+from .shaders import (
+    classic,
+    default_colors,
+    ngs_default,
+    ngs_eye,
+    ngs_hair,
+    ngs_skin,
+    shader,
+)
 from .shaders.shader import Color
 
 
 @dataclass
 class CustomColors:
-    custom_color_1: Color = colors.DEFAULT_BASE_COLOR_1
-    custom_color_2: Color = colors.DEFAULT_BASE_COLOR_2
-    main_skin_color: Color = colors.DEFAULT_MAIN_SKIN_COLOR
-    sub_skin_color: Color = colors.DEFAULT_SUB_SKIN_COLOR
-    inner_color_1: Color = colors.DEFAULT_INNER_COLOR_1
-    inner_color_2: Color = colors.DEFAULT_INNER_COLOR_2
-    hair_color_1: Color = colors.DEFAULT_HAIR_COLOR_1
-    hair_color_2: Color = colors.DEFAULT_HAIR_COLOR_2
-    eye_color: Color = colors.DEFAULT_EYE_COLOR
+    custom_color_1: Color = default_colors.BASE_COLOR_1
+    custom_color_2: Color = default_colors.BASE_COLOR_2
+    main_skin_color: Color = default_colors.MAIN_SKIN_COLOR
+    sub_skin_color: Color = default_colors.SUB_SKIN_COLOR
+    inner_color_1: Color = default_colors.INNER_COLOR_1
+    inner_color_2: Color = default_colors.INNER_COLOR_2
+    hair_color_1: Color = default_colors.HAIR_COLOR_1
+    hair_color_2: Color = default_colors.HAIR_COLOR_2
+    eye_color: Color = default_colors.EYE_COLOR
 
     @property
     def group_basewear(self):
@@ -291,8 +299,12 @@ def _get_material_builder(
             main_mats += ["rhr"]
             shader_colors = colors.group_hair
 
-        case "rbd":  # NGS outfit, cast body
+        case "rbd" | "rbd_d":  # NGS outfit, cast body
             main_mats += ["bw", "bd"]
+            shader_colors = colors.group_basewear
+
+        case "rbd_ou":  # NGS outerwear
+            main_mats += ["ow"]
             shader_colors = colors.group_basewear
 
         case "rbd_sk":  # NGS body skin + innerwear

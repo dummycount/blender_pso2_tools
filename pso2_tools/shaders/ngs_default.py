@@ -1,6 +1,6 @@
 from bpy.types import Material
 
-from . import shader, ngs_common
+from pso2_tools.shaders import shader, ngs_common
 
 
 class NgsDefaultMaterial(shader.ShaderBuilder):

@@ -1,16 +1,18 @@
 import bpy
-from . import colors, shader
-from .. import classes
+from pso2_tools.shaders import default_colors, shader
+from pso2_tools import classes
 
 
 class ShaderNodePso2NgsBasic(bpy.types.ShaderNodeCustomGroup):
     def __init__(self, blend_type: str):
+        super().__init__()
         self.blend_type = blend_type
+        self.node_tree = None
 
     def init(self, context):
         self.node_tree = self.build(self.blend_type)
 
-        self.inputs["Diffuse"].default_value = colors.MAGENTA
+        self.inputs["Diffuse"].default_value = default_colors.MAGENTA
         self.inputs["Alpha"].default_value = 1
 
     def free(self):

@@ -22,7 +22,7 @@ def main():
     source = Path(__file__).parent / "pso2_tools"
 
     if target.exists():
-        print(f"Already installed at {target}")
+        print(f"Already installed at \"{target}\"")
     else:
         print(f"Linking {target} to {source.relative_to(Path.cwd())}")
 

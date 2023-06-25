@@ -1,0 +1,5 @@
+[MAIN]
+extension-pkg-whitelist=bpy,bpy_extras
+
+[TYPECHECK]
+ignored-modules=bpy,bpy_extras,io_scene_fbx

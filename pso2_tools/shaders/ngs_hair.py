@@ -1,8 +1,8 @@
 import bpy
 from bpy.types import Material
 
-from .. import classes
-from . import colors, shader
+from pso2_tools import classes
+from pso2_tools.shaders import default_colors, shader
 
 
 class NgsHairMaterial(shader.ShaderBuilder):
@@ -96,13 +96,17 @@ class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
     bl_label = "PSO2 NGS Hair"
     bl_icon = "NONE"
 
+    def __init__(self):
+        super().__init__()
+        self.node_tree = None
+
     def init(self, context):
         self.node_tree = self.build()
 
-        self.inputs["Diffuse"].default_value = colors.WHITE
+        self.inputs["Diffuse"].default_value = default_colors.WHITE
         self.inputs["Alpha"].default_value = 1
-        self.inputs["Color 1"].default_value = colors.DEFAULT_HAIR_COLOR_1
-        self.inputs["Color 2"].default_value = colors.DEFAULT_HAIR_COLOR_2
+        self.inputs["Color 1"].default_value = default_colors.HAIR_COLOR_1
+        self.inputs["Color 2"].default_value = default_colors.HAIR_COLOR_2
 
     def free(self):
         if self.node_tree.users == 1:

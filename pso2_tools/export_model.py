@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
 
@@ -6,8 +7,9 @@ import bpy
 from bpy.types import Context, Operator
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper, axis_conversion
+from io_scene_fbx import export_fbx_bin
 
-from . import bin, classes
+from . import classes, convert
 
 EXPORT_KWARGS = dict(
     global_scale=1.0,
@@ -185,6 +187,9 @@ class BaseExport(Operator, ExportHelper):
         pass
 
     def execute(self, context):
+        if result := self.check_model(context):
+            return result
+
         keywords = EXPORT_KWARGS | self.as_keywords(
             ignore=(
                 "check_existing",
@@ -200,8 +205,6 @@ class BaseExport(Operator, ExportHelper):
             tempdir = Path(name)
             temp_fbx_file = (tempdir / filepath.name).with_suffix(".fbx")
 
-            from io_scene_fbx import export_fbx_bin
-
             export_fbx_bin.save(self, context, filepath=str(temp_fbx_file), **keywords)
 
             if fbx_file := next(tempdir.rglob("*.fbx"), None):
@@ -214,6 +217,23 @@ class BaseExport(Operator, ExportHelper):
         self, context: Context, fbx_file: Path, filepath: Path
     ) -> set[str]:
         raise NotImplementedError()
+
+    def check_model(self, context: Context):
+        # Aqua model tool doesn't like meshes whose names end in a suffix like .001
+        def is_invalid(obj: bpy.types.Object):
+            return bool(obj.users and re.search(r"\.\d+$", obj.name))
+
+        invalid_objects = [obj for obj in bpy.data.meshes if is_invalid(obj)]
+
+        if invalid_objects:
+            names = "\n".join(obj.name for obj in invalid_objects)
+            self.report(
+                {"ERROR"},
+                f'Cannot export to AQP. Remove suffixes like ".001" from the names of these meshes:\n{names}',
+            )
+            return {"CANCELLED"}
+
+        return None
 
 
 def _is_export_browser(context: Context):
@@ -367,7 +387,8 @@ class ExportAqp(BaseExport):
         args = ["--update-aqn"] if self.update_skeleton else []
 
         try:
-            bin.fbx_to_aqp(fbx_file, filepath, *args)
+            result = convert.fbx_to_aqp(fbx_file, filepath, *args)
+            print(result.returncode, result.stdout, result.stderr)
             return {"FINISHED"}
         except CalledProcessError as ex:
             self.report({"ERROR"}, f"Failed to convert FBX to AQP:\n{ex.stderr}")

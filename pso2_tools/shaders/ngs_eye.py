@@ -1,6 +1,6 @@
 from bpy.types import Material
 
-from . import colors, shader, ngs_common
+from pso2_tools.shaders import default_colors, shader, ngs_common
 
 
 class NgsEyeMaterial(shader.ShaderBuilder):
@@ -81,7 +81,7 @@ class NgsEyeTearMaterial(shader.ShaderBuilder):
         output = build.add_node("ShaderNodeOutputMaterial", (6, 0))
 
         # TODO: Not sure how this should look. Just make it totally transparent for now.
-        shader = build.add_node("ShaderNodeBsdfTransparent", (0, 0))
-        shader.inputs["Color"].default_value = colors.WHITE
+        bsdf = build.add_node("ShaderNodeBsdfTransparent", (0, 0))
+        bsdf.inputs["Color"].default_value = default_colors.WHITE
 
-        build.add_link(shader.outputs["BSDF"], output.inputs["Surface"])
+        build.add_link(bsdf.outputs["BSDF"], output.inputs["Surface"])

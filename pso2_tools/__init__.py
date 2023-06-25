@@ -9,6 +9,7 @@ bl_info = {
 if "reloader" in locals():
     import importlib
 
+    # pylint: disable=used-before-assignment
     importlib.reload(reloader)
     reloader.reload_addon(__name__)
 

@@ -14,8 +14,8 @@ from bpy.types import Context, Operator, OperatorFileListElement
 from bpy_extras.io_utils import ImportHelper
 
 
-from . import bin, classes, material, preferences
-from .shaders import colors
+from . import classes, convert, material, preferences
+from .shaders import default_colors
 
 
 BASE_BODY_ICE = {
@@ -52,7 +52,7 @@ class BaseImport(Operator, ImportHelper):
     custom_color_1: FloatVectorProperty(
         name="Outfit 1",
         description="Custom outfit color 1",
-        default=colors.DEFAULT_BASE_COLOR_1,
+        default=default_colors.BASE_COLOR_1,
         min=0,
         max=1,
         subtype="COLOR",
@@ -61,7 +61,7 @@ class BaseImport(Operator, ImportHelper):
     custom_color_2: FloatVectorProperty(
         name="Outfit 2",
         description="Custom outfit color 2",
-        default=colors.DEFAULT_BASE_COLOR_2,
+        default=default_colors.BASE_COLOR_2,
         min=0,
         max=1,
         subtype="COLOR",
@@ -70,7 +70,7 @@ class BaseImport(Operator, ImportHelper):
     inner_color_1: FloatVectorProperty(
         name="Innerwear 1",
         description="Custom innerwear color 1",
-        default=colors.DEFAULT_INNER_COLOR_1,
+        default=default_colors.INNER_COLOR_1,
         min=0,
         max=1,
         subtype="COLOR",
@@ -79,7 +79,7 @@ class BaseImport(Operator, ImportHelper):
     inner_color_2: FloatVectorProperty(
         name="Innerwear 2",
         description="Custom innerwear color 2",
-        default=colors.DEFAULT_INNER_COLOR_2,
+        default=default_colors.INNER_COLOR_2,
         min=0,
         max=1,
         subtype="COLOR",
@@ -88,7 +88,7 @@ class BaseImport(Operator, ImportHelper):
     hair_color_1: FloatVectorProperty(
         name="Hair 1",
         description="Hair color 1",
-        default=colors.DEFAULT_HAIR_COLOR_1,
+        default=default_colors.HAIR_COLOR_1,
         min=0,
         max=1,
         subtype="COLOR",
@@ -97,7 +97,7 @@ class BaseImport(Operator, ImportHelper):
     hair_color_2: FloatVectorProperty(
         name="Hair 2",
         description="Hair color 2",
-        default=colors.DEFAULT_HAIR_COLOR_2,
+        default=default_colors.HAIR_COLOR_2,
         min=0,
         max=1,
         subtype="COLOR",
@@ -106,7 +106,7 @@ class BaseImport(Operator, ImportHelper):
     eye_color: FloatVectorProperty(
         name="Eye",
         description="Eye color",
-        default=colors.DEFAULT_EYE_COLOR,
+        default=default_colors.EYE_COLOR,
         min=0,
         max=1,
         subtype="COLOR",
@@ -115,7 +115,7 @@ class BaseImport(Operator, ImportHelper):
     main_skin_color: FloatVectorProperty(
         name="Skin Main",
         description="Main skin color",
-        default=colors.DEFAULT_MAIN_SKIN_COLOR,
+        default=default_colors.MAIN_SKIN_COLOR,
         min=0,
         max=1,
         subtype="COLOR",
@@ -124,7 +124,7 @@ class BaseImport(Operator, ImportHelper):
     sub_skin_color: FloatVectorProperty(
         name="Skin Sub",
         description="Secondary skin color",
-        default=colors.DEFAULT_SUB_SKIN_COLOR,
+        default=default_colors.SUB_SKIN_COLOR,
         min=0,
         max=1,
         subtype="COLOR",
@@ -204,7 +204,7 @@ class BaseImport(Operator, ImportHelper):
 
         with TemporaryDirectory() as name:
             tempdir = Path(name)
-            bin.unpack_ice(base_body, tempdir, "--png")
+            convert.unpack_ice(base_body, tempdir, "--png")
 
             # ######1 textures are just for muscles, so no need to import those.
             material.load_textures(tempdir, "pl_rbd_*0_sk_*.png")
@@ -279,7 +279,9 @@ class ImportAqp(BaseImport):
         try:
             with TemporaryDirectory() as name:
                 tempdir = Path(name)
-                bin.aqp_to_fbx(filepath, tempdir / filepath.with_suffix(".fbx").name)
+                convert.aqp_to_fbx(
+                    filepath, tempdir / filepath.with_suffix(".fbx").name
+                )
 
                 if self.use_textures:
                     self.convert_textures(filepath.parent, tempdir)
@@ -292,7 +294,7 @@ class ImportAqp(BaseImport):
     def convert_textures(self, source: Path, dest: Path):
         for dds in source.glob("*.dds"):
             png = dest / dds.with_suffix(".png").relative_to(source)
-            bin.dds_to_png(dds, png)
+            convert.dds_to_png(dds, png)
 
 
 @classes.register_class
@@ -309,9 +311,9 @@ class ImportIce(BaseImport):
         try:
             with TemporaryDirectory() as name:
                 tempdir = Path(name)
-                bin.unpack_ice(filepath, tempdir, "--fbx", "--png")
+                convert.unpack_ice(filepath, tempdir, "--fbx", "--png")
 
                 return self.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:
-            self.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderrr}")
+            self.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}

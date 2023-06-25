@@ -1,14 +1,14 @@
 import bpy
 from bpy.types import Material
 
-from .. import classes
-from . import colors, shader
+from pso2_tools import classes
+from pso2_tools.shaders import default_colors, shader
 
 
 def is_classic_shader(name: str):
     try:
         return int(name.split(",")[1]) < 1000
-    except:
+    except (ValueError, IndexError):
         return False
 
 
@@ -96,10 +96,14 @@ class ShaderNodePso2ClassicOutfit(bpy.types.ShaderNodeCustomGroup):
     bl_label = "PSO2 Classic Outfit"
     bl_icon = "NONE"
 
+    def __init__(self):
+        super().__init__()
+        self.node_tree = None
+
     def init(self, context):
         self.node_tree = self.build()
 
-        self.inputs["Diffuse"].default_value = colors.MAGENTA
+        self.inputs["Diffuse"].default_value = default_colors.MAGENTA
         self.inputs["Alpha"].default_value = 1
 
     def free(self):
