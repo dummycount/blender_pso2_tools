@@ -1,4 +1,5 @@
 /pso2_tools/bin
+/pso2_tools/data
 *.zip
 
 # Byte-compiled / optimized / DLL files

@@ -2,10 +2,8 @@ from pathlib import Path
 import subprocess
 
 BIN_DIR = Path(__file__).parent / "bin"
+PSO_CLI = BIN_DIR / "pso.exe"
 ICE_CLI = BIN_DIR / "ice.exe"
-AQP2FBX = BIN_DIR / "aqp2fbx.exe"
-FBX2AQP = BIN_DIR / "fbx2aqp.exe"
-DDS2PNG = BIN_DIR / "dds2png.exe"
 
 
 def run(args, **kwargs):
@@ -15,16 +13,20 @@ def run(args, **kwargs):
 
 
 def aqp_to_fbx(model: Path, dest: Path, *args):
-    return run([AQP2FBX, model, dest, *args])
+    return run([PSO_CLI, "fbx", model, dest, *args])
 
 
 def fbx_to_aqp(model: Path, dest: Path, *args):
-    return run([FBX2AQP, model, dest, *args])
+    return run([PSO_CLI, "aqp", model, dest, *args])
 
 
 def dds_to_png(image: Path, dest: Path):
-    return run([DDS2PNG, image, dest])
+    return run([PSO_CLI, "png", image, dest])
 
 
 def unpack_ice(archive: Path, dest: Path, *args):
     return run([ICE_CLI, "unpack", archive, dest, *args])
+
+
+def make_file_lists(pso2_bin: Path, dest: Path, *args):
+    return run([PSO_CLI, "filelist", dest, "--bin", pso2_bin, *args])

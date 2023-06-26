@@ -15,7 +15,7 @@ if "reloader" in locals():
 
 
 import bpy
-from . import classes, import_model, export_model, reloader
+from . import classes, import_model, export_model, import_search, reloader
 
 
 def register():
@@ -30,12 +30,13 @@ def unregister():
     classes.unregister()
 
 
-def menu_func_import(self, context):
+def menu_func_import(self: bpy.types.Operator, context: bpy.types.Context):
     self.layout.operator(import_model.ImportAqp.bl_idname, text="PSO2 Model (.aqp)")
     self.layout.operator(import_model.ImportIce.bl_idname, text="PSO2 ICE Archive")
+    self.layout.operator(import_search.PSO2_OT_ModelSearch.bl_idname, text="PSO2 Item")
 
 
-def menu_func_export(self, context):
+def menu_func_export(self: bpy.types.Operator, context: bpy.types.Context):
     self.layout.operator(export_model.ExportAqp.bl_idname, text="PSO2 Model (.aqp)")
 
 

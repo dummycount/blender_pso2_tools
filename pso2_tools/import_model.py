@@ -24,10 +24,14 @@ BASE_BODY_ICE = {
 }
 
 
-class BaseImport(Operator, ImportHelper):
-    directory: StringProperty()
+def convert_textures(source: Path, dest: Path):
+    for dds in source.glob("*.dds"):
+        png = dest / dds.with_suffix(".png").relative_to(source)
+        convert.dds_to_png(dds, png)
 
-    files: CollectionProperty(name="File Path", type=OperatorFileListElement)
+
+class ImportProperties:
+    """Mixin class for model import properties"""
 
     automatic_bone_orientation: BoolProperty(
         name="Automatic Bone Orientation",
@@ -131,24 +135,23 @@ class BaseImport(Operator, ImportHelper):
         size=4,
     )
 
-    def draw(self, context):
-        pass
+    def draw_texture_props(self, context: Context, layout: bpy.types.UILayout):
+        layout.use_property_split = True
 
-    def execute(self, context: Context) -> set[str]:
-        if self.files:
-            ret = {"CANCELLED"}
-            directory = Path(self.filepath).parent
-            for file in self.files:
-                path = directory / file.name
-                result = self.load_model_file(context, filepath=path)
-                if result == {"FINISHED"}:
-                    ret = result
-            return ret
-        else:
-            return self.load_model_file(context, filepath=Path(self.filepath))
+        layout.prop(self, "use_textures")
+        layout.prop(self, "body_type")
+        layout.prop(self, "main_skin_color")
+        layout.prop(self, "sub_skin_color")
+        layout.prop(self, "custom_color_1")
+        layout.prop(self, "custom_color_2")
+        layout.prop(self, "inner_color_1")
+        layout.prop(self, "inner_color_2")
+        layout.prop(self, "hair_color_1")
+        layout.prop(self, "hair_color_2")
+        layout.prop(self, "eye_color")
 
-    def load_model_file(self, context: Context, filepath: Path) -> set[str]:
-        raise NotImplementedError()
+    def draw_armature_props(self, context: Context, layout: bpy.types.UILayout):
+        layout.prop(self, "automatic_bone_orientation")
 
     def load_files_from_directory(self, context: Context, directory: Path) -> set[str]:
         from io_scene_fbx import import_fbx
@@ -209,9 +212,67 @@ class BaseImport(Operator, ImportHelper):
             # ######1 textures are just for muscles, so no need to import those.
             material.load_textures(tempdir, "pl_rbd_*0_sk_*.png")
 
+    @staticmethod
+    def load_ice_model(operator: Operator, context: Context, filepath: Path | str):
+        try:
+            with TemporaryDirectory() as name:
+                tempdir = Path(name)
+                convert.unpack_ice(filepath, tempdir, "--fbx", "--png")
+
+                return operator.load_files_from_directory(context, tempdir)
+        except CalledProcessError as ex:
+            operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
+            return {"CANCELLED"}
+
+    @staticmethod
+    def load_aqp_model(operator: Operator, context: Context, filepath: Path | str):
+        try:
+            with TemporaryDirectory() as name:
+                tempdir = Path(name)
+                convert.aqp_to_fbx(
+                    filepath, tempdir / filepath.with_suffix(".fbx").name
+                )
+
+                if operator.use_textures:
+                    convert_textures(filepath.parent, tempdir)
+
+                return operator.load_files_from_directory(context, tempdir)
+        except CalledProcessError as ex:
+            operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
+            return {"CANCELLED"}
+
+
+class BaseImport(Operator, ImportProperties, ImportHelper):
+    directory: StringProperty()
+
+    files: CollectionProperty(name="File Path", type=OperatorFileListElement)
+
+    def draw(self, context):
+        pass
+
+    def execute(self, context: Context) -> set[str]:
+        if self.files:
+            ret = {"CANCELLED"}
+            directory = Path(self.filepath).parent
+            for file in self.files:
+                path = directory / file.name
+                result = self.load_model_file(context, filepath=path)
+                if result == {"FINISHED"}:
+                    ret = result
+            return ret
+
+        return self.load_model_file(context, filepath=Path(self.filepath))
+
+    def load_model_file(self, context: Context, filepath: Path) -> set[str]:
+        raise NotImplementedError()
+
+
+def _get_active_operator(context: Context) -> Operator:
+    return context.space_data.active_operator
+
 
 def _is_import_browser(context: Context):
-    operator: Operator = context.space_data.active_operator
+    operator = _get_active_operator(context)
     return operator.bl_idname.startswith("PSO2_TOOLS_OT_import")
 
 
@@ -227,22 +288,8 @@ class PSO2_PT_import_textures(bpy.types.Panel):
         return _is_import_browser(context)
 
     def draw(self, context):
-        layout = self.layout
-        layout.use_property_split = True
-
-        operator: BaseImport = context.space_data.active_operator
-
-        self.layout.prop(operator, "use_textures")
-        layout.prop(operator, "body_type")
-        layout.prop(operator, "main_skin_color")
-        layout.prop(operator, "sub_skin_color")
-        layout.prop(operator, "custom_color_1")
-        layout.prop(operator, "custom_color_2")
-        layout.prop(operator, "inner_color_1")
-        layout.prop(operator, "inner_color_2")
-        layout.prop(operator, "hair_color_1")
-        layout.prop(operator, "hair_color_2")
-        layout.prop(operator, "eye_color")
+        operator: ImportProperties = _get_active_operator(context)
+        operator.draw_texture_props(context, self.layout)
 
 
 @classes.register_class
@@ -258,10 +305,8 @@ class PSO2_PT_import_armature(bpy.types.Panel):
         return operator.bl_idname.startswith("PSO2_TOOLS_OT_import")
 
     def draw(self, context):
-        layout = self.layout
-        operator: BaseImport = context.space_data.active_operator
-
-        layout.prop(operator, "automatic_bone_orientation")
+        operator: ImportProperties = _get_active_operator(context)
+        operator.draw_armature_props(context, self.layout)
 
 
 @classes.register_class
@@ -276,25 +321,7 @@ class ImportAqp(BaseImport):
     filter_glob: StringProperty(default="*.aqp", options={"HIDDEN"})
 
     def load_model_file(self, context, filepath):
-        try:
-            with TemporaryDirectory() as name:
-                tempdir = Path(name)
-                convert.aqp_to_fbx(
-                    filepath, tempdir / filepath.with_suffix(".fbx").name
-                )
-
-                if self.use_textures:
-                    self.convert_textures(filepath.parent, tempdir)
-
-                return self.load_files_from_directory(context, tempdir)
-        except CalledProcessError as ex:
-            self.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
-            return {"CANCELLED"}
-
-    def convert_textures(self, source: Path, dest: Path):
-        for dds in source.glob("*.dds"):
-            png = dest / dds.with_suffix(".png").relative_to(source)
-            convert.dds_to_png(dds, png)
+        ImportProperties.load_aqp_model(self, context, filepath)
 
 
 @classes.register_class
@@ -308,12 +335,4 @@ class ImportIce(BaseImport):
     filter_glob: StringProperty(default="*", options={"HIDDEN"})
 
     def load_model_file(self, context, filepath):
-        try:
-            with TemporaryDirectory() as name:
-                tempdir = Path(name)
-                convert.unpack_ice(filepath, tempdir, "--fbx", "--png")
-
-                return self.load_files_from_directory(context, tempdir)
-        except CalledProcessError as ex:
-            self.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
-            return {"CANCELLED"}
+        ImportProperties.load_ice_model(self, context, filepath)
