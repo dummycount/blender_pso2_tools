@@ -20,10 +20,6 @@ def fbx_to_aqp(model: Path, dest: Path, *args):
     return run([PSO_CLI, "aqp", model, dest, *args])
 
 
-def dds_to_png(image: Path, dest: Path):
-    return run([PSO_CLI, "png", image, dest])
-
-
 def unpack_ice(archive: Path, dest: Path, *args):
     return run([ICE_CLI, "unpack", archive, dest, *args])
 

@@ -24,12 +24,6 @@ BASE_BODY_ICE = {
 }
 
 
-def convert_textures(source: Path, dest: Path):
-    for dds in source.glob("*.dds"):
-        png = dest / dds.with_suffix(".png").relative_to(source)
-        convert.dds_to_png(dds, png)
-
-
 class ImportProperties:
     """Mixin class for model import properties"""
 
@@ -207,17 +201,17 @@ class ImportProperties:
 
         with TemporaryDirectory() as name:
             tempdir = Path(name)
-            convert.unpack_ice(base_body, tempdir, "--png")
+            convert.unpack_ice(base_body, tempdir)
 
             # ######1 textures are just for muscles, so no need to import those.
-            material.load_textures(tempdir, "pl_rbd_*0_sk_*.png")
+            material.load_textures(tempdir, "pl_rbd_*0_sk_*.dds")
 
     @staticmethod
     def load_ice_model(operator: Operator, context: Context, filepath: Path | str):
         try:
             with TemporaryDirectory() as name:
                 tempdir = Path(name)
-                convert.unpack_ice(filepath, tempdir, "--fbx", "--png")
+                convert.unpack_ice(filepath, tempdir, "--fbx")
 
                 return operator.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:
@@ -232,9 +226,6 @@ class ImportProperties:
                 convert.aqp_to_fbx(
                     filepath, tempdir / filepath.with_suffix(".fbx").name
                 )
-
-                if operator.use_textures:
-                    convert_textures(filepath.parent, tempdir)
 
                 return operator.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:

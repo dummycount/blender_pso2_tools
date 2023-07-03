@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import tempfile
 from typing import Iterable, Optional
 import re
 
@@ -14,6 +15,7 @@ from .shaders import (
     shader,
 )
 from .shaders.shader import Color
+from .import_dds import dds_to_png
 
 
 @dataclass
@@ -90,16 +92,32 @@ def delete_empty_images():
             bpy.data.images.remove(image)
 
 
-def load_textures(folder: Path, pattern="*.png"):
+def load_textures(folder: Path, pattern="*.dds"):
     for texture in folder.rglob(pattern):
         load_image(texture)
 
 
+def _load_dds(file: Path) -> bpy.types.Image:
+    with tempfile.TemporaryDirectory() as tempdir:
+        pngfile = Path(tempdir) / file.with_suffix(".png").name
+        dds_to_png(str(file), str(pngfile))
+
+        image = bpy.data.images.load(str(pngfile))
+        image.name = file.name
+
+        image.pack()
+
+        return image
+
+
 def load_image(file: Path) -> bpy.types.Image:
     """Load a PSO2 texture from a .png image"""
-    image = bpy.data.images.load(str(file))
-    image.name = file.with_suffix(".dds").name
-    image.pack()
+
+    if file.suffix == ".dds":
+        image = _load_dds(file)
+    else:
+        image = bpy.data.images.load(str(file))
+        image.pack()
 
     if texture_has_part(image.name, ("l", "m", "n", "o", "s")):
         # Data textures (normal map, etc.)

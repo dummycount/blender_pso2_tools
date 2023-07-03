@@ -1,5 +1,9 @@
+/.vscode/launch.json
+/build
+/src/Python
 /pso2_tools/bin
 /pso2_tools/data
+_version.py
 *.zip
 
 # Byte-compiled / optimized / DLL files

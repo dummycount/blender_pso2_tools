@@ -1,5 +1,11 @@
 [MAIN]
-extension-pkg-whitelist=bpy,bpy_extras
+extension-pkg-whitelist=bpy,bpy_extras,pso2_tools.import_dds
+
+[MESSAGES CONTROL]
+disable=import-error
 
 [TYPECHECK]
-ignored-modules=bpy,bpy_extras,io_scene_fbx
+ignored-modules=bpy,bpy_extras,io_scene_fbx,pso2_tools.import_dds
+
+[FORMAT]
+good-names=f,i
