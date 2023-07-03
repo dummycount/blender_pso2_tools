@@ -155,7 +155,7 @@ class ShaderNodePso2ClassicOutfit(bpy.types.ShaderNodeCustomGroup):
 
         color1 = build.add_node("ShaderNodeMixRGB")
         color1.label = "Color 1"
-        color1.blend_type = "MULTIPLY"  # Assuming color 1 is always skin?
+        color1.blend_type = "MIX"  # Assuming color 1 is always skin?
         color1.use_clamp = True
 
         color2 = build.add_node("ShaderNodeMixRGB")
