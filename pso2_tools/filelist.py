@@ -185,36 +185,38 @@ def _read_player_csv(category: Category, file: str):
 
 
 def _parse_player_csv_row(category: Category, row: dict[str, str]):
-    name = row.get("English Name") or row.get("Japanese Name")
-    if not name:
-        return
+    name = (
+        row.get("English Name")
+        or row.get("Japanese Name")
+        or f"Unnamed {row.get('Id')}"
+    )
 
     group = FileGroup(category, name)
 
     common_files = [row.get("Material Anim"), row.get("Material Anim Ex")]
 
-    if files := _filter_list(
-        *common_files,
-        row.get("HQ Hand Textures"),
-        row.get("HQ Linked Inner"),
-        row.get("High Quality"),
-    ):
-        group.files[VARIANT_HIGH_QUALITY] = files
+    if model := row.get("High Quality"):
+        group.files[VARIANT_HIGH_QUALITY] = _filter_list(
+            *common_files,
+            row.get("HQ Hand Textures"),
+            row.get("HQ Linked Inner"),
+            model,
+        )
 
-    if files := _filter_list(
-        *common_files,
-        row.get("Hand Textures"),
-        row.get("Linked Inner"),
-        row.get("Normal Quality"),
-    ):
-        group.files[VARIANT_NORMAL_QUALITY] = files
+    if model := row.get("Normal Quality"):
+        group.files[VARIANT_NORMAL_QUALITY] = _filter_list(
+            *common_files,
+            row.get("Hand Textures"),
+            row.get("Linked Inner"),
+            model,
+        )
 
-    if replacement := row.get("Normal Quality RP"):
+    if model := row.get("Normal Quality RP"):
         group.files[VARIANT_REPLACEMENT] = _filter_list(
             *common_files,
             row.get("Hand Textures"),
             row.get("Linked Inner"),
-            replacement,
+            model,
         )
 
     # TODO: "High Quality RP" column exists, but nothing uses it?
