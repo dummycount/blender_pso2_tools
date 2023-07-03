@@ -147,7 +147,7 @@ class ImportProperties:
     def draw_armature_props(self, context: Context, layout: bpy.types.UILayout):
         layout.prop(self, "automatic_bone_orientation")
 
-    def load_files_from_directory(self, context: Context, directory: Path) -> set[str]:
+    def load_files_from_directory(self, context: Context, directory: Path):
         from io_scene_fbx import import_fbx
 
         colors = material.CustomColors(
@@ -177,15 +177,13 @@ class ImportProperties:
                 )
                 material.delete_empty_images()
 
-            # Make to to load skin textures before creating any materials that
+            # Make sure to load skin textures before creating any materials that
             # would use them.
             if self.use_textures and material.skin_material_exists():
                 self.load_skin_textures(context)
 
             new_mats = set(bpy.data.materials.keys())
             material.update_materials(new_mats.difference(original_mats), colors)
-
-        return {"FINISHED"}
 
     def load_skin_textures(self, context: Context):
         # Import skin textures from the base body ICE archive
@@ -208,29 +206,39 @@ class ImportProperties:
 
     @staticmethod
     def load_ice_model(operator: Operator, context: Context, filepath: Path | str):
+        """Load a model from an ICE file"""
         try:
             with TemporaryDirectory() as name:
                 tempdir = Path(name)
                 convert.unpack_ice(filepath, tempdir, "--fbx")
 
-                return operator.load_files_from_directory(context, tempdir)
+                operator.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:
             operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}
 
+        return {"FINISHED"}
+
     @staticmethod
     def load_aqp_model(operator: Operator, context: Context, filepath: Path | str):
+        """Load a model from an AQP file"""
+        directory = Path(filepath).parent
+
         try:
+            operator.load_files_from_directory(context, directory)
+
             with TemporaryDirectory() as name:
                 tempdir = Path(name)
                 convert.aqp_to_fbx(
                     filepath, tempdir / filepath.with_suffix(".fbx").name
                 )
 
-                return operator.load_files_from_directory(context, tempdir)
+                operator.load_files_from_directory(context, tempdir)
         except CalledProcessError as ex:
             operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}
+
+        return {"FINISHED"}
 
 
 class BaseImport(Operator, ImportProperties, ImportHelper):
