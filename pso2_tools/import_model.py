@@ -271,7 +271,7 @@ class BaseImport(Operator, ImportProperties, ImportHelper):
                     ret = result
             return ret
 
-        return self.import_aqp(context, filepath=Path(self.filepath))
+        return self.import_model(context, filepath=Path(self.filepath))
 
     def import_model(self, context: Context, filepath: Path) -> set[str]:
         raise NotImplementedError()
