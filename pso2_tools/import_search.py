@@ -3,7 +3,7 @@ from typing import Any, Set
 import bpy
 from bpy.types import Context, UILayout
 
-from .import_model import ImportProperties, PSO2_PT_import_textures
+from .import_model import ImportProperties
 
 from .filelist import (
     ALL_CATEGORIES,
@@ -233,6 +233,9 @@ class PSO2_UL_ModelList(bpy.types.UIList):
 
     def draw_filter(self, context: Context, layout: UILayout) -> None:
         row = layout.row(align=True)
+        # This does activate the text field, but then it doesn't work correctly
+        # https://projects.blender.org/blender/blender/issues/109710
+        # row.activate_init = True
         row.prop(self, "filter_name", text="", icon="VIEWZOOM")
 
         row = layout.row(align=True)
