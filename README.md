@@ -2,9 +2,26 @@
 
 ## Installation
 
-1. Install the [.NET Framework 4.7.2 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet-framework/net472).
-1. Download from the [releases page](https://github.com/dummycount/blender_pso2_tools/releases).
-1. In Blender, open **Edit > Preferences > Add-ons > Install** and select the downloaded ZIP file.
+Requirements:
+
+- [Python 3.10](https://www.python.org/downloads/) or newer.
+- [Visual Studio](https://visualstudio.microsoft.com/vs/community/) with the C# and C++ workflows installed.
+- [Autodesk FBX SDK](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-3)
+- [PowerShell](https://github.com/PowerShell/PowerShell/releases)
+
+To build and install the add-on:
+
+1. Open a terminal to a location where you'd like to place the add-on files and run the following commands:
+
+    ```sh
+    git clone https://github.com/dummycount/blender_pso2_tools.git
+    cd blender_pso2_tools
+    git submodule update --init --recursive
+    python build-cli.py
+    python install.py
+    ```
+
+1. In Blender, open **Edit > Preferences > Add-ons > Install**.
 1. Enable the checkbox next to **Import-Export: PSO2 format**.
 1. Click the arrow next to **Import-Export: PSO2 format** to expand the add-on preferences.
 1. Set the path to the PSO2 data folder if it is not set automatically.
@@ -16,6 +33,8 @@
 **File > Import > PSO2 Model (.aqp)** imports from the `.aqp` model format. If an `.aqn` skeleton file of the same name exists, it is also read. Any `.dds` textures in the same folder will also be imported.
 
 **File > Import > PSO2 ICE Archive** works the same as importing an `.aqp` file, except it imports directly from an ICE archive so you don't need to extract it first. It also supports importing textures from an archive that doesn't contain a model.
+
+**File > Import > PSO2 Item** opens a window to find and import items by name. Files are read from your PSO2 data folder.
 
 On the right side of the file selector, you can change the custom outfit colors, skin color, and which body type's skin texture will be imported. To skip importing skin textures, set the body type to "None". Skin textures are read from your PSO2 data folder.
 
@@ -45,30 +64,6 @@ They do not support:
 To automatically assign textures such as innerwear, eyes, eyebrows, and eyelashes, import those ICE archives before importing the model that uses them.
 
 To adjust outfit and skin colors after import, select an object with the material to edit, open Blender's shader editor, and click the icon at the top-right of the "Colors" node.
-
-## Development
-
-Requirements:
-
-- [Python 3.10](https://www.python.org/downloads/) or newer.
-- [Visual Studio](https://visualstudio.microsoft.com/vs/community/) with the C# and C++ workflows installed.
-- [Autodesk FBX SDK](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-3)
-- [PowerShell](https://github.com/PowerShell/PowerShell/releases)
-
-To install and build dependencies, run the following commands in a terminal:
-```sh
-git submodule update --init --recursive
-./build
-```
-
-If building the dependencies fails, try running the build script a couple more times.
-
-To symlink the development version of the add-on into Blender's add-ons directory, run:
-```sh
-./link
-```
-
-You can reload the add-on without restarting Blender by pressing `F3` and running the "Reload Scripts" command.
 
 ## Credits
 

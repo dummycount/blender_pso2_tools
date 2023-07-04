@@ -11,6 +11,8 @@ import sys
 import tarfile
 from urllib.request import urlopen
 
+import bpy
+
 SCRIPT_DIR = Path(__file__).parent
 
 PREFIX_PATH = SCRIPT_DIR / "src/Python"
@@ -28,16 +30,17 @@ def get_vsdevcmd():
     return Path(install_path) / "Common7/Tools/VsDevCmd.bat"
 
 
-# def symlink_folders():
-#     PREFIX_PATH.mkdir(exist_ok=True, parents=True)
+def link_addon():
+    user_path = Path(bpy.utils.resource_path("USER"))
 
-#     python_path = Path(sys.executable).parent.parent
+    source = SCRIPT_DIR / "pso2_tools"
+    target = user_path / "scripts" / "addons" / "pso2_tools"
 
-#     for path in os.listdir(python_path):
-#         path = python_path / path
-#         target = PREFIX_PATH / path.name
-#         if path.is_dir() and not target.exists():
-#             os.symlink(path, target, target_is_directory=True)
+    if not target.exists():
+        print(f"Linking {source.name} to {target}")
+
+        target.parent.mkdir(exist_ok=True, parents=True)
+        os.symlink(source, target, target_is_directory=True)
 
 
 def get_source_members(tar: tarfile.TarFile, subdir: str, pyconfig: str):
@@ -146,3 +149,5 @@ subprocess.check_call(
         "LDFLAGS": f'"/LIBPATH:{PYTHON_LIBS_PATH}"',
     },
 )
+
+link_addon()
