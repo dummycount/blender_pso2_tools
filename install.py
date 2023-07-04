@@ -24,7 +24,7 @@ def blender(*args: list[str]):
 
 
 def main():
-    blender("-b", "-P", "install-blender.py")
+    blender("-b", "--factory-startup", "-P", "install-blender.py")
 
 
 if __name__ == "__main__":

@@ -13,9 +13,9 @@ from urllib.request import urlopen
 
 SCRIPT_DIR = Path(__file__).parent
 
-SRC_PATH = SCRIPT_DIR / "src"
-PYTHON_LIBS_PATH = SRC_PATH / "Python/libs"
-PYTHON_INCLUDE_PATH = SRC_PATH / "Python/Include"
+PREFIX_PATH = SCRIPT_DIR / "src/Python"
+PYTHON_LIBS_PATH = PREFIX_PATH / "libs"
+PYTHON_INCLUDE_PATH = PREFIX_PATH / "Include"
 
 VSWHERE_PATH = Path(
     f"{os.getenv('ProgramFiles(x86)')}/Microsoft Visual Studio/Installer/vswhere.exe"
@@ -26,6 +26,18 @@ def get_vsdevcmd():
     command = [VSWHERE_PATH, "-latest", "-property", "installationPath"]
     install_path = subprocess.check_output(command, text=True).strip()
     return Path(install_path) / "Common7/Tools/VsDevCmd.bat"
+
+
+# def symlink_folders():
+#     PREFIX_PATH.mkdir(exist_ok=True, parents=True)
+
+#     python_path = Path(sys.executable).parent.parent
+
+#     for path in os.listdir(python_path):
+#         path = python_path / path
+#         target = PREFIX_PATH / path.name
+#         if path.is_dir() and not target.exists():
+#             os.symlink(path, target, target_is_directory=True)
 
 
 def get_source_members(tar: tarfile.TarFile, subdir: str, pyconfig: str):
@@ -123,6 +135,14 @@ if not PYTHON_INCLUDE_PATH.exists():
 if not PYTHON_LIBS_PATH.exists():
     build_python_lib()
 
-
 ensurepip.bootstrap()
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "pip"])
+subprocess.check_call(
+    [sys.executable, "-m", "pip", "install", "-e", "."],
+    env={
+        **os.environ,
+        "CFLAGS": f'"-I{PYTHON_INCLUDE_PATH}"',
+        "LDFLAGS": f'"/LIBPATH:{PYTHON_LIBS_PATH}"',
+    },
+)

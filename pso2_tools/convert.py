@@ -20,9 +20,5 @@ def fbx_to_aqp(model: Path, dest: Path, *args):
     return run([PSO_CLI, "aqp", model, dest, *args])
 
 
-def unpack_ice(archive: Path, dest: Path, *args):
-    return run([ICE_CLI, "unpack", archive, dest, *args])
-
-
 def make_file_lists(pso2_bin: Path, dest: Path, *args):
     return run([PSO_CLI, "filelist", dest, "--bin", pso2_bin, *args])

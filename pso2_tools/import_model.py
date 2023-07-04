@@ -1,6 +1,7 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
+from typing import Union
 
 import bpy
 from bpy.props import (
@@ -12,7 +13,7 @@ from bpy.props import (
 )
 from bpy.types import Context, Operator, OperatorFileListElement
 from bpy_extras.io_utils import ImportHelper
-
+import zamboni
 
 from . import classes, convert, material, preferences
 from .shaders import default_colors
@@ -147,7 +148,11 @@ class ImportProperties:
     def draw_armature_props(self, context: Context, layout: bpy.types.UILayout):
         layout.prop(self, "automatic_bone_orientation")
 
-    def load_files_from_directory(self, context: Context, directory: Path):
+    def import_directory_textures(self, context: Context, directory: Path):
+        if self.use_textures:
+            material.load_textures(directory)
+
+    def import_aqp(self, context: Context, path: Path):
         from io_scene_fbx import import_fbx
 
         colors = material.CustomColors(
@@ -162,20 +167,19 @@ class ImportProperties:
             eye_color=self.eye_color,
         )
 
-        if self.use_textures:
-            material.load_textures(directory)
+        original_mats = set(bpy.data.materials.keys())
 
-        if files := list(directory.rglob("*.fbx")):
-            original_mats = set(bpy.data.materials.keys())
+        with TemporaryDirectory() as tempdir:
+            fbxfile = Path(tempdir) / path.with_suffix(".fbx").name
+            convert.aqp_to_fbx(path, fbxfile)
 
-            for fbxfile in files:
-                import_fbx.load(
-                    self,
-                    context,
-                    filepath=str(fbxfile),
-                    automatic_bone_orientation=self.automatic_bone_orientation,
-                )
-                material.delete_empty_images()
+            import_fbx.load(
+                self,
+                context,
+                filepath=str(fbxfile),
+                automatic_bone_orientation=self.automatic_bone_orientation,
+            )
+            material.delete_empty_images()
 
             # Make sure to load skin textures before creating any materials that
             # would use them.
@@ -199,20 +203,30 @@ class ImportProperties:
 
         with TemporaryDirectory() as name:
             tempdir = Path(name)
-            convert.unpack_ice(base_body, tempdir)
+            zamboni.unpack_ice(base_body, tempdir)
 
             # ######1 textures are just for muscles, so no need to import those.
             material.load_textures(tempdir, "pl_rbd_*0_sk_*.dds")
 
     @staticmethod
-    def load_ice_model(operator: Operator, context: Context, filepath: Path | str):
+    def import_ice(
+        operator: Union[Operator, "ImportProperties"],
+        context: Context,
+        filepath: Path | str,
+    ):
         """Load a model from an ICE file"""
+        filepath = Path(filepath)
+
+        print("ice = ", filepath)
+
         try:
             with TemporaryDirectory() as name:
                 tempdir = Path(name)
-                convert.unpack_ice(filepath, tempdir, "--fbx")
+                zamboni.unpack_ice(filepath, tempdir)
 
-                operator.load_files_from_directory(context, tempdir)
+                operator.import_directory_textures(context, tempdir)
+                for aqpfile in tempdir.rglob("*.aqp"):
+                    operator.import_aqp(context, aqpfile)
         except CalledProcessError as ex:
             operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}
@@ -220,20 +234,17 @@ class ImportProperties:
         return {"FINISHED"}
 
     @staticmethod
-    def load_aqp_model(operator: Operator, context: Context, filepath: Path | str):
+    def import_aqp_and_textures(
+        operator: Union[Operator, "ImportProperties"],
+        context: Context,
+        filepath: Path | str,
+    ):
         """Load a model from an AQP file"""
-        directory = Path(filepath).parent
+        filepath = Path(filepath)
 
         try:
-            operator.load_files_from_directory(context, directory)
-
-            with TemporaryDirectory() as name:
-                tempdir = Path(name)
-                convert.aqp_to_fbx(
-                    filepath, tempdir / filepath.with_suffix(".fbx").name
-                )
-
-                operator.load_files_from_directory(context, tempdir)
+            operator.import_directory_textures(context, filepath.parent)
+            operator.import_aqp(context, filepath)
         except CalledProcessError as ex:
             operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}
@@ -255,14 +266,14 @@ class BaseImport(Operator, ImportProperties, ImportHelper):
             directory = Path(self.filepath).parent
             for file in self.files:
                 path = directory / file.name
-                result = self.load_model_file(context, filepath=path)
+                result = self.import_model(context, filepath=path)
                 if result == {"FINISHED"}:
                     ret = result
             return ret
 
-        return self.load_model_file(context, filepath=Path(self.filepath))
+        return self.import_aqp(context, filepath=Path(self.filepath))
 
-    def load_model_file(self, context: Context, filepath: Path) -> set[str]:
+    def import_model(self, context: Context, filepath: Path) -> set[str]:
         raise NotImplementedError()
 
 
@@ -319,8 +330,8 @@ class ImportAqp(BaseImport):
     filename_ext = ".aqp"
     filter_glob: StringProperty(default="*.aqp", options={"HIDDEN"})
 
-    def load_model_file(self, context, filepath):
-        ImportProperties.load_aqp_model(self, context, filepath)
+    def import_model(self, context, filepath):
+        ImportProperties.import_aqp_and_textures(self, context, filepath)
 
 
 @classes.register_class
@@ -333,5 +344,5 @@ class ImportIce(BaseImport):
 
     filter_glob: StringProperty(default="*", options={"HIDDEN"})
 
-    def load_model_file(self, context, filepath):
-        ImportProperties.load_ice_model(self, context, filepath)
+    def import_model(self, context, filepath):
+        ImportProperties.import_ice(self, context, filepath)

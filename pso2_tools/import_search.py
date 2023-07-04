@@ -103,7 +103,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
 
         for filehash in variant.files.split(","):
             if path := find_ice_file(context, filehash):
-                self.load_ice_model(self, context, path)
+                self.import_ice(self, context, path)
             else:
                 self.report({"ERROR"}, f"Could not find file {filehash}")
 
