@@ -5,6 +5,8 @@ from typing import Iterable, Optional
 import re
 
 import bpy
+
+from .object_info import ObjectInfo
 from .shaders import (
     classic,
     default_colors,
@@ -22,6 +24,8 @@ from .import_dds import dds_to_png
 class CustomColors:
     custom_color_1: Color = default_colors.BASE_COLOR_1
     custom_color_2: Color = default_colors.BASE_COLOR_2
+    custom_color_3: Color = default_colors.BASE_COLOR_3
+    custom_color_4: Color = default_colors.BASE_COLOR_4
     main_skin_color: Color = default_colors.MAIN_SKIN_COLOR
     sub_skin_color: Color = default_colors.SUB_SKIN_COLOR
     inner_color_1: Color = default_colors.INNER_COLOR_1
@@ -42,6 +46,18 @@ class CustomColors:
         return shader.ColorGroup(
             "PSO2 Innerwear Colors",
             [("Color 1", self.inner_color_1), ("Color 2", self.inner_color_2)],
+        )
+
+    @property
+    def group_cast_part(self):
+        return shader.ColorGroup(
+            "PSO2 Cast Colors",
+            [
+                ("Color 1", self.custom_color_1),
+                ("Color 2", self.custom_color_2),
+                ("Color 3", self.custom_color_3),
+                ("Color 4", self.custom_color_4),
+            ],
         )
 
     @property
@@ -132,20 +148,24 @@ def skin_material_exists() -> bool:
     return any(MaterialInfo.parse(mat.name).is_skin for mat in bpy.data.materials)
 
 
-def update_materials(names: Iterable[str], colors: CustomColors = None):
+def update_materials(
+    names: Iterable[str], colors: CustomColors = None, object_info: ObjectInfo = None
+):
     """
     Take the materials with the given names which resulted from an FBX import
     and update them to approximate PSO2 shaders.
     """
     for name in names:
-        update_material(bpy.data.materials[name], colors)
+        update_material(bpy.data.materials[name], colors, object_info)
 
 
-def update_material(mat: bpy.types.Material, colors: CustomColors = None):
+def update_material(
+    mat: bpy.types.Material, colors: CustomColors = None, object_info: ObjectInfo = None
+):
     mat_info = MaterialInfo.parse(mat.name)
     mat_info.update_settings(mat)
 
-    if builder := _get_material_builder(mat, mat_info, colors):
+    if builder := _get_material_builder(mat, mat_info, colors, object_info):
         builder.build()
 
 
@@ -165,7 +185,7 @@ MAT_NAME_RE = re.compile(
 def _try_int(text: Optional[str], default=0):
     try:
         return int(text)
-    except:
+    except ValueError:
         return default
 
 
@@ -181,7 +201,7 @@ class MaterialInfo:
     @staticmethod
     def parse(name: str) -> "MaterialInfo":
         if m := MAT_NAME_RE.search(name):
-            shader, blend_type, special_type, name, two_sided, alpha_cutoff = m.group(
+            shadname, blend_type, special_type, name, two_sided, alpha_cutoff = m.group(
                 "shader",
                 "blend_type",
                 "special_type",
@@ -191,7 +211,7 @@ class MaterialInfo:
             )
 
             return MaterialInfo(
-                shader=shader,
+                shader=shadname,
                 blend_type=blend_type,
                 special_type=special_type or "",
                 name=name,
@@ -294,8 +314,14 @@ def levenshtein_dist(str0: str, str1: str):
 
 
 def _get_material_builder(
-    mat: bpy.types.Material, mat_info: MaterialInfo, colors: CustomColors
+    mat: bpy.types.Material,
+    mat_info: MaterialInfo,
+    colors: CustomColors = None,
+    object_info: ObjectInfo = None,
 ):
+    colors = colors or CustomColors()
+    object_info = object_info or ObjectInfo()
+
     main_mats = []
     sub_mats = []
     shader_colors = colors.group_basewear
@@ -319,7 +345,11 @@ def _get_material_builder(
 
         case "rbd" | "rbd_d":  # NGS outfit, cast body
             main_mats += ["bw", "bd"]
-            shader_colors = colors.group_basewear
+            shader_colors = (
+                colors.group_cast_part
+                if object_info.use_cast_colors
+                else colors.group_basewear
+            )
 
         case "rbd_ou":  # NGS outerwear
             main_mats += ["ow"]
@@ -359,7 +389,7 @@ def _get_material_builder(
     # 1302 - weapon opaque?
     match mat_info.shader:
         # Just use a generic classic shader for all values < 1000
-        case shader if classic.is_classic_shader(shader):
+        case name if classic.is_classic_shader(name):
             return classic.ClassicDefaultMaterial(
                 mat,
                 textures=mat_info.get_textures(*main_mats),
@@ -398,4 +428,5 @@ def _get_material_builder(
                 mat,
                 textures=mat_info.get_textures(*main_mats),
                 colors=shader_colors,
+                object_info=object_info,
             )

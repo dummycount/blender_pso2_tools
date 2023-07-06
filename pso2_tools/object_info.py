@@ -1,0 +1,373 @@
+from dataclasses import dataclass
+from enum import Enum
+import os
+from pathlib import Path
+from typing import Optional, TypeVar
+
+try:
+    from enum import StrEnum
+except ImportError:
+    from .strenum import StrEnum
+
+_T = TypeVar("_T")
+
+
+def _try_parse(obj_type: type[_T], value: str) -> Optional[_T]:
+    try:
+        return obj_type(value)
+    except ValueError:
+        return None
+
+
+class ObjectCategory(StrEnum):
+    EFFECT = "eff"
+    ENEMY = "en"
+    OBJECT = "ob"
+    PLAYER = "pl"
+    WEAPON = "wp"
+    UI = "ui"
+
+
+class ObjectType(StrEnum):
+    ACCESSORY = "ah"
+    BODY = "bd"
+    BODY_PAINT = "ba"
+    EAR = "ea"
+    EYE = "ey"
+    EYEBROW = "eb"
+    EYELASHES = "es"
+    HAIR = "hr"
+    HEAD = "hd"
+    FACE_PAINT = "hs"
+
+    NGS = "r"
+    NGS_ACCESSORY = "rah"
+    NGS_BODY = "rbd"
+    NGS_BODY_PAINT = "rba"
+    NGS_EAR = "rea"
+    NGS_EYE = "rey"
+    NGS_EYEBROW = "reb"
+    NGS_EYELASHES = "res"
+    NGS_FACE_PAINT = "rfp"
+    NGS_HAIR = "rhr"
+    NGS_HEAD = "rhd"
+    NGS_HORN = "rhn"
+    NGS_TEETH = "rdt"
+
+
+class ModelPart(StrEnum):
+    FEMALE_ANY = "fm_xx"
+    FEMALE_BASEWEAR = "fl_bw"
+    FEMALE_INNERWEAR = "fl_iw"
+    FEMALE_OUTERWEAR = "fl_ow"
+    FEMALE_COSTUME = "fu_xx"
+    FEMALE_FACE = "fm_nh"
+    UNKNOWN_FD = "fd_xx"
+    MALE_ANY = "ml_xx"
+    MALE_BASEWEAR = "ml_bw"
+    MALE_INNERWEAR = "ml_iw"
+    MALE_OUTERWEAR = "ml_ow"
+    MALE_COSTUME = "mu_xx"
+    MALE_FACE = "mh_nh"
+    UNKNOWN_MA = "ma_xx"
+    UNKNOWN_MD = "md_xx"
+    FEMALE_CAST_ANY = "fc_xx"
+    FEMALE_CAST_ARMS = "fc_rm"
+    FEMALE_CAST_BODY = "fc_tr"
+    FEMALE_CAST_LEGS = "fc_lg"
+    FEMALE_CAST_HEAD = "fc_nh"
+    MALE_CAST_ANY = "mc_xx"
+    MALE_CAST_ARMS = "mc_rm"
+    MALE_CAST_BODY = "mc_tr"
+    MALE_CAST_LEGS = "mc_lg"
+    MALE_CAST_HEAD = "mc_nh"
+    UNKNOWN_UU = "uu_xx"
+
+    NGS_SKIN = "sk"
+    NGS_BASEWEAR = "bw"
+    NGS_INNERWEAR = "iw"
+    NGS_OUTERWEAR = "ow"
+    NGS_CAST_ARMS = "rm"
+    NGS_CAST_BODY = "bd"
+    NGS_CAST_LEGS = "lg"
+
+
+class TextureId(StrEnum):
+    ALPHAS = "a"
+    DIFFUSE = "d"
+    LAYER = "l"
+    MULIT = "m"
+    NORMAL = "n"
+    SPECULAR = "s"
+    UNKNOWN_C = "c"
+    UNKNOWN_G = "g"
+    UNKNOWN_O = "o"
+    UNKNOWN_P = "p"
+    UNKNOWN_V = "v"
+
+
+class BodyType(StrEnum):
+    GENDERLESS = "GENDERLESS"
+    MALE = "MALE"
+    FEMALE = "FEMALE"
+    NGS_MALE = "T1"
+    NGS_FEMALE = "T2"
+
+
+_LOD_L1 = "_l1"
+_LOD_L2 = "_l2"
+_LOD_L3 = "_l3"
+_TEXTURE_EXT = (".dds", ".png")
+
+
+@dataclass
+class UVMapping:
+    from_u_min: float = 0
+    from_u_max: float = 1
+    to_u_min: float = 0
+    to_u_max: float = 1
+
+
+CAST_ARMS_UV_MAPPING = UVMapping(from_u_max=1 / 3, to_u_max=2 / 3)
+CAST_BODY_UV_MAPPING = UVMapping(from_u_min=1 / 3, from_u_max=2 / 3, to_u_max=2 / 3)
+CAST_LEGS_UV_MAPPING = UVMapping(from_u_min=2 / 3, to_u_max=2 / 3)
+
+BODY_OBJECTS = (
+    ObjectType.BODY,
+    ObjectType.BODY_PAINT,
+    ObjectType.NGS_BODY,
+    ObjectType.NGS_BODY_PAINT,
+)
+HAIR_OBJECTS = (ObjectType.HAIR, ObjectType.NGS_HAIR)
+HEAD_OBJECTS = (
+    ObjectType.EAR,
+    ObjectType.HEAD,
+    ObjectType.NGS_EAR,
+    ObjectType.NGS_HEAD,
+)
+
+CAST_ARMS_PARTS = (
+    ModelPart.FEMALE_CAST_ARMS,
+    ModelPart.MALE_CAST_ARMS,
+    ModelPart.NGS_CAST_ARMS,
+)
+CAST_BODY_PARTS = (
+    ModelPart.FEMALE_CAST_BODY,
+    ModelPart.MALE_CAST_BODY,
+    ModelPart.NGS_CAST_BODY,
+)
+CAST_LEGS_PARTS = (
+    ModelPart.FEMALE_CAST_LEGS,
+    ModelPart.MALE_CAST_LEGS,
+    ModelPart.NGS_CAST_LEGS,
+)
+CAST_PARTS = (
+    *CAST_ARMS_PARTS,
+    *CAST_BODY_PARTS,
+    *CAST_LEGS_PARTS,
+    ModelPart.FEMALE_CAST_ANY,
+    ModelPart.MALE_CAST_ANY,
+)
+
+MALE_COSTUME_IDS = (0, 9999)
+FEMALE_COSTUME_IDS = (10000, 19999)
+MALE_BASEWEAR_IDS = (20000, 29999)
+FEMALE_BASEWEAR_IDS = (30000, 39999)
+MALE_CAST_IDS = (40000, 49999)
+FEMALE_CAST_IDS = (50000, 59999)
+
+NGS_T1_IDS = (100000, 199999)
+NGS_T2_IDS = (200000, 299999)
+NGS_T1_CAST_IDS = (300000, 399999)
+NGS_T2_CAST_IDS = (400000, 499999)
+NGS_GENDERLESS_IDS = (500000, 599999)
+
+NGS_BASE_BODY_ICE: dict[BodyType, str] = {
+    BodyType.NGS_MALE: "195fac68420e7a08fb37ae36403a419b",
+    BodyType.NGS_FEMALE: "be23da464641f6ea102f4366095fa5eb",
+}
+
+
+@dataclass
+class ObjectInfo:
+    name: str = ""
+    extension: str = ""
+    category: Optional[ObjectCategory] = None
+    object_type: Optional[ObjectType] = None
+    object_id: int = 0
+    part: Optional[ObjectType] = None
+    texture: Optional[str] = None
+    level_of_detail: int = 0
+
+    @classmethod
+    def from_file_name(cls, path: str | Path):
+        # category_...
+
+        path = Path(path)
+        category, _, rest = path.name.partition("_")
+
+        info = ObjectInfo(name=path.name, extension=path.suffix, category=category)
+
+        match info.category:
+            case ObjectCategory.OBJECT:
+                info._from_object_file_name(rest)
+
+            case ObjectCategory.PLAYER:
+                info._from_player_file_name(rest)
+
+            case ObjectCategory.WEAPON:
+                info._from_weapon_file_name(rest)
+
+        return info
+
+    @property
+    def body_type(self) -> BodyType:
+        if self.id_in_ranges(NGS_T1_IDS, NGS_T1_CAST_IDS):
+            return BodyType.NGS_MALE
+
+        if self.id_in_ranges(NGS_T2_IDS, NGS_T2_CAST_IDS):
+            return BodyType.NGS_FEMALE
+
+        if self.id_in_ranges(MALE_COSTUME_IDS, MALE_BASEWEAR_IDS, MALE_CAST_IDS):
+            return BodyType.MALE
+
+        if self.id_in_ranges(FEMALE_COSTUME_IDS, FEMALE_BASEWEAR_IDS, FEMALE_CAST_IDS):
+            return BodyType.FEMALE
+
+        return BodyType.GENDERLESS
+
+    @property
+    def base_body_ice(self) -> Optional[str]:
+        return NGS_BASE_BODY_ICE.get(self.body_type)
+
+    @property
+    def is_ngs(self):
+        return self.object_type is not None and str(self.object_type).startswith("r")
+
+    @property
+    def is_body_object(self):
+        return (
+            self.category == ObjectCategory.PLAYER and self.object_type in BODY_OBJECTS
+        )
+
+    @property
+    def is_cast_part(self):
+        return self.is_body_object and self.part in CAST_PARTS
+
+    @property
+    def is_hair_object(self):
+        return (
+            self.category == ObjectCategory.PLAYER and self.object_type in HAIR_OBJECTS
+        )
+
+    @property
+    def is_head_object(self):
+        return (
+            self.category == ObjectCategory.PLAYER and self.object_type in HEAD_OBJECTS
+        )
+
+    @property
+    def use_costume_colors(self):
+        return self.is_body_object and not self.part in CAST_PARTS
+
+    @property
+    def use_skin_colors(self):
+        return self.is_body_object or self.is_head_object
+
+    @property
+    def use_cast_colors(self):
+        return self.is_cast_part
+
+    @property
+    def use_hair_colors(self):
+        return self.is_hair_object
+
+    @property
+    def use_eye_colors(self):
+        return self.is_head_object
+
+    @property
+    def uv_mapping(self) -> Optional[UVMapping]:
+        if self.part in CAST_ARMS_PARTS:
+            return CAST_ARMS_UV_MAPPING
+        if self.part in CAST_BODY_PARTS:
+            return CAST_BODY_UV_MAPPING
+        if self.part in CAST_LEGS_PARTS:
+            return CAST_LEGS_UV_MAPPING
+        return None
+
+    def id_in_ranges(self, *bounds: list[tuple[int, int]]):
+        return any(b[0] <= self.object_id <= b[1] for b in bounds)
+
+    def _from_object_file_name(self, rest: str):
+        # One of
+        # ..._####_####.ext
+        # ..._####_####_lod.ext
+        # ..._####_####_motion.ext
+        # ..._####_####_###_texture.ext
+
+        rest, lod = _partition_lod(rest)
+        self.level_of_detail = lod
+
+        if self.extension in _TEXTURE_EXT:
+            rest, _, texture = rest.rpartition("_")
+            self.texture = _try_parse(TextureId, texture)
+
+    def _from_player_file_name(self, rest: str):
+        # ..._type_id_...
+        object_type, _, rest = rest.partition("_")
+        object_id, _, rest = rest.partition("_")
+
+        self.object_type = _try_parse(ObjectType, object_type)
+        self.object_id = _try_parse(int, object_id)
+
+        if self.is_ngs:
+            # One of
+            # ..._part.ext
+            # ..._texture.ext
+            # ..._part_texture.ext
+            # ..._part_lod.ext
+
+            rest, lod = _partition_lod(rest)
+            self.level_of_detail = lod
+
+            if self.extension in _TEXTURE_EXT:
+                part, _, texture = rest.rpartition("_")
+                self.texture = _try_parse(TextureId, texture)
+            else:
+                part = rest
+
+            self.part = _try_parse(ModelPart, part)
+        else:
+            # ...texture_part_part.ext
+            texture, _, part = rest.partition("_")
+
+            if texture != "x":
+                self.texture = _try_parse(TextureId, texture)
+
+            if part != "xx_xx":
+                self.part = _try_parse(ModelPart, part)
+
+    def _from_weapon_file_name(self, rest: str):
+        # ...[_r]_##_##_##_##_##_r[_texture].ext
+
+        if rest.startswith(ObjectType.NGS):
+            self.object_type = ObjectType.NGS
+
+        if self.extension in _TEXTURE_EXT:
+            rest, _, texture = rest.rpartition("_")
+
+        self.texture = _try_parse(TextureId, texture)
+
+
+def _partition_lod(text: str) -> tuple[str, int]:
+    if text.endswith(_LOD_L1):
+        return text.removesuffix(_LOD_L1), 1
+
+    if text.endswith(_LOD_L2):
+        return text.removesuffix(_LOD_L2), 2
+
+    if text.endswith(_LOD_L3):
+        return text.removesuffix(_LOD_L3), 1
+
+    return text, 0

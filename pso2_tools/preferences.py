@@ -2,8 +2,7 @@ from pathlib import Path
 import os
 import re
 
-from bpy.types import AddonPreferences, Context
-from bpy.props import StringProperty
+import bpy
 from . import classes
 
 
@@ -38,19 +37,22 @@ def get_steam_libraries() -> list[Path]:
 
 
 @classes.register_class
-class Pso2ToolsPreferences(AddonPreferences):
+class Pso2ToolsPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
-    pso2_data_path: StringProperty(
+    pso2_data_path: bpy.props.StringProperty(
         name="Path to pso2_bin/data",
         subtype="DIR_PATH",
         default=_get_default_data_path(),
     )
 
-    def draw(self, context):
+    debug: bpy.props.BoolProperty(name="Show debug info", default=False)
+
+    def draw(self, context: bpy.types.Context):
         layout = self.layout
         layout.prop(self, "pso2_data_path")
+        layout.prop(self, "debug")
 
 
-def get_preferences(context: Context) -> Pso2ToolsPreferences:
+def get_preferences(context: bpy.types.Context) -> Pso2ToolsPreferences:
     return context.preferences.addons[__package__].preferences

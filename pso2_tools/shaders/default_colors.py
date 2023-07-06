@@ -8,6 +8,8 @@ MAGENTA: Color = (1, 0, 1, 1)
 
 BASE_COLOR_1: Color = GRAY
 BASE_COLOR_2: Color = GRAY
+BASE_COLOR_3: Color = GRAY
+BASE_COLOR_4: Color = GRAY
 INNER_COLOR_1: Color = GRAY
 INNER_COLOR_2: Color = GRAY
 MAIN_SKIN_COLOR: Color = (0.8, 0.42, 0.30, 1)

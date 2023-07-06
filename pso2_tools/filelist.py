@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import shutil
 from subprocess import CalledProcessError
+from typing import Optional
+
+from .object_info import ModelPart, ObjectType
 
 try:
     from enum import StrEnum
@@ -55,6 +58,9 @@ VARIANT_REPLACEMENT = "Replacement"
 class FileGroup:
     category: Category
     name: str
+    object_type: Optional[ObjectType] = None
+    object_id: int = (0,)
+    part: Optional[ModelPart] = None
     files: defaultdict[str, list[str]] = field(
         default_factory=lambda: defaultdict(list)
     )
@@ -76,73 +82,165 @@ def update_file_lists(operator: bpy.types.Operator, context: bpy.types.Context):
         return {"CANCELLED"}
 
 
-_NGS_PLAYER_FILES: list[tuple[Category, str]] = [
-    (Category.NgsFacePart, "AllFacesNGS.csv"),
-    (Category.NgsFacePart, "AllHairNGS.csv"),
-    (Category.NgsFacePart, "EarsNGS.csv"),
-    (Category.NgsFacePart, "EyebrowsNVS.csv"),
-    (Category.NgsFacePart, "EyelashesNGS.csv"),
-    (Category.NgsFacePart, "EyesNGS.csv"),
-    (Category.NgsFacePart, "FacePaintNGS.csv"),
-    (Category.NgsFacePart, "HornsNGS.csv"),
-    (Category.NgsFacePart, "TeethNGS.csv"),
-    (Category.NgsCastPart, "CasealArmsNGS.csv"),
-    (Category.NgsCastPart, "CasealLegsNGS.csv"),
-    (Category.NgsCastPart, "CasealNGSBodies.csv"),
-    (Category.NgsCastPart, "CastArmsNGS.csv"),
-    (Category.NgsCastPart, "CastLegsNGS.csv"),
-    (Category.NgsCastPart, "CastBodies.csv"),
-    (Category.NgsOutfit, "FemaleNGSBasewear.csv"),
-    (Category.NgsOutfit, "FemaleNGSInnerwear.csv"),
-    (Category.NgsOutfit, "FemaleNGSOuters.csv"),
-    (Category.NgsOutfit, "GenderlessNGSBasewear.csv"),
-    (Category.NgsOutfit, "MaleNGSBasewear.csv"),
-    (Category.NgsOutfit, "MaleNGSInnerwear.csv"),
-    (Category.NgsOutfit, "MaleNGSOuters.csv"),
-    (Category.NgsBodyPaint, "CasealNGSBodyPaint.csv"),
-    (Category.NgsBodyPaint, "CastNGSBodyPaint.csv"),
-    (Category.NgsBodyPaint, "FemaleNGSBodyPaint.csv"),
-    (Category.NgsBodyPaint, "GenderlessNGSBodyPaint.csv"),
-    (Category.NgsBodyPaint, "MaleNGSBodyPaint.csv"),
-    (Category.NgsBodyPaint, "Skins.csv"),
+FileTuple = tuple[Category, str, ObjectType | None, ModelPart | None]
+
+_NGS_PLAYER_FILES: list[FileTuple] = [
+    (Category.NgsFacePart, "AllFacesNGS.csv", ObjectType.NGS_HEAD, None),
+    (Category.NgsFacePart, "AllHairNGS.csv", ObjectType.NGS_HAIR, None),
+    (Category.NgsFacePart, "EarsNGS.csv", ObjectType.NGS_EAR, None),
+    (Category.NgsFacePart, "EyebrowsNVS.csv", ObjectType.NGS_EYEBROW, None),
+    (Category.NgsFacePart, "EyelashesNGS.csv", ObjectType.NGS_EYELASHES, None),
+    (Category.NgsFacePart, "EyesNGS.csv", ObjectType.NGS_EYE, None),
+    (Category.NgsFacePart, "FacePaintNGS.csv", ObjectType.NGS_FACE_PAINT, None),
+    (Category.NgsFacePart, "HornsNGS.csv", ObjectType.NGS_HORN, None),
+    (Category.NgsFacePart, "TeethNGS.csv", ObjectType.NGS_TEETH, None),
+    (
+        Category.NgsCastPart,
+        "CasealArmsNGS.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_CAST_ARMS,
+    ),
+    (
+        Category.NgsCastPart,
+        "CasealLegsNGS.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_CAST_LEGS,
+    ),
+    (
+        Category.NgsCastPart,
+        "CasealNGSBodies.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_CAST_BODY,
+    ),
+    (
+        Category.NgsCastPart,
+        "CastArmsNGS.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_CAST_ARMS,
+    ),
+    (
+        Category.NgsCastPart,
+        "CastLegsNGS.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_CAST_LEGS,
+    ),
+    (
+        Category.NgsCastPart,
+        "CastNGSBodies.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_CAST_BODY,
+    ),
+    (
+        Category.NgsOutfit,
+        "FemaleNGSBasewear.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_BASEWEAR,
+    ),
+    (
+        Category.NgsOutfit,
+        "FemaleNGSInnerwear.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_INNERWEAR,
+    ),
+    (
+        Category.NgsOutfit,
+        "FemaleNGSOuters.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_OUTERWEAR,
+    ),
+    (
+        Category.NgsOutfit,
+        "GenderlessNGSBasewear.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_BASEWEAR,
+    ),
+    (
+        Category.NgsOutfit,
+        "MaleNGSBasewear.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_BASEWEAR,
+    ),
+    (
+        Category.NgsOutfit,
+        "MaleNGSInnerwear.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_INNERWEAR,
+    ),
+    (
+        Category.NgsOutfit,
+        "MaleNGSOuters.csv",
+        ObjectType.NGS_BODY,
+        ModelPart.NGS_OUTERWEAR,
+    ),
+    (Category.NgsBodyPaint, "CasealNGSBodyPaint.csv", ObjectType.NGS_BODY_PAINT, None),
+    (Category.NgsBodyPaint, "CastNGSBodyPaint.csv", ObjectType.NGS_BODY_PAINT, None),
+    (Category.NgsBodyPaint, "FemaleNGSBodyPaint.csv", ObjectType.NGS_BODY_PAINT, None),
+    (
+        Category.NgsBodyPaint,
+        "GenderlessNGSBodyPaint.csv",
+        ObjectType.NGS_BODY_PAINT,
+        None,
+    ),
+    (Category.NgsBodyPaint, "MaleNGSBodyPaint.csv", ObjectType.NGS_BODY_PAINT, None),
+    (Category.NgsBodyPaint, "Skins.csv", ObjectType.NGS_BODY, ModelPart.NGS_SKIN),
 ]
 
-_CLASSIC_PLAYER_FILES: list[tuple[Category, str]] = [
-    (Category.ClassicFacePart, "CasealFaces_Heads.csv"),
-    (Category.ClassicFacePart, "CasealHair.csv"),
-    (Category.ClassicFacePart, "CastFaces_Heads.csv"),
-    (Category.ClassicFacePart, "Eyebrows.csv"),
-    (Category.ClassicFacePart, "Eyelashes.csv"),
-    (Category.ClassicFacePart, "Eyes.csv"),
-    (Category.ClassicFacePart, "FacePaint.csv"),
-    (Category.ClassicFacePart, "FaceTextures.csv"),
-    (Category.ClassicFacePart, "FemaleDeumanFaces.csv"),
-    (Category.ClassicFacePart, "FemaleHair.csv"),
-    (Category.ClassicFacePart, "FemaleHumanFaces.csv"),
-    (Category.ClassicFacePart, "FemaleNewmanFaces.csv"),
-    (Category.ClassicFacePart, "MaleDeumanFaces.csv"),
-    (Category.ClassicFacePart, "MaleHair.csv"),
-    (Category.ClassicFacePart, "MaleHumanFaces.csv"),
-    (Category.ClassicFacePart, "MaleNewmanFaces.csv"),
-    (Category.ClassicCastPart, "CasealArms.csv"),
-    (Category.ClassicCastPart, "CasealBodies.csv"),
-    (Category.ClassicCastPart, "CasealLegs.csv"),
-    (Category.ClassicCastPart, "CastArms.csv"),
-    (Category.ClassicCastPart, "CastBodies.csv"),
-    (Category.ClassicCastPart, "CastLegs.csv"),
-    (Category.ClassicOutfit, "FemaleBasewear.csv"),
-    (Category.ClassicOutfit, "FemaleCostumes.csv"),
-    (Category.ClassicOutfit, "FemaleInnerwear.csv"),
-    (Category.ClassicOutfit, "FemaleOuters.csv"),
-    (Category.ClassicOutfit, "MaleBasewear.csv"),
-    (Category.ClassicOutfit, "MaleCostumes.csv"),
-    (Category.ClassicOutfit, "MaleOuters.csv"),
-    (Category.ClassicBodyPaint, "FemaleBodyPaint.csv"),
-    (Category.ClassicBodyPaint, "FemaleLayeredBodyPaint.csv"),
-    (Category.ClassicBodyPaint, "MaleBodyPaint.csv"),
-    (Category.ClassicBodyPaint, "MaleLayeredBodyPaint.csv"),
-    (Category.ClassicBodyPaint, "Skins.csv"),
-    (Category.ClassicOther, "PhotonBlastCreatures.csv"),
+_CLASSIC_PLAYER_FILES: list[FileTuple] = [
+    (
+        Category.ClassicFacePart,
+        "CasealFaces_Heads.csv",
+        ObjectType.HEAD,
+        ModelPart.FEMALE_CAST_HEAD,
+    ),
+    (Category.ClassicFacePart, "CasealHair.csv", ObjectType.HAIR, None),
+    (Category.ClassicFacePart, "CastFaces_Heads.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "Eyebrows.csv", ObjectType.EYEBROW, None),
+    (Category.ClassicFacePart, "Eyelashes.csv", ObjectType.EYELASHES, None),
+    (Category.ClassicFacePart, "Eyes.csv", ObjectType.EYE, None),
+    (Category.ClassicFacePart, "FacePaint.csv", ObjectType.FACE_PAINT, None),
+    (Category.ClassicFacePart, "FaceTextures.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "FemaleDeumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "FemaleHair.csv", ObjectType.HAIR, None),
+    (Category.ClassicFacePart, "FemaleHumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "FemaleNewmanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "MaleDeumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "MaleHair.csv", ObjectType.HAIR, None),
+    (Category.ClassicFacePart, "MaleHumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicFacePart, "MaleNewmanFaces.csv", ObjectType.HEAD, None),
+    (
+        Category.ClassicCastPart,
+        "CasealArms.csv",
+        ObjectType.BODY,
+        ModelPart.FEMALE_CAST_ARMS,
+    ),
+    (Category.ClassicCastPart, "CasealBodies.csv", ObjectType.BODY, None),
+    (Category.ClassicCastPart, "CasealLegs.csv", ObjectType.BODY, None),
+    (Category.ClassicCastPart, "CastArms.csv", ObjectType.BODY, None),
+    (Category.ClassicCastPart, "CastBodies.csv", ObjectType.BODY, None),
+    (Category.ClassicCastPart, "CastLegs.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "FemaleBasewear.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "FemaleCostumes.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "FemaleInnerwear.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "FemaleOuters.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "MaleBasewear.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "MaleCostumes.csv", ObjectType.BODY, None),
+    (Category.ClassicOutfit, "MaleOuters.csv", ObjectType.BODY, None),
+    (Category.ClassicBodyPaint, "FemaleBodyPaint.csv", ObjectType.BODY_PAINT, None),
+    (
+        Category.ClassicBodyPaint,
+        "FemaleLayeredBodyPaint.csv",
+        ObjectType.BODY_PAINT,
+        None,
+    ),
+    (Category.ClassicBodyPaint, "MaleBodyPaint.csv", ObjectType.BODY_PAINT, None),
+    (
+        Category.ClassicBodyPaint,
+        "MaleLayeredBodyPaint.csv",
+        ObjectType.BODY_PAINT,
+        None,
+    ),
+    (Category.ClassicBodyPaint, "Skins.csv", ObjectType.NGS_BODY, ModelPart.NGS_SKIN),
+    (Category.ClassicOther, "PhotonBlastCreatures.csv", None, None),
 ]
 
 _COMMON_PLAYER_FILES: list[tuple[Category, str]] = [
@@ -155,11 +253,15 @@ _COMMON_PLAYER_FILES: list[tuple[Category, str]] = [
 
 
 def get_file_groups():
-    for category, file in _NGS_PLAYER_FILES:
-        yield from _read_player_csv(category, f"Player/NGS/{file}")
+    for category, file, object_type, model_part in _NGS_PLAYER_FILES:
+        yield from _read_player_csv(
+            category, f"Player/NGS/{file}", object_type, model_part
+        )
 
-    for category, file in _CLASSIC_PLAYER_FILES:
-        yield from _read_player_csv(category, f"Player/Classic/{file}")
+    for category, file, object_type, model_part in _CLASSIC_PLAYER_FILES:
+        yield from _read_player_csv(
+            category, f"Player/Classic/{file}", object_type, model_part
+        )
 
 
 _SEARCH_PATHS = ["win32", "win32_na", "win32reboot", "win32reboot_na"]
@@ -176,22 +278,33 @@ def find_ice_file(context: bpy.types.Context, filehash: str) -> Path | None:
     return None
 
 
-def _read_player_csv(category: Category, file: str):
+def _read_player_csv(
+    category: Category,
+    file: str,
+    object_type: Optional[ObjectType] = None,
+    model_part: Optional[ModelPart] = None,
+):
     try:
         for row in _read_csv(file):
-            yield from _parse_player_csv_row(category, row)
+            yield from _parse_player_csv_row(category, row, object_type, model_part)
     except OSError:
         pass
 
 
-def _parse_player_csv_row(category: Category, row: dict[str, str]):
+def _parse_player_csv_row(
+    category: Category,
+    row: dict[str, str],
+    object_type: Optional[ObjectType] = None,
+    model_part: Optional[ModelPart] = None,
+):
     name = (
         row.get("English Name")
         or row.get("Japanese Name")
         or f"Unnamed {row.get('Id')}"
     )
 
-    group = FileGroup(category, name)
+    object_id = int(row.get("Id", "0"))
+    group = FileGroup(category, name, object_type, object_id, model_part)
 
     common_files = [row.get("Material Anim"), row.get("Material Anim Ex")]
 

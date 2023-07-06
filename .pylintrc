@@ -8,4 +8,4 @@ disable=import-error
 ignored-modules=bpy,bpy_extras,io_scene_fbx,pso2_tools.import_dds,zamboni
 
 [FORMAT]
-good-names=f,i,ex
+good-names=ex,f,i,id

@@ -3,6 +3,10 @@ from typing import Any, Set
 import bpy
 from bpy.types import Context, UILayout
 
+from .preferences import get_preferences
+
+from .object_info import ModelPart, ObjectCategory, ObjectInfo, ObjectType
+
 from .import_model import ImportProperties
 
 from .filelist import (
@@ -30,7 +34,19 @@ class IceFileGroup(bpy.types.PropertyGroup):
 class ListItem(bpy.types.PropertyGroup):
     category: bpy.props.StringProperty(name="Category")
     name: bpy.props.StringProperty(name="Name")
+    object_type: bpy.props.StringProperty(name="Object Type")
+    object_id: bpy.props.IntProperty(name="ID")
+    part: bpy.props.StringProperty(name="Model Part")
     files: bpy.props.CollectionProperty(type=IceFileGroup)
+
+    def get_object_info(self):
+        return ObjectInfo(
+            name=self.name,
+            category=ObjectCategory.PLAYER,  # TODO
+            object_type=ObjectType(self.object_type) if self.object_type else None,
+            object_id=self.object_id,
+            part=ModelPart(self.part) if self.part else None,
+        )
 
 
 def _get_variant(group: IceFileGroup):
@@ -62,6 +78,15 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
     def __init__(self):
         super().__init__()
         _populate_model_list(self.models)
+
+    def get_filepath(self):
+        return ""
+
+    def get_object_info(self):
+        if selected := self.models[self.models_index]:
+            return selected.get_object_info()
+
+        return ObjectInfo()
 
     def draw(self, context: bpy.types.Context) -> None:
         layout = self.layout
@@ -142,6 +167,9 @@ def _populate_model_list(collection):
         item: ListItem = collection.add()
         item.category = group.category
         item.name = group.name
+        item.object_type = group.object_type or ""
+        item.object_id = group.object_id
+        item.part = group.part or ""
 
         for key, files in group.files.items():
             prop: IceFileGroup = item.files.add()
@@ -251,7 +279,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         context: Context,
         layout: UILayout,
         data: Any,
-        item: Any,
+        item: ListItem,
         icon: int,
         active_data: Any,
         active_property: str,
@@ -263,6 +291,11 @@ class PSO2_UL_ModelList(bpy.types.UIList):
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             layout.label(text=item.name, icon=_get_icon(item.category))
+
+            if get_preferences(context).debug:
+                debug_text = f"{item.object_type}_{item.object_id}_{item.part}"
+                debug_text = debug_text.removesuffix("_")
+                layout.label(text=debug_text)
 
         elif self.layout_type == "GRID":
             pass
