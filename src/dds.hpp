@@ -2,15 +2,15 @@
 
 #include <DirectXTex.h>
 
+#include <filesystem>
 #include <span>
-#include <string>
 
 namespace Pso2Tools {
 
 void Initialize();
 
-void OpenDds(const std::string& path, DirectX::ScratchImage& image);
+void OpenDds(const std::filesystem::path& path, DirectX::ScratchImage& image);
 
-void SavePng(const std::string& path, const DirectX::ScratchImage& image);
+void SavePng(const std::filesystem::path& path, const DirectX::ScratchImage& image);
 
 }
