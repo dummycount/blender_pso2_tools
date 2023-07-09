@@ -8,7 +8,8 @@
     },
     "python.analysis.inlayHints.functionReturnTypes": true,
     "python.analysis.extraPaths": [
-      "C:/Program Files/Blender Foundation/Blender 3.5/3.5/scripts/addons",
+      "C:/Program Files/Blender Foundation/Blender 3.6/3.6/scripts/addons",
+      "C:/Program Files/Blender Foundation/Blender 3.6/3.6/scripts/modules",
       "${workspaceFolder}/zamboni"
     ],
     "files.associations": {
