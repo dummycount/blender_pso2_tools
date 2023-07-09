@@ -6,8 +6,6 @@ import shutil
 from subprocess import CalledProcessError
 from typing import Optional
 
-from .object_info import ModelPart, ObjectType
-
 try:
     from enum import StrEnum
 except ImportError:
@@ -16,6 +14,7 @@ except ImportError:
 import bpy
 
 from .convert import make_file_lists
+from .object_info import ModelPart, ObjectType
 from .preferences import get_preferences
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -25,19 +24,20 @@ FILE_LIST_DIR = DATA_DIR / "FileLists"
 class Category(StrEnum):
     NgsOutfit = "NGS_OUTFIT"
     NgsCastPart = "NGS_CAST"
-    NgsFacePart = "NGS_FACE"
+    NgsHeadPart = "NGS_HEAD"
     NgsBodyPaint = "NGS_PAINT"
     NgsMag = "NGS_MAG"
     NgsOther = "NGS_OTHER"
 
     ClassicOutfit = "CLASSIC_OUTFIT"
     ClassicCastPart = "CLASSIC_CAST"
-    ClassicFacePart = "CLASSIC_FACE"
+    ClassicHeadPart = "CLASSIC_HEAD"
     ClassicBodyPaint = "CLASSIC_PAINT"
     ClassicMag = "CLASSIC_MAG"
     ClassicOther = "CLASSIC_OTHER"
 
     Accessory = "ACCESSORY"
+    Sticker = "STICKER"
     Room = "ROOM"
     MySpace = "MY_SPACE"
 
@@ -59,7 +59,7 @@ class FileGroup:
     category: Category
     name: str
     object_type: Optional[ObjectType] = None
-    object_id: int = (0,)
+    object_id: int = 0
     part: Optional[ModelPart] = None
     files: defaultdict[str, list[str]] = field(
         default_factory=lambda: defaultdict(list)
@@ -85,15 +85,15 @@ def update_file_lists(operator: bpy.types.Operator, context: bpy.types.Context):
 FileTuple = tuple[Category, str, ObjectType | None, ModelPart | None]
 
 _NGS_PLAYER_FILES: list[FileTuple] = [
-    (Category.NgsFacePart, "AllFacesNGS.csv", ObjectType.NGS_HEAD, None),
-    (Category.NgsFacePart, "AllHairNGS.csv", ObjectType.NGS_HAIR, None),
-    (Category.NgsFacePart, "EarsNGS.csv", ObjectType.NGS_EAR, None),
-    (Category.NgsFacePart, "EyebrowsNVS.csv", ObjectType.NGS_EYEBROW, None),
-    (Category.NgsFacePart, "EyelashesNGS.csv", ObjectType.NGS_EYELASHES, None),
-    (Category.NgsFacePart, "EyesNGS.csv", ObjectType.NGS_EYE, None),
-    (Category.NgsFacePart, "FacePaintNGS.csv", ObjectType.NGS_FACE_PAINT, None),
-    (Category.NgsFacePart, "HornsNGS.csv", ObjectType.NGS_HORN, None),
-    (Category.NgsFacePart, "TeethNGS.csv", ObjectType.NGS_TEETH, None),
+    (Category.NgsHeadPart, "AllFacesNGS.csv", ObjectType.NGS_HEAD, None),
+    (Category.NgsHeadPart, "AllHairNGS.csv", ObjectType.NGS_HAIR, None),
+    (Category.NgsHeadPart, "EarsNGS.csv", ObjectType.NGS_EAR, None),
+    (Category.NgsHeadPart, "EyebrowsNVS.csv", ObjectType.NGS_EYEBROW, None),
+    (Category.NgsHeadPart, "EyelashesNGS.csv", ObjectType.NGS_EYELASHES, None),
+    (Category.NgsHeadPart, "EyesNGS.csv", ObjectType.NGS_EYE, None),
+    (Category.NgsHeadPart, "FacePaintNGS.csv", ObjectType.NGS_FACE_PAINT, None),
+    (Category.NgsHeadPart, "HornsNGS.csv", ObjectType.NGS_HORN, None),
+    (Category.NgsHeadPart, "TeethNGS.csv", ObjectType.NGS_TEETH, None),
     (
         Category.NgsCastPart,
         "CasealArmsNGS.csv",
@@ -187,26 +187,26 @@ _NGS_PLAYER_FILES: list[FileTuple] = [
 
 _CLASSIC_PLAYER_FILES: list[FileTuple] = [
     (
-        Category.ClassicFacePart,
+        Category.ClassicHeadPart,
         "CasealFaces_Heads.csv",
         ObjectType.HEAD,
         ModelPart.FEMALE_CAST_HEAD,
     ),
-    (Category.ClassicFacePart, "CasealHair.csv", ObjectType.HAIR, None),
-    (Category.ClassicFacePart, "CastFaces_Heads.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "Eyebrows.csv", ObjectType.EYEBROW, None),
-    (Category.ClassicFacePart, "Eyelashes.csv", ObjectType.EYELASHES, None),
-    (Category.ClassicFacePart, "Eyes.csv", ObjectType.EYE, None),
-    (Category.ClassicFacePart, "FacePaint.csv", ObjectType.FACE_PAINT, None),
-    (Category.ClassicFacePart, "FaceTextures.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "FemaleDeumanFaces.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "FemaleHair.csv", ObjectType.HAIR, None),
-    (Category.ClassicFacePart, "FemaleHumanFaces.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "FemaleNewmanFaces.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "MaleDeumanFaces.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "MaleHair.csv", ObjectType.HAIR, None),
-    (Category.ClassicFacePart, "MaleHumanFaces.csv", ObjectType.HEAD, None),
-    (Category.ClassicFacePart, "MaleNewmanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "CasealHair.csv", ObjectType.HAIR, None),
+    (Category.ClassicHeadPart, "CastFaces_Heads.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "Eyebrows.csv", ObjectType.EYEBROW, None),
+    (Category.ClassicHeadPart, "Eyelashes.csv", ObjectType.EYELASHES, None),
+    (Category.ClassicHeadPart, "Eyes.csv", ObjectType.EYE, None),
+    (Category.ClassicHeadPart, "FacePaint.csv", ObjectType.FACE_PAINT, None),
+    (Category.ClassicHeadPart, "FaceTextures.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "FemaleDeumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "FemaleHair.csv", ObjectType.HAIR, None),
+    (Category.ClassicHeadPart, "FemaleHumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "FemaleNewmanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "MaleDeumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "MaleHair.csv", ObjectType.HAIR, None),
+    (Category.ClassicHeadPart, "MaleHumanFaces.csv", ObjectType.HEAD, None),
+    (Category.ClassicHeadPart, "MaleNewmanFaces.csv", ObjectType.HEAD, None),
     (
         Category.ClassicCastPart,
         "CasealArms.csv",
@@ -243,25 +243,44 @@ _CLASSIC_PLAYER_FILES: list[FileTuple] = [
     (Category.ClassicOther, "PhotonBlastCreatures.csv", None, None),
 ]
 
-_COMMON_PLAYER_FILES: list[tuple[Category, str]] = [
-    (Category.Accessory, "Accessories.csv"),
-    (Category.NgsOther, "DarkBlasts_DrivableVehiclesNGS.csv"),
-    (Category.ClassicOther, "DarkBlasts_DrivableVehicles.csv"),
-    (Category.NgsMag, "MagsNGS.csv"),
-    (Category.ClassicMag, "Mags.csv"),
+_COMMON_PLAYER_FILES: list[FileTuple] = [
+    (
+        Category.Accessory,
+        "Accessories.csv",
+        ObjectType.ACCESSORY,
+        None,
+    ),
+    (
+        Category.Sticker,
+        "Stickers.csv",
+        ObjectType.STICKER,
+        None,
+    ),
+    (Category.NgsOther, "DarkBlasts_DrivableVehiclesNGS.csv", None, None),
+    (Category.ClassicOther, "DarkBlasts_DrivableVehicles.csv", None, None),
+]
+
+_PLAYER_FILES: list[tuple[str, list[FileTuple]]] = [
+    ("Player/Classic", _CLASSIC_PLAYER_FILES),
+    ("Player/NGS", _NGS_PLAYER_FILES),
+    ("Player", _COMMON_PLAYER_FILES),
+]
+
+_MAG_FILES: list[FileTuple] = [
+    (Category.NgsMag, "MagsNGS.csv", None, None),
+    (Category.ClassicMag, "Mags.csv", None, None),
 ]
 
 
 def get_file_groups():
-    for category, file, object_type, model_part in _NGS_PLAYER_FILES:
-        yield from _read_player_csv(
-            category, f"Player/NGS/{file}", object_type, model_part
-        )
+    for root, files in _PLAYER_FILES:
+        for category, file, object_type, model_part in files:
+            yield from _read_player_csv(
+                category, f"{root}/{file}", object_type, model_part
+            )
 
-    for category, file, object_type, model_part in _CLASSIC_PLAYER_FILES:
-        yield from _read_player_csv(
-            category, f"Player/Classic/{file}", object_type, model_part
-        )
+    for category, file, object_type, model_part in _MAG_FILES:
+        yield from _read_mag_csv(category, file)
 
 
 _SEARCH_PATHS = ["win32", "win32_na", "win32reboot", "win32reboot_na"]
@@ -287,8 +306,21 @@ def _read_player_csv(
     try:
         for row in _read_csv(file):
             yield from _parse_player_csv_row(category, row, object_type, model_part)
-    except OSError:
-        pass
+    except OSError as ex:
+        print(ex)
+
+
+def _read_mag_csv(
+    category: Category,
+    file: str,
+    object_type: Optional[ObjectType] = None,
+    model_part: Optional[ModelPart] = None,
+):
+    try:
+        for row in _read_headerless_csv(f"Player/{file}"):
+            yield from _parse_mag_csv_row(category, row)
+    except OSError as ex:
+        print(ex)
 
 
 def _parse_player_csv_row(
@@ -347,3 +379,31 @@ def _read_csv(name: str):
         newline="", encoding="utf-8-sig", errors="surrogateescape"
     ) as csvfile:
         yield from csv.DictReader(csvfile)
+
+
+def _parse_mag_csv_row(
+    category: Category,
+    row: list[str],
+):
+    try:
+        if row[-1] == "(Not found)":
+            return
+
+        name = row[1]
+        icefile = row[3]
+        group = FileGroup(category, name)
+        group.files[VARIANT_NORMAL_QUALITY] = [icefile]
+
+        yield group
+    except IndexError:
+        pass
+
+
+def _read_headerless_csv(name: str):
+    path = FILE_LIST_DIR / name
+    with path.open(
+        newline="", encoding="utf-8-sig", errors="surrogateescape"
+    ) as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            yield row

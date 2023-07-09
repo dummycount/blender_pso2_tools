@@ -1,16 +1,13 @@
-from typing import Any, Set
+from typing import Any, Optional, Set
 
 import bpy
 from bpy.types import Context, UILayout
 
+from . import classes
 from .preferences import get_preferences
-
 from .object_info import ModelPart, ObjectCategory, ObjectInfo, ObjectType
-
 from .import_model import ImportProperties
-
 from .filelist import (
-    ALL_CATEGORIES,
     VARIANT_HIGH_QUALITY,
     VARIANT_NORMAL_QUALITY,
     VARIANT_REPLACEMENT,
@@ -20,8 +17,6 @@ from .filelist import (
     get_file_groups,
     update_file_lists,
 )
-
-from . import classes
 
 
 @classes.register_class
@@ -48,6 +43,12 @@ class ListItem(bpy.types.PropertyGroup):
             part=ModelPart(self.part) if self.part else None,
         )
 
+    @property
+    def description(self):
+        return (
+            self.get_object_info().description or _get_category_info(self.category)[0]
+        )
+
 
 def _get_variant(group: IceFileGroup):
     variants = [VARIANT_HIGH_QUALITY, VARIANT_NORMAL_QUALITY, VARIANT_REPLACEMENT]
@@ -66,12 +67,13 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
     models_index: bpy.props.IntProperty(name="Selected Index")
 
     def _get_variant_items(self, context: bpy.types.Context):
-        if selected := self.models[self.models_index]:
+        try:
+            selected = self.models[self.models_index]
             return [
                 (_get_variant(item), _get_variant(item), "") for item in selected.files
             ]
-
-        return []
+        except IndexError:
+            return []
 
     variant: bpy.props.EnumProperty(name="Variant", items=_get_variant_items)
 
@@ -79,11 +81,17 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
         super().__init__()
         _populate_model_list(self.models)
 
+    def get_selected_model(self) -> Optional[ListItem]:
+        try:
+            return self.models[self.models_index]
+        except IndexError:
+            return None
+
     def get_filepath(self):
-        return ""
+        raise RuntimeError("Item search does not use filepath")
 
     def get_object_info(self):
-        if selected := self.models[self.models_index]:
+        if selected := self.get_selected_model():
             return selected.get_object_info()
 
         return ObjectInfo()
@@ -104,7 +112,6 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
             "models_index",
             rows=10,
         )
-        col.operator(PSO2_OT_RebuildFileList.bl_idname, text="Rebuild File List (slow)")
 
         col = split.column()
         col.prop(self, "variant")
@@ -119,18 +126,21 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
         box = col.box()
         self.draw_armature_props(context, box)
 
-    def execute(self, context: bpy.types.Context) -> Set[str]:
-        selection: ListItem = self.models[self.models_index]
-        variant = next(
-            (item for item in selection.files if item.variant == self.variant),
-            selection.files[0],
-        )
+        col.separator()
+        col.operator(PSO2_OT_RebuildFileList.bl_idname, text="Update File List (slow)")
 
-        for filehash in variant.files.split(","):
-            if path := find_ice_file(context, filehash):
-                self.import_ice(self, context, path)
-            else:
-                self.report({"ERROR"}, f"Could not find file {filehash}")
+    def execute(self, context: bpy.types.Context) -> Set[str]:
+        if selection := self.get_selected_model():
+            variant = next(
+                (item for item in selection.files if item.variant == self.variant),
+                selection.files[0],
+            )
+
+            for filehash in variant.files.split(","):
+                if path := find_ice_file(context, filehash):
+                    self.import_ice(self, context, path)
+                else:
+                    self.report({"ERROR"}, f"Could not find file {filehash}")
 
         return {"FINISHED"}
 
@@ -163,6 +173,8 @@ def _file_group_key(group: FileGroup):
 
 
 def _populate_model_list(collection):
+    collection.clear()
+
     for group in sorted(get_file_groups(), key=_file_group_key):
         item: ListItem = collection.add()
         item.category = group.category
@@ -177,34 +189,39 @@ def _populate_model_list(collection):
             prop.files = ",".join(files)
 
 
-_CATEGORY_ICONS = {
-    Category.NgsOutfit: "MOD_CLOTH",
-    Category.NgsCastPart: "MOD_CLOTH",
-    Category.NgsFacePart: "USER",
-    Category.NgsBodyPaint: "TEXTURE",
-    Category.NgsMag: "GHOST_DISABLED",
-    Category.NgsOther: "AUTO",
-    Category.ClassicOutfit: "MOD_CLOTH",
-    Category.ClassicCastPart: "MOD_CLOTH",
-    Category.ClassicFacePart: "USER",
-    Category.ClassicBodyPaint: "TEXTURE",
-    Category.ClassicMag: "GHOST_DISABLED",
-    Category.ClassicOther: "AUTO",
-    Category.Accessory: "MESH_TORUS",
-    Category.Room: "HOME",
-    Category.MySpace: "WORLD",
-    Category.NgsEnemies: "MONKEY",
-    Category.ClassicEnemies: "MONKEY",
+_CATEGORY_INFO: dict[Category, tuple[str, str]] = {
+    Category.NgsOutfit: ("Outfit (NGS)", "MOD_CLOTH"),
+    Category.NgsCastPart: ("Cast Part (NGS)", "MOD_CLOTH"),
+    Category.NgsHeadPart: ("Head Part (NGS)", "USER"),
+    Category.NgsBodyPaint: ("Body Paint (NGS)", "TEXTURE"),
+    Category.NgsMag: ("Mag (NGS)", "GHOST_DISABLED"),
+    Category.NgsOther: ("Other (NGS)", "AUTO"),
+    Category.ClassicOutfit: ("Outfit (Classic)", "MOD_CLOTH"),
+    Category.ClassicCastPart: ("Cast Part (Classic)", "MOD_CLOTH"),
+    Category.ClassicHeadPart: ("Head Part (Classic)", "USER"),
+    Category.ClassicBodyPaint: ("Body Paint (Classic)", "TEXTURE"),
+    Category.ClassicMag: ("Mag (Classic)", "GHOST_DISABLED"),
+    Category.ClassicOther: ("Other (Classic)", "AUTO"),
+    Category.Accessory: ("Accessory", "MESH_TORUS"),
+    Category.Sticker: ("Sticker", "TEXTURE"),
+    Category.Room: ("Room (Classic)", "HOME"),
+    Category.MySpace: ("My Space (NGS)", "WORLD"),
+    Category.NgsEnemies: ("Enemy (NGS)", "MONKEY"),
+    Category.ClassicEnemies: ("Enemy (Classic)", "MONKEY"),
 }
 
 
-def _get_icon(category: Category):
-    return _CATEGORY_ICONS.get(category, "NONE")
+def _get_category_info(category: Category) -> tuple[str, str]:
+    if info := _CATEGORY_INFO.get(category):
+        return info
+    return ("", "NONE")
 
 
-def _get_enum_item(category: Category, text: str):
+def _get_enum_item(category: Category):
+    text, icon = _get_category_info(category)
     index = 1 << list(Category).index(category)
-    return (category, text, "", _get_icon(category), index)
+
+    return (category, text, "", icon, index)
 
 
 @classes.register_class
@@ -218,26 +235,27 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         name="Model Categories",
         options={"ENUM_FLAG"},
         items=(
-            _get_enum_item(Category.NgsOutfit, "Outfits (NGS)"),
-            _get_enum_item(Category.NgsCastPart, "Cast Parts (NGS)"),
-            _get_enum_item(Category.NgsFacePart, "Face Parts (NGS)"),
-            _get_enum_item(Category.NgsBodyPaint, "Body Paint (NGS)"),
-            _get_enum_item(Category.MySpace, "My Space (NGS)"),
-            _get_enum_item(Category.ClassicOutfit, "Outfits (Classic)"),
-            _get_enum_item(Category.ClassicCastPart, "Cast Parts (Classic)"),
-            _get_enum_item(Category.ClassicFacePart, "Face Parts (Classic)"),
-            _get_enum_item(Category.ClassicBodyPaint, "Body Paint (Classic)"),
-            _get_enum_item(Category.Room, "Room (Classic)"),
-            _get_enum_item(Category.Accessory, "Accessories"),
-            _get_enum_item(Category.NgsMag, "Mags (NGS)"),
-            _get_enum_item(Category.ClassicMag, "Mags (Classic)"),
-            _get_enum_item(Category.ClassicOther, "Other (Classic)"),
-            _get_enum_item(Category.NgsOther, "Other (NGS)"),
-            _get_enum_item(Category.NgsEnemies, "Enemies (NGS)"),
-            _get_enum_item(Category.ClassicEnemies, "Enemies (Classic)"),
+            _get_enum_item(Category.NgsOutfit),
+            _get_enum_item(Category.NgsCastPart),
+            _get_enum_item(Category.NgsHeadPart),
+            _get_enum_item(Category.NgsBodyPaint),
+            _get_enum_item(Category.Accessory),
+            _get_enum_item(Category.ClassicOutfit),
+            _get_enum_item(Category.ClassicCastPart),
+            _get_enum_item(Category.ClassicHeadPart),
+            _get_enum_item(Category.ClassicBodyPaint),
+            _get_enum_item(Category.Sticker),
+            _get_enum_item(Category.MySpace),
+            _get_enum_item(Category.Room),
+            _get_enum_item(Category.NgsMag),
+            _get_enum_item(Category.ClassicMag),
+            _get_enum_item(Category.ClassicOther),
+            _get_enum_item(Category.NgsOther),
+            _get_enum_item(Category.NgsEnemies),
+            _get_enum_item(Category.ClassicEnemies),
         ),
         description="Filter by object category",
-        default=ALL_CATEGORIES,
+        default=set(),
     )
 
     def filter_items(self, context: Context, data: Any, prop: str) -> None:
@@ -253,9 +271,10 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         else:
             flt_flags = [self.bitflag_filter_item] * len(items)
 
-        for idx, item in enumerate(items):
-            if not item.category in self.categories:
-                flt_flags[idx] &= ~self.bitflag_filter_item
+        if self.categories:
+            for idx, item in enumerate(items):
+                if not item.category in self.categories:
+                    flt_flags[idx] &= ~self.bitflag_filter_item
 
         return flt_flags, []
 
@@ -290,7 +309,9 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         self.use_filter_show = True
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            layout.label(text=item.name, icon=_get_icon(item.category))
+            category, icon = _get_category_info(item.category)
+            layout.label(text=item.name, icon=icon)
+            layout.label(text=item.description)
 
             if get_preferences(context).debug:
                 debug_text = f"{item.object_type}_{item.object_id}_{item.part}"
@@ -303,12 +324,12 @@ class PSO2_UL_ModelList(bpy.types.UIList):
 
 @classes.register_class
 class PSO2_OT_AllCategories(bpy.types.Operator):
-    """Select All Categories"""
+    """Unselect All Categories"""
 
-    bl_label = "All Categories"
+    bl_label = "Clear"
     bl_idname = "pso2tools.select_all_categories"
 
     def execute(self, context: Context) -> Set[str]:
-        context.parent.categories = ALL_CATEGORIES
+        context.parent.categories = set()
 
         return {"FINISHED"}

@@ -22,6 +22,7 @@ def _try_parse(obj_type: type[_T], value: str) -> Optional[_T]:
 class ObjectCategory(StrEnum):
     EFFECT = "eff"
     ENEMY = "en"
+    MAG = "mg"
     OBJECT = "ob"
     PLAYER = "pl"
     WEAPON = "wp"
@@ -39,6 +40,7 @@ class ObjectType(StrEnum):
     HAIR = "hr"
     HEAD = "hd"
     FACE_PAINT = "hs"
+    STICKER = "bp"
 
     NGS = "r"
     NGS_ACCESSORY = "rah"
@@ -204,11 +206,15 @@ class ObjectInfo:
         # category_...
 
         path = Path(path)
-        category, _, rest = path.name.partition("_")
+        category, _, rest = path.with_suffix("").name.partition("_")
 
         info = ObjectInfo(name=path.name, extension=path.suffix, category=category)
 
         match info.category:
+            case ObjectCategory.MAG:
+                # TODO: mags have similar names to weapons
+                info._from_weapon_file_name(rest)
+
             case ObjectCategory.OBJECT:
                 info._from_object_file_name(rest)
 
@@ -219,6 +225,10 @@ class ObjectInfo:
                 info._from_weapon_file_name(rest)
 
         return info
+
+    @property
+    def description(self) -> str:
+        return _get_description(self)
 
     @property
     def body_type(self) -> BodyType:
@@ -356,8 +366,7 @@ class ObjectInfo:
 
         if self.extension in _TEXTURE_EXT:
             rest, _, texture = rest.rpartition("_")
-
-        self.texture = _try_parse(TextureId, texture)
+            self.texture = _try_parse(TextureId, texture)
 
 
 def _partition_lod(text: str) -> tuple[str, int]:
@@ -371,3 +380,128 @@ def _partition_lod(text: str) -> tuple[str, int]:
         return text.removesuffix(_LOD_L3), 1
 
     return text, 0
+
+
+def _get_description(info: ObjectInfo):
+    tag = " (NGS)" if info.is_ngs else ""
+
+    match info:
+        case ObjectInfo(category=ObjectCategory.EFFECT):
+            return "Effect"
+
+        case ObjectInfo(category=ObjectCategory.ENEMY):
+            return f"Enemy{tag}"
+
+        case ObjectInfo(category=ObjectCategory.MAG):
+            return f"Mag{tag}"
+
+        case ObjectInfo(category=ObjectCategory.WEAPON):
+            return f"Weapon{tag}"
+
+        case ObjectInfo(category=ObjectCategory.UI):
+            return "UI"
+
+        # Player objects
+        case ObjectInfo(object_type=ObjectType.ACCESSORY):
+            return "Accessory"
+
+        case ObjectInfo(object_type=ObjectType.NGS_ACCESSORY):
+            return "Accessory (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.BODY_PAINT):
+            return "Body Paint"
+
+        case ObjectInfo(object_type=ObjectType.NGS_BODY_PAINT):
+            return "Body Paint (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.EAR):
+            return "Ears"
+
+        case ObjectInfo(object_type=ObjectType.NGS_EAR):
+            return "Ears (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.EYE):
+            return "Eyes"
+
+        case ObjectInfo(object_type=ObjectType.NGS_EYE):
+            return "Eyes (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.EYEBROW):
+            return "Eyebrows"
+
+        case ObjectInfo(object_type=ObjectType.NGS_EYEBROW):
+            return "Eyebrows (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.EYELASHES):
+            return "Eyelashes"
+
+        case ObjectInfo(object_type=ObjectType.NGS_EYELASHES):
+            return "Eyelashes (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.HAIR):
+            return "Hair"
+
+        case ObjectInfo(object_type=ObjectType.NGS_HAIR):
+            return "Hair (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.HEAD):
+            return "Head"
+
+        case ObjectInfo(object_type=ObjectType.NGS_HEAD):
+            return "Head (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.FACE_PAINT):
+            return "Face Paint"
+
+        case ObjectInfo(object_type=ObjectType.NGS_FACE_PAINT):
+            return "Face Paint (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.NGS_HORN):
+            return "Horns (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.NGS_TEETH):
+            return "Teeth (NGS)"
+
+        case ObjectInfo(object_type=ObjectType.STICKER):
+            return "Sticker"
+
+        case ObjectInfo(object_type=ObjectType.BODY, part=part):
+            return _get_part_description(part)
+
+        case ObjectInfo(object_type=ObjectType.NGS_BODY, part=part):
+            return _get_part_description(part)
+
+    return ""
+
+
+_MODEL_PART_DESCRIPTIONS: dict[ModelPart, str] = {
+    ModelPart.FEMALE_BASEWEAR: "Female Basewear",
+    ModelPart.FEMALE_INNERWEAR: "Female Innerwear",
+    ModelPart.FEMALE_OUTERWEAR: "Female Outerwear",
+    ModelPart.FEMALE_COSTUME: "Female Costume",
+    ModelPart.FEMALE_FACE: "Female Face",
+    ModelPart.MALE_BASEWEAR: "Male Basewear",
+    ModelPart.MALE_INNERWEAR: "Male Innerwear",
+    ModelPart.MALE_OUTERWEAR: "Male Outerwear",
+    ModelPart.MALE_COSTUME: "Male Costume",
+    ModelPart.MALE_FACE: "Male Face",
+    ModelPart.FEMALE_CAST_ARMS: "Female Cast Arms",
+    ModelPart.FEMALE_CAST_BODY: "Female Cast Body",
+    ModelPart.FEMALE_CAST_LEGS: "Female Cast Legs",
+    ModelPart.FEMALE_CAST_HEAD: "Female Cast Head",
+    ModelPart.MALE_CAST_ARMS: "Male Cast Arms",
+    ModelPart.MALE_CAST_BODY: "Male Cast Body",
+    ModelPart.MALE_CAST_LEGS: "Male Cast Legs",
+    ModelPart.MALE_CAST_HEAD: "Male Cast Head",
+    ModelPart.NGS_SKIN: "Skin (NGS)",
+    ModelPart.NGS_BASEWEAR: "Basewear (NGS)",
+    ModelPart.NGS_INNERWEAR: "Innerwear (NGS)",
+    ModelPart.NGS_OUTERWEAR: "Outerwear (NGS)",
+    ModelPart.NGS_CAST_ARMS: "Cast Arms (NGS)",
+    ModelPart.NGS_CAST_BODY: "Cast Body (NGS)",
+    ModelPart.NGS_CAST_LEGS: "Cast Legs (NGS)",
+}
+
+
+def _get_part_description(part: ModelPart):
+    return _MODEL_PART_DESCRIPTIONS.get(part, "")

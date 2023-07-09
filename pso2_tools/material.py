@@ -2,22 +2,19 @@ from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 from typing import Iterable, Optional
-import re
 
 import bpy
 
+from .aqp_info import AqpInfo, AqpMaterial
 from .object_info import ObjectInfo
-from .shaders import (
-    classic,
-    default_colors,
-    ngs_default,
-    ngs_eye,
-    ngs_hair,
-    ngs_skin,
-    shader,
-)
-from .shaders.shader import Color
 from .import_dds import dds_to_png
+from .shaders import default_colors
+from .shaders.shader import Color, ColorGroup, MaterialTextures
+from .shaders.ngs_default import NgsDefaultMaterial
+from .shaders.ngs_eye import NgsEyeMaterial, NgsEyeTearMaterial
+from .shaders.ngs_hair import NgsHairMaterial
+from .shaders.ngs_skin import NgsSkinMaterial
+from .shaders.classic import ClassicDefaultMaterial, is_classic_shader
 
 
 @dataclass
@@ -36,21 +33,21 @@ class CustomColors:
 
     @property
     def group_basewear(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Basewear Colors",
             [("Color 1", self.custom_color_1), ("Color 2", self.custom_color_2)],
         )
 
     @property
     def group_innerwear(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Innerwear Colors",
             [("Color 1", self.inner_color_1), ("Color 2", self.inner_color_2)],
         )
 
     @property
     def group_cast_part(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Cast Colors",
             [
                 ("Color 1", self.custom_color_1),
@@ -62,28 +59,28 @@ class CustomColors:
 
     @property
     def group_skin(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Skin Colors",
             [("Main", self.main_skin_color), ("Sub", self.sub_skin_color)],
         )
 
     @property
     def group_hair(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Hair Colors",
             [("Color 1", self.hair_color_1), ("Color 2", self.hair_color_2)],
         )
 
     @property
     def group_eyes(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Eye Colors",
             [("Left", self.eye_color), ("Right", self.eye_color)],
         )
 
     @property
     def group_classic_outfit(self):
-        return shader.ColorGroup(
+        return ColorGroup(
             "PSO2 Classic Colors",
             [("Skin", self.main_skin_color), ("Outfit", self.custom_color_1)],
         )
@@ -143,157 +140,115 @@ def load_image(file: Path) -> bpy.types.Image:
     return image
 
 
-def skin_material_exists() -> bool:
-    """Get whether any skin textures are loaded in the scene"""
-    return any(MaterialInfo.parse(mat.name).is_skin for mat in bpy.data.materials)
+def skin_material_exists(model_info: AqpInfo) -> bool:
+    """Get whether a model contains a skin material"""
+
+    return any(mat.special_type == "rbd_sk" for mat in model_info.materials)
 
 
 def update_materials(
-    names: Iterable[str], colors: CustomColors = None, object_info: ObjectInfo = None
+    names: Iterable[str],
+    colors: CustomColors,
+    object_info: ObjectInfo,
+    model_info: AqpInfo,
 ):
     """
     Take the materials with the given names which resulted from an FBX import
     and update them to approximate PSO2 shaders.
     """
     for name in names:
-        update_material(bpy.data.materials[name], colors, object_info)
+        update_material(bpy.data.materials[name], colors, object_info, model_info)
 
 
 def update_material(
-    mat: bpy.types.Material, colors: CustomColors = None, object_info: ObjectInfo = None
+    mat: bpy.types.Material,
+    colors: CustomColors,
+    object_info: ObjectInfo,
+    model_info: AqpInfo,
 ):
-    mat_info = MaterialInfo.parse(mat.name)
-    mat_info.update_settings(mat)
+    mat_info = model_info.get_fbx_material(mat.name)
 
-    if builder := _get_material_builder(mat, mat_info, colors, object_info):
-        builder.build()
+    if mat_info:
+        update_material_settings(mat, mat_info, object_info)
 
+        if builder := _get_material_builder(mat, mat_info, colors, object_info):
+            builder.build()
 
-MAT_NAME_RE = re.compile(
-    r"""
-    \((?P<shader>.+)\)              # (shader)
-    \{(?P<blend_type>.+)\}          # {blend_type}
-    (?:\[(?P<special_type>.+)\])?   # [special_type]
-    (?P<name>.+)                    # name
-    @(?P<two_sided>\d+)             # @two_sided
-    (?:@(?P<alpha_cutoff>\d+))      # @alpha_cutoff
-    """,
-    re.VERBOSE,
-)
+    else:
+        print("Failed to find material:", mat.name)
+        print("Candidates:")
+        for candidate in model_info.materials:
+            print("  ", candidate.fbx_name)
 
 
-def _try_int(text: Optional[str], default=0):
-    try:
-        return int(text)
-    except ValueError:
-        return default
-
-
-@dataclass
-class MaterialInfo:
-    shader: str = ""
-    blend_type: str = "opaque"
-    special_type: str = ""
-    name: str = ""
-    two_sided: int = 2
-    alpha_cutoff: int = 0
-
-    @staticmethod
-    def parse(name: str) -> "MaterialInfo":
-        if m := MAT_NAME_RE.search(name):
-            shadname, blend_type, special_type, name, two_sided, alpha_cutoff = m.group(
-                "shader",
-                "blend_type",
-                "special_type",
-                "name",
-                "two_sided",
-                "alpha_cutoff",
-            )
-
-            return MaterialInfo(
-                shader=shadname,
-                blend_type=blend_type,
-                special_type=special_type or "",
-                name=name,
-                two_sided=_try_int(two_sided, 2),
-                alpha_cutoff=_try_int(alpha_cutoff, 0),
-            )
-
-        return MaterialInfo()
-
-    @property
-    def is_skin(self) -> bool:
-        return self.special_type and self.special_type in ("rbd_sk")
-
-    @property
-    def is_hair(self) -> bool:
-        return self.special_type and self.special_type in ("hr", "rhr")
-
-    def update_settings(self, mat: bpy.types.Material):
-        if self.blend_type in ("add", "blendalpha", "hollow"):
-            if self.alpha_cutoff > 0:
-                mat.blend_method = "CLIP"
-                mat.alpha_threshold = self.alpha_cutoff / 256
-            else:
-                mat.blend_method = "HASHED" if self.is_hair else "BLEND"
-                mat.show_transparent_back = False
+def update_material_settings(
+    mat: bpy.types.Material, mat_info: AqpMaterial, object_info: ObjectInfo
+):
+    if mat_info.blend_type in ("add", "blendalpha", "hollow"):
+        if mat_info.alpha_cutoff > 0:
+            mat.blend_method = "CLIP"
+            mat.alpha_threshold = mat_info.alpha_cutoff / 256
         else:
-            mat.blend_method = "OPAQUE"
+            mat.blend_method = "HASHED" if object_info.is_hair_object else "BLEND"
+            mat.show_transparent_back = False
+    else:
+        mat.blend_method = "OPAQUE"
 
-        match self.two_sided:
-            case 0:
-                mat.use_backface_culling = True
+    match mat_info.two_sided:
+        case 0:
+            mat.use_backface_culling = True
 
-            case 1:
-                mat.use_backface_culling = False
+        case 1:
+            mat.use_backface_culling = False
 
-            case 2:
-                # Not sure about this. Turning on backface culling fixes Z fighting
-                # on some opaque models but makes some features of transparent
-                # models disappear, so just enable it if not using alpha.
-                mat.use_backface_culling = mat.blend_method != "blendalpha"
+        case 2:
+            # Not sure about this. Turning on backface culling fixes Z fighting
+            # on some opaque models but makes some features of transparent
+            # models disappear, so just enable it if not using alpha.
+            mat.use_backface_culling = mat.blend_method != "blendalpha"
 
-    def get_textures(self, *tags: str):
-        if not tags:
-            return shader.MaterialTextures()
 
-        return shader.MaterialTextures(
-            alpha=self._find_texture(tags, "a"),
-            diffuse=self._find_texture(tags, "d"),
-            multi=self._find_texture(tags, "m"),
-            normal=self._find_texture(tags, "n"),
-            specular=self._find_texture(tags, "s"),
-            layer=self._find_texture(tags, "l"),
-            texture_c=self._find_texture(tags, "c"),
-            texture_g=self._find_texture(tags, "g"),
-            texture_o=self._find_texture(tags, "o"),
-            texture_p=self._find_texture(tags, "p"),
-            texture_v=self._find_texture(tags, "v"),
-        )
+def get_textures(mat_info: AqpMaterial, *tags: str):
+    if not tags:
+        return MaterialTextures()
 
-    def _find_texture(
-        self, tags: Iterable[str], texture_type: str
-    ) -> Optional[bpy.types.Image]:
-        of_type = [
-            img
-            for img in bpy.data.images.values()
-            if texture_has_part(img.name, texture_type)
-            and texture_has_part(img.name, tags)
-        ]
+    return MaterialTextures(
+        alpha=_find_texture(mat_info, tags, "a"),
+        diffuse=_find_texture(mat_info, tags, "d"),
+        multi=_find_texture(mat_info, tags, "m"),
+        normal=_find_texture(mat_info, tags, "n"),
+        specular=_find_texture(mat_info, tags, "s"),
+        layer=_find_texture(mat_info, tags, "l"),
+        texture_c=_find_texture(mat_info, tags, "c"),
+        texture_g=_find_texture(mat_info, tags, "g"),
+        texture_o=_find_texture(mat_info, tags, "o"),
+        texture_p=_find_texture(mat_info, tags, "p"),
+        texture_v=_find_texture(mat_info, tags, "v"),
+    )
 
-        if not of_type:
-            return None
 
-        # If there are multiple candidates, just pick the one that matches the
-        # material name the closest I guess.
-        return min(of_type, key=lambda img: levenshtein_dist(img.name, self.name))
+def _find_texture(
+    mat_info: AqpMaterial, tags: Iterable[str], texture_type: str
+) -> Optional[bpy.types.Image]:
+    of_type = [
+        img
+        for img in bpy.data.images.values()
+        if texture_has_part(img.name, texture_type) and texture_has_part(img.name, tags)
+    ]
+
+    if not of_type:
+        return None
+
+    # If there are multiple candidates, just pick the one that matches the
+    # material name the closest I guess.
+    return min(of_type, key=lambda img: levenshtein_dist(img.name, mat_info.name))
 
 
 def levenshtein_dist(str0: str, str1: str):
     m = len(str0)
     n = len(str1)
 
-    v0 = [i for i in range(n + 1)]
+    v0 = list(range(n + 1))
     v1 = [0] * (n + 1)
 
     for i in range(m):
@@ -315,7 +270,7 @@ def levenshtein_dist(str0: str, str1: str):
 
 def _get_material_builder(
     mat: bpy.types.Material,
-    mat_info: MaterialInfo,
+    mat_info: AqpMaterial,
     colors: CustomColors = None,
     object_info: ObjectInfo = None,
 ):
@@ -326,6 +281,8 @@ def _get_material_builder(
     sub_mats = []
     shader_colors = colors.group_basewear
 
+    # TODO: find textures based on textures list in mat_info instead of this
+    # TODO: set shader colors according to object_info instead of mat_info
     match mat_info.special_type:
         case "pl":  # Classic outfit, cast body
             main_mats += ["bd", "tr"]
@@ -387,46 +344,47 @@ def _get_material_builder(
     # 1220 - enemy?
     # 1302 - weapon photon?
     # 1302 - weapon opaque?
-    match mat_info.shader:
+    shader_pair = f"{mat_info.shaders[0]},{mat_info.shaders[1]}"
+    match shader_pair:
         # Just use a generic classic shader for all values < 1000
-        case name if classic.is_classic_shader(name):
-            return classic.ClassicDefaultMaterial(
+        case name if is_classic_shader(name):
+            return ClassicDefaultMaterial(
                 mat,
-                textures=mat_info.get_textures(*main_mats),
+                textures=get_textures(mat_info, *main_mats),
                 colors=shader_colors,
             )
 
         case "1102p,1102":
-            return ngs_skin.NgsSkinMaterial(
+            return NgsSkinMaterial(
                 mat,
-                skin_textures=mat_info.get_textures(*main_mats),
-                inner_textures=mat_info.get_textures(*sub_mats),
+                skin_textures=get_textures(mat_info, *main_mats),
+                inner_textures=get_textures(mat_info, *sub_mats),
                 skin_colors=shader_colors,
                 inner_colors=colors.group_innerwear,
             )
 
         case "1103p,1103":
-            return ngs_hair.NgsHairMaterial(
+            return NgsHairMaterial(
                 mat,
-                textures=mat_info.get_textures(*main_mats),
+                textures=get_textures(mat_info, *main_mats),
                 colors=shader_colors,
             )
 
         case "1104p,1104":
-            return ngs_eye.NgsEyeMaterial(
+            return NgsEyeMaterial(
                 mat,
-                textures=mat_info.get_textures(*main_mats),
+                textures=get_textures(mat_info, *main_mats),
                 colors=shader_colors,
                 eye_index=1 if mat_info.name == "eye_r" else 0,
             )
 
         case "1105p,1105":
-            return ngs_eye.NgsEyeTearMaterial(mat)
+            return NgsEyeTearMaterial(mat)
 
         case _:  # 1100p,1100
-            return ngs_default.NgsDefaultMaterial(
+            return NgsDefaultMaterial(
                 mat,
-                textures=mat_info.get_textures(*main_mats),
+                textures=get_textures(mat_info, *main_mats),
                 colors=shader_colors,
                 object_info=object_info,
             )

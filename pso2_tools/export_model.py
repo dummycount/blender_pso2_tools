@@ -8,20 +8,21 @@ from bpy.types import Context, Operator
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper, axis_conversion
 from io_scene_fbx import export_fbx_bin
+from .aqp_info import AqpMaterial
 
 from . import classes, convert
 
-EXPORT_KWARGS = dict(
-    global_scale=1.0,
-    apply_unit_scale=True,
-    use_space_transform=True,
-    bake_space_transform=False,
-    add_leaf_bones=False,
-    armature_nodetype="NULL",
-    embed_textures=False,
-    batch_mode="OFF",
-    global_matrix=axis_conversion(to_forward="-Z", to_up="Y").to_4x4(),
-)
+EXPORT_KWARGS = {
+    "global_scale": 1.0,
+    "apply_unit_scale": True,
+    "use_space_transform": True,
+    "bake_space_transform": False,
+    "add_leaf_bones": False,
+    "armature_nodetype": "NULL",
+    "embed_textures": False,
+    "batch_mode": "OFF",
+    "global_matrix": axis_conversion(to_forward="-Z", to_up="Y").to_4x4(),
+}
 
 
 class BaseExport(Operator, ExportHelper):
@@ -219,19 +220,19 @@ class BaseExport(Operator, ExportHelper):
         raise NotImplementedError()
 
     def check_model(self, context: Context):
-        # Aqua model tool doesn't like meshes whose names end in a suffix like .001
-        def is_invalid(obj: bpy.types.Object):
-            return bool(obj.users and re.search(r"\.\d+$", obj.name))
+        for mesh in bpy.data.meshes:
+            try:
+                mesh: bpy.types.Mesh
 
-        invalid_objects = [obj for obj in bpy.data.meshes if is_invalid(obj)]
+                # Check material names against the format expected by the
+                # FBX importer.
+                for material in mesh.materials:
+                    material: bpy.types.Material
+                    AqpMaterial.from_fbx_name(material.name)
 
-        if invalid_objects:
-            names = "\n".join(obj.name for obj in invalid_objects)
-            self.report(
-                {"ERROR"},
-                f'Cannot export to AQP. Remove suffixes like ".001" from the names of these meshes:\n{names}',
-            )
-            return {"CANCELLED"}
+            except ValueError as ex:
+                self.report({"ERROR"}, f'Error in mesh "{mesh.name}:"\n{ex}')
+                return {"CANCELLED"}
 
         return None
 
@@ -388,7 +389,6 @@ class ExportAqp(BaseExport):
 
         try:
             result = convert.fbx_to_aqp(fbx_file, filepath, *args)
-            print(result.returncode, result.stdout, result.stderr)
             return {"FINISHED"}
         except CalledProcessError as ex:
             self.report({"ERROR"}, f"Failed to convert FBX to AQP:\n{ex.stderr}")

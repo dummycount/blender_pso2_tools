@@ -4,43 +4,30 @@ from tempfile import TemporaryDirectory
 from typing import Union
 
 import bpy
-from bpy.props import (
-    BoolProperty,
-    CollectionProperty,
-    EnumProperty,
-    FloatVectorProperty,
-    StringProperty,
-)
 from bpy.types import Context, Operator, OperatorFileListElement
 from bpy_extras.io_utils import ImportHelper
-
-from .object_info import ObjectInfo
+from io_scene_fbx import import_fbx
 import zamboni
 
 from . import classes, convert, material, preferences
+from .object_info import ObjectInfo
 from .shaders import default_colors
-
-
-BASE_BODY_ICE = {
-    "T1": "195fac68420e7a08fb37ae36403a419b",
-    "T2": "be23da464641f6ea102f4366095fa5eb",
-}
 
 
 class ImportProperties:
     """Mixin class for model import properties"""
 
-    automatic_bone_orientation: BoolProperty(
+    automatic_bone_orientation: bpy.props.BoolProperty(
         name="Automatic Bone Orientation",
         description="Correct bone orientation for Blender (breaks exporting the skeleton back to PSO2)",
         default=False,
     )
-    use_textures: BoolProperty(
+    use_textures: bpy.props.BoolProperty(
         name="Import textures",
         description="Import DDS textures from the model directory",
         default=True,
     )
-    custom_color_1: FloatVectorProperty(
+    custom_color_1: bpy.props.FloatVectorProperty(
         name="Color 1",
         description="Custom outfit/cast part color 1",
         default=default_colors.BASE_COLOR_1,
@@ -49,7 +36,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    custom_color_2: FloatVectorProperty(
+    custom_color_2: bpy.props.FloatVectorProperty(
         name="Color 2",
         description="Custom outfit/cast part color 2",
         default=default_colors.BASE_COLOR_2,
@@ -58,7 +45,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    custom_color_3: FloatVectorProperty(
+    custom_color_3: bpy.props.FloatVectorProperty(
         name="Color 3",
         description="Custom cast part color 3",
         default=default_colors.BASE_COLOR_3,
@@ -67,7 +54,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    custom_color_4: FloatVectorProperty(
+    custom_color_4: bpy.props.FloatVectorProperty(
         name="Color 4",
         description="Custom outfit color 4",
         default=default_colors.BASE_COLOR_4,
@@ -76,7 +63,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    inner_color_1: FloatVectorProperty(
+    inner_color_1: bpy.props.FloatVectorProperty(
         name="Innerwear 1",
         description="Custom innerwear color 1",
         default=default_colors.INNER_COLOR_1,
@@ -85,7 +72,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    inner_color_2: FloatVectorProperty(
+    inner_color_2: bpy.props.FloatVectorProperty(
         name="Innerwear 2",
         description="Custom innerwear color 2",
         default=default_colors.INNER_COLOR_2,
@@ -94,7 +81,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    hair_color_1: FloatVectorProperty(
+    hair_color_1: bpy.props.FloatVectorProperty(
         name="Hair 1",
         description="Hair color 1",
         default=default_colors.HAIR_COLOR_1,
@@ -103,7 +90,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    hair_color_2: FloatVectorProperty(
+    hair_color_2: bpy.props.FloatVectorProperty(
         name="Hair 2",
         description="Hair color 2",
         default=default_colors.HAIR_COLOR_2,
@@ -112,7 +99,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    eye_color: FloatVectorProperty(
+    eye_color: bpy.props.FloatVectorProperty(
         name="Eye",
         description="Eye color",
         default=default_colors.EYE_COLOR,
@@ -121,7 +108,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    main_skin_color: FloatVectorProperty(
+    main_skin_color: bpy.props.FloatVectorProperty(
         name="Skin Main",
         description="Main skin color",
         default=default_colors.MAIN_SKIN_COLOR,
@@ -130,7 +117,7 @@ class ImportProperties:
         subtype="COLOR",
         size=4,
     )
-    sub_skin_color: FloatVectorProperty(
+    sub_skin_color: bpy.props.FloatVectorProperty(
         name="Skin Sub",
         description="Secondary skin color",
         default=default_colors.SUB_SKIN_COLOR,
@@ -157,12 +144,11 @@ class ImportProperties:
             layout.prop(self, "main_skin_color")
             layout.prop(self, "sub_skin_color")
 
-        if object_info.use_costume_colors or object_info.use_cast_colors:
-            layout.prop(self, "custom_color_1")
-            layout.prop(self, "custom_color_2")
-            if object_info.use_cast_colors:
-                layout.prop(self, "custom_color_3")
-                layout.prop(self, "custom_color_4")
+        layout.prop(self, "custom_color_1")
+        layout.prop(self, "custom_color_2")
+        if object_info.use_cast_colors:
+            layout.prop(self, "custom_color_3")
+            layout.prop(self, "custom_color_4")
 
         if object_info.use_costume_colors:
             layout.prop(self, "inner_color_1")
@@ -183,8 +169,6 @@ class ImportProperties:
             material.load_textures(directory)
 
     def import_aqp(self, context: Context, path: Path):
-        from io_scene_fbx import import_fbx
-
         colors = material.CustomColors(
             custom_color_1=self.custom_color_1,
             custom_color_2=self.custom_color_2,
@@ -204,7 +188,7 @@ class ImportProperties:
 
         with TemporaryDirectory() as tempdir:
             fbxfile = Path(tempdir) / path.with_suffix(".fbx").name
-            convert.aqp_to_fbx(path, fbxfile)
+            model_info = convert.aqp_to_fbx_with_info(path, fbxfile)
 
             import_fbx.load(
                 self,
@@ -216,12 +200,12 @@ class ImportProperties:
 
             # Make sure to load skin textures before creating any materials that
             # would use them.
-            if self.use_textures and material.skin_material_exists():
+            if self.use_textures and material.skin_material_exists(model_info):
                 self.load_skin_textures(context)
 
             new_mats = set(bpy.data.materials.keys())
             material.update_materials(
-                new_mats.difference(original_mats), colors, object_info
+                new_mats.difference(original_mats), colors, object_info, model_info
             )
 
     def load_skin_textures(self, context: Context):
@@ -286,9 +270,9 @@ class ImportProperties:
 
 
 class BaseImport(Operator, ImportProperties, ImportHelper):
-    directory: StringProperty()
+    directory: bpy.props.StringProperty()
 
-    files: CollectionProperty(name="File Path", type=OperatorFileListElement)
+    files: bpy.props.CollectionProperty(name="File Path", type=OperatorFileListElement)
 
     def draw(self, context):
         pass
@@ -361,7 +345,7 @@ class ImportAqp(BaseImport):
     bl_options = {"UNDO", "PRESET"}
 
     filename_ext = ".aqp"
-    filter_glob: StringProperty(default="*.aqp", options={"HIDDEN"})
+    filter_glob: bpy.props.StringProperty(default="*.aqp", options={"HIDDEN"})
 
     def get_filepath(self):
         return self.filepath
@@ -378,7 +362,7 @@ class ImportIce(BaseImport):
     bl_label = "Import ICE"
     bl_options = {"UNDO", "PRESET"}
 
-    filter_glob: StringProperty(default="*", options={"HIDDEN"})
+    filter_glob: bpy.props.StringProperty(default="*", options={"HIDDEN"})
 
     def get_filepath(self):
         path = Path(self.filepath)
@@ -388,7 +372,6 @@ class ImportIce(BaseImport):
 
         try:
             ice = zamboni.IceFile.read(path)
-            print(file.name for file in ice.group2_files)
 
             for file in ice.group2_files:
                 if file.name.endswith(".aqp"):
