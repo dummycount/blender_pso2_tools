@@ -21,6 +21,7 @@ class Node:
 
     @property
     def name(self):
+        # pylint: disable=no-member
         return self.module.__name__
 
     def add_edge(self, node: "Node"):

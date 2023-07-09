@@ -32,7 +32,7 @@ def get_steam_libraries() -> list[Path]:
             return [
                 Path(match.group(1)) for line in f if (match := path_re.match(line))
             ]
-    except:
+    except OSError:
         return []
 
 

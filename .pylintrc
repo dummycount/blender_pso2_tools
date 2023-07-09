@@ -2,10 +2,12 @@
 extension-pkg-whitelist=bpy,bpy_extras,pso2_tools.import_dds,zamboni
 
 [MESSAGES CONTROL]
-disable=import-error
+disable=import-error,
+        invalid-name,
+        unused-argument
 
 [TYPECHECK]
 ignored-modules=bpy,bpy_extras,io_scene_fbx,pso2_tools.import_dds,zamboni
 
 [FORMAT]
-good-names=ex,f,i,id
+good-names=d,ex,f,i,id
