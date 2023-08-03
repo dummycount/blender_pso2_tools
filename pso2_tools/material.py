@@ -280,6 +280,7 @@ def _get_material_builder(
     main_mats = []
     sub_mats = []
     shader_colors = colors.group_basewear
+    shader_colors2: Optional[ColorGroup] = None
 
     # TODO: find textures based on textures list in mat_info instead of this
     # TODO: set shader colors according to object_info instead of mat_info
@@ -302,11 +303,11 @@ def _get_material_builder(
 
         case "rbd" | "rbd_d":  # NGS outfit, cast body
             main_mats += ["bw", "bd"]
-            shader_colors = (
-                colors.group_cast_part
-                if object_info.use_cast_colors
-                else colors.group_basewear
-            )
+            if object_info.use_cast_colors:
+                shader_colors = colors.group_cast_part
+            else:
+                shader_colors = colors.group_basewear
+                shader_colors2 = colors.group_innerwear
 
         case "rbd_ou":  # NGS outerwear
             main_mats += ["ow"]
@@ -386,5 +387,6 @@ def _get_material_builder(
                 mat,
                 textures=get_textures(mat_info, *main_mats),
                 colors=shader_colors,
+                inner_colors=shader_colors2,
                 object_info=object_info,
             )

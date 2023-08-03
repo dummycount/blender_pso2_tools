@@ -1,3 +1,4 @@
+from typing import Optional
 from bpy.types import Material
 
 from pso2_tools.object_info import ObjectInfo
@@ -16,10 +17,12 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         textures: MaterialTextures,
         colors: ColorGroup,
         object_info: ObjectInfo,
+        inner_colors: Optional[ColorGroup] = None,
     ):
         super().__init__(material)
         self.textures = textures
         self.colors = colors
+        self.inner_colors = inner_colors
         self.object_info = object_info
 
     def build(self):
@@ -46,8 +49,7 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         multi.image = self.textures.layer if self.is_cast_part else self.textures.multi
 
         build.add_link(multi.outputs["Color"], shader_group.inputs["Mask RGB"])
-        if self.is_cast_part:
-            build.add_link(multi.outputs["Alpha"], shader_group.inputs["Mask A"])
+        build.add_link(multi.outputs["Alpha"], shader_group.inputs["Mask A"])
 
         colors = build.add_node("ShaderNodeGroup", (6, 8))
         colors.label = self.colors.name.removeprefix("PSO2 ")
@@ -58,6 +60,13 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         if self.is_cast_part:
             build.add_link(colors.outputs[2], shader_group.inputs["Color 3"])
             build.add_link(colors.outputs[3], shader_group.inputs["Color 4"])
+        elif self.inner_colors:
+            colors2 = build.add_node("ShaderNodeGroup", (6, 4))
+            colors2.label = self.inner_colors.name.removeprefix("PSO2 ")
+            colors2.node_tree = shader.get_custom_color_group(self.inner_colors)
+
+            build.add_link(colors2.outputs[0], shader_group.inputs["Color 3"])
+            build.add_link(colors2.outputs[1], shader_group.inputs["Color 4"])
 
         # Specular Map
         specular = build.add_node("ShaderNodeTexImage", (0, 0))
@@ -65,7 +74,8 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         specular.image = self.textures.specular
 
         build.add_link(specular.outputs["Color"], shader_group.inputs["Specular RGB"])
-        build.add_link(specular.outputs["Alpha"], shader_group.inputs["Specular A"])
+        if self.is_cast_part or self.inner_colors:
+            build.add_link(specular.outputs["Alpha"], shader_group.inputs["Specular A"])
 
         # Normal Map
         normal = build.add_node("ShaderNodeTexImage", (0, -6))
