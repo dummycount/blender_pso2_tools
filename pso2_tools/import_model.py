@@ -11,7 +11,6 @@ import zamboni
 
 from . import classes, convert, material, preferences
 from .object_info import ObjectInfo
-from .shaders import default_colors
 
 
 class ImportProperties:
@@ -27,105 +26,6 @@ class ImportProperties:
         description="Import DDS textures from the model directory",
         default=True,
     )
-    custom_color_1: bpy.props.FloatVectorProperty(
-        name="Color 1",
-        description="Custom outfit/cast part color 1",
-        default=default_colors.BASE_COLOR_1,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    custom_color_2: bpy.props.FloatVectorProperty(
-        name="Color 2",
-        description="Custom outfit/cast part color 2",
-        default=default_colors.BASE_COLOR_2,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    custom_color_3: bpy.props.FloatVectorProperty(
-        name="Color 3",
-        description="Custom cast part color 3",
-        default=default_colors.BASE_COLOR_3,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    custom_color_4: bpy.props.FloatVectorProperty(
-        name="Color 4",
-        description="Custom outfit color 4",
-        default=default_colors.BASE_COLOR_4,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    inner_color_1: bpy.props.FloatVectorProperty(
-        name="Innerwear 1",
-        description="Custom innerwear color 1",
-        default=default_colors.INNER_COLOR_1,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    inner_color_2: bpy.props.FloatVectorProperty(
-        name="Innerwear 2",
-        description="Custom innerwear color 2",
-        default=default_colors.INNER_COLOR_2,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    hair_color_1: bpy.props.FloatVectorProperty(
-        name="Hair 1",
-        description="Hair color 1",
-        default=default_colors.HAIR_COLOR_1,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    hair_color_2: bpy.props.FloatVectorProperty(
-        name="Hair 2",
-        description="Hair color 2",
-        default=default_colors.HAIR_COLOR_2,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    eye_color: bpy.props.FloatVectorProperty(
-        name="Eye",
-        description="Eye color",
-        default=default_colors.EYE_COLOR,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    main_skin_color: bpy.props.FloatVectorProperty(
-        name="Skin Main",
-        description="Main skin color",
-        default=default_colors.MAIN_SKIN_COLOR,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
-    sub_skin_color: bpy.props.FloatVectorProperty(
-        name="Skin Sub",
-        description="Secondary skin color",
-        default=default_colors.SUB_SKIN_COLOR,
-        min=0,
-        max=1,
-        subtype="COLOR",
-        size=4,
-    )
 
     def get_filepath(self):
         raise NotImplementedError()
@@ -135,31 +35,32 @@ class ImportProperties:
         return ObjectInfo.from_file_name(name)
 
     def draw_texture_props(self, context: Context, layout: bpy.types.UILayout):
+        prefs = preferences.get_preferences(context)
         object_info = self.get_object_info()
 
         layout.use_property_split = True
 
         layout.prop(self, "use_textures")
         if object_info.use_skin_colors:
-            layout.prop(self, "main_skin_color")
-            layout.prop(self, "sub_skin_color")
+            layout.prop(prefs, "main_skin_color")
+            layout.prop(prefs, "sub_skin_color")
 
-        layout.prop(self, "custom_color_1")
-        layout.prop(self, "custom_color_2")
+        layout.prop(prefs, "custom_color_1")
+        layout.prop(prefs, "custom_color_2")
         if object_info.use_cast_colors:
-            layout.prop(self, "custom_color_3")
-            layout.prop(self, "custom_color_4")
+            layout.prop(prefs, "custom_color_3")
+            layout.prop(prefs, "custom_color_4")
 
         if object_info.use_costume_colors:
-            layout.prop(self, "inner_color_1")
-            layout.prop(self, "inner_color_2")
+            layout.prop(prefs, "inner_color_1")
+            layout.prop(prefs, "inner_color_2")
 
         if object_info.use_hair_colors:
-            layout.prop(self, "hair_color_1")
-            layout.prop(self, "hair_color_2")
+            layout.prop(prefs, "hair_color_1")
+            layout.prop(prefs, "hair_color_2")
 
         if object_info.use_eye_colors:
-            layout.prop(self, "eye_color")
+            layout.prop(prefs, "eye_color")
 
     def draw_armature_props(self, context: Context, layout: bpy.types.UILayout):
         layout.prop(self, "automatic_bone_orientation")
@@ -169,18 +70,20 @@ class ImportProperties:
             material.load_textures(directory)
 
     def import_aqp(self, context: Context, path: Path):
+        prefs = preferences.get_preferences(context)
+
         colors = material.CustomColors(
-            custom_color_1=self.custom_color_1,
-            custom_color_2=self.custom_color_2,
-            custom_color_3=self.custom_color_3,
-            custom_color_4=self.custom_color_4,
-            main_skin_color=self.main_skin_color,
-            sub_skin_color=self.sub_skin_color,
-            inner_color_1=self.inner_color_1,
-            inner_color_2=self.inner_color_2,
-            hair_color_1=self.hair_color_1,
-            hair_color_2=self.hair_color_2,
-            eye_color=self.eye_color,
+            custom_color_1=prefs.custom_color_1,
+            custom_color_2=prefs.custom_color_2,
+            custom_color_3=prefs.custom_color_3,
+            custom_color_4=prefs.custom_color_4,
+            main_skin_color=prefs.main_skin_color,
+            sub_skin_color=prefs.sub_skin_color,
+            inner_color_1=prefs.inner_color_1,
+            inner_color_2=prefs.inner_color_2,
+            hair_color_1=prefs.hair_color_1,
+            hair_color_2=prefs.hair_color_2,
+            eye_color=prefs.eye_color,
         )
 
         original_mats = set(bpy.data.materials.keys())
