@@ -304,8 +304,12 @@ def _read_player_csv(
     model_part: Optional[ModelPart] = None,
 ):
     try:
+        objects: dict[int, dict[str, str]] = {}
+
         for row in _read_csv(file):
-            yield from _parse_player_csv_row(category, row, object_type, model_part)
+            yield from _parse_player_csv_row(
+                objects, category, row, object_type, model_part
+            )
     except OSError as ex:
         print(ex)
 
@@ -324,6 +328,7 @@ def _read_mag_csv(
 
 
 def _parse_player_csv_row(
+    objects: dict[int, dict[str, str]],
     category: Category,
     row: dict[str, str],
     object_type: Optional[ObjectType] = None,
@@ -336,31 +341,39 @@ def _parse_player_csv_row(
     )
 
     object_id = int(row.get("Id", "0"))
+    objects[object_id] = row
+
+    adjusted_id = int(row.get("Adjusted Id", "0"))
+    base_object = objects.get(adjusted_id, {}) if adjusted_id != object_id else {}
+
     group = FileGroup(category, name, object_type, object_id, model_part)
 
-    common_files = [row.get("Material Anim"), row.get("Material Anim Ex")]
+    def get_file(column: str):
+        return row.get(column) or base_object.get(column)
+
+    common_files = [get_file("Material Anim"), get_file("Material Anim Ex")]
 
     if model := row.get("High Quality"):
         group.files[VARIANT_HIGH_QUALITY] = _filter_list(
             *common_files,
-            row.get("HQ Hand Textures"),
-            row.get("HQ Linked Inner"),
+            get_file("HQ Hand Textures"),
+            get_file("HQ Linked Inner"),
             model,
         )
 
     if model := row.get("Normal Quality"):
         group.files[VARIANT_NORMAL_QUALITY] = _filter_list(
             *common_files,
-            row.get("Hand Textures"),
-            row.get("Linked Inner"),
+            get_file("Hand Textures"),
+            get_file("Linked Inner"),
             model,
         )
 
     if model := row.get("Normal Quality RP"):
         group.files[VARIANT_REPLACEMENT] = _filter_list(
             *common_files,
-            row.get("Hand Textures"),
-            row.get("Linked Inner"),
+            get_file("Hand Textures"),
+            get_file("Linked Inner"),
             model,
         )
 
