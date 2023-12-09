@@ -1,31 +1,29 @@
-from typing import Optional
-from bpy.types import Material
+import bpy
 
+from pso2_tools.colors import Colors
 from pso2_tools.object_info import ObjectInfo
 from pso2_tools.shaders import shader, ngs_common
-from pso2_tools.shaders.shader import ColorGroup, MaterialTextures
+from pso2_tools.shaders.shader import MaterialTextures
 
 
 class NgsDefaultMaterial(shader.ShaderBuilder):
     textures: MaterialTextures
-    colors: ColorGroup
+    colors: list[Colors]
     object_info: ObjectInfo
 
     def __init__(
         self,
-        material: Material,
+        material: bpy.types.Material,
         textures: MaterialTextures,
-        colors: ColorGroup,
+        colors: list[Colors],
         object_info: ObjectInfo,
-        inner_colors: Optional[ColorGroup] = None,
     ):
         super().__init__(material)
         self.textures = textures
         self.colors = colors
-        self.inner_colors = inner_colors
         self.object_info = object_info
 
-    def build(self):
+    def build(self, context: bpy.types.Context):
         build = self.init_tree()
 
         shader_group: ngs_common.ShaderNodePso2Ngs = build.add_node(
@@ -49,24 +47,17 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         multi.image = self.textures.layer if self.is_cast_part else self.textures.multi
 
         build.add_link(multi.outputs["Color"], shader_group.inputs["Mask RGB"])
-        build.add_link(multi.outputs["Alpha"], shader_group.inputs["Mask A"])
+        if self._channel(3) != Colors.Unused:
+            build.add_link(multi.outputs["Alpha"], shader_group.inputs["Mask A"])
 
-        colors = build.add_node("ShaderNodeGroup", (6, 8))
-        colors.label = self.colors.name.removeprefix("PSO2 ")
-        colors.node_tree = shader.get_custom_color_group(self.colors)
+        colors = build.add_node("ShaderNodeGroup", (6, 12))
+        colors.label = "Colors"
+        colors.node_tree = shader.get_color_channels_node(context)
 
-        build.add_link(colors.outputs[0], shader_group.inputs["Color 1"])
-        build.add_link(colors.outputs[1], shader_group.inputs["Color 2"])
-        if self.is_cast_part:
-            build.add_link(colors.outputs[2], shader_group.inputs["Color 3"])
-            build.add_link(colors.outputs[3], shader_group.inputs["Color 4"])
-        elif self.inner_colors:
-            colors2 = build.add_node("ShaderNodeGroup", (6, 4))
-            colors2.label = self.inner_colors.name.removeprefix("PSO2 ")
-            colors2.node_tree = shader.get_custom_color_group(self.inner_colors)
-
-            build.add_link(colors2.outputs[0], shader_group.inputs["Color 3"])
-            build.add_link(colors2.outputs[1], shader_group.inputs["Color 4"])
+        build.add_color_link(self._channel(0), colors, shader_group.inputs["Color 1"])
+        build.add_color_link(self._channel(1), colors, shader_group.inputs["Color 2"])
+        build.add_color_link(self._channel(2), colors, shader_group.inputs["Color 3"])
+        build.add_color_link(self._channel(3), colors, shader_group.inputs["Color 4"])
 
         # Specular Map
         specular = build.add_node("ShaderNodeTexImage", (0, 0))
@@ -74,8 +65,7 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         specular.image = self.textures.specular
 
         build.add_link(specular.outputs["Color"], shader_group.inputs["Specular RGB"])
-        if self.is_cast_part or self.inner_colors:
-            build.add_link(specular.outputs["Alpha"], shader_group.inputs["Specular A"])
+        build.add_link(specular.outputs["Alpha"], shader_group.inputs["Specular A"])
 
         # Normal Map
         normal = build.add_node("ShaderNodeTexImage", (0, -6))
@@ -115,3 +105,9 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
     @property
     def is_cast_part(self):
         return self.object_info.is_cast_part
+
+    def _channel(self, idx: int):
+        try:
+            return self.colors[idx]
+        except IndexError:
+            return Colors.Unused

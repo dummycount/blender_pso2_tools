@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 from typing import Iterable, Optional
@@ -6,84 +5,16 @@ from typing import Iterable, Optional
 import bpy
 
 from .aqp_info import AqpInfo, AqpMaterial
-from .object_info import ObjectInfo
+from .colors import Colors
 from .import_dds import dds_to_png
-from .shaders import default_colors
-from .shaders.shader import Color, ColorGroup, MaterialTextures
+from .object_info import ObjectInfo
+from .object_colors import ensure_color_channels_updated, get_object_color_channels
+from .shaders.shader import MaterialTextures
 from .shaders.ngs_default import NgsDefaultMaterial
 from .shaders.ngs_eye import NgsEyeMaterial, NgsEyeTearMaterial
 from .shaders.ngs_hair import NgsHairMaterial
 from .shaders.ngs_skin import NgsSkinMaterial
 from .shaders.classic import ClassicDefaultMaterial, is_classic_shader
-
-
-@dataclass
-class CustomColors:
-    custom_color_1: Color = default_colors.BASE_COLOR_1
-    custom_color_2: Color = default_colors.BASE_COLOR_2
-    custom_color_3: Color = default_colors.BASE_COLOR_3
-    custom_color_4: Color = default_colors.BASE_COLOR_4
-    main_skin_color: Color = default_colors.MAIN_SKIN_COLOR
-    sub_skin_color: Color = default_colors.SUB_SKIN_COLOR
-    inner_color_1: Color = default_colors.INNER_COLOR_1
-    inner_color_2: Color = default_colors.INNER_COLOR_2
-    hair_color_1: Color = default_colors.HAIR_COLOR_1
-    hair_color_2: Color = default_colors.HAIR_COLOR_2
-    eye_color: Color = default_colors.EYE_COLOR
-
-    @property
-    def group_basewear(self):
-        return ColorGroup(
-            "PSO2 Basewear Colors",
-            [("Color 1", self.custom_color_1), ("Color 2", self.custom_color_2)],
-        )
-
-    @property
-    def group_innerwear(self):
-        return ColorGroup(
-            "PSO2 Innerwear Colors",
-            [("Color 1", self.inner_color_1), ("Color 2", self.inner_color_2)],
-        )
-
-    @property
-    def group_cast_part(self):
-        return ColorGroup(
-            "PSO2 Cast Colors",
-            [
-                ("Color 1", self.custom_color_1),
-                ("Color 2", self.custom_color_2),
-                ("Color 3", self.custom_color_3),
-                ("Color 4", self.custom_color_4),
-            ],
-        )
-
-    @property
-    def group_skin(self):
-        return ColorGroup(
-            "PSO2 Skin Colors",
-            [("Main", self.main_skin_color), ("Sub", self.sub_skin_color)],
-        )
-
-    @property
-    def group_hair(self):
-        return ColorGroup(
-            "PSO2 Hair Colors",
-            [("Color 1", self.hair_color_1), ("Color 2", self.hair_color_2)],
-        )
-
-    @property
-    def group_eyes(self):
-        return ColorGroup(
-            "PSO2 Eye Colors",
-            [("Left", self.eye_color), ("Right", self.eye_color)],
-        )
-
-    @property
-    def group_classic_outfit(self):
-        return ColorGroup(
-            "PSO2 Classic Colors",
-            [("Skin", self.main_skin_color), ("Outfit", self.custom_color_1)],
-        )
 
 
 def texture_has_part(name: str, parts: str | Iterable[str]):
@@ -132,7 +63,10 @@ def load_image(file: Path) -> bpy.types.Image:
         image = bpy.data.images.load(str(file))
         image.pack()
 
-    if texture_has_part(image.name, ("l", "m", "n", "o", "s")):
+    if texture_has_part(image.name, ("d")):
+        image.colorspace_settings.is_data = False
+        image.colorspace_settings.name = "sRGB"
+    else:
         # Data textures (normal map, etc.)
         image.colorspace_settings.is_data = True
         image.colorspace_settings.name = "Non-Color"
@@ -143,12 +77,12 @@ def load_image(file: Path) -> bpy.types.Image:
 def skin_material_exists(model_info: AqpInfo) -> bool:
     """Get whether a model contains a skin material"""
 
-    return any(mat.special_type == "rbd_sk" for mat in model_info.materials)
+    return any(mat.shaders == ["1102p", "1102"] for mat in model_info.materials)
 
 
 def update_materials(
+    context: bpy.types.Context,
     names: Iterable[str],
-    colors: CustomColors,
     object_info: ObjectInfo,
     model_info: AqpInfo,
 ):
@@ -157,22 +91,23 @@ def update_materials(
     and update them to approximate PSO2 shaders.
     """
     for name in names:
-        update_material(bpy.data.materials[name], colors, object_info, model_info)
+        update_material(context, bpy.data.materials[name], object_info, model_info)
 
 
 def update_material(
+    context: bpy.types.Context,
     mat: bpy.types.Material,
-    colors: CustomColors,
     object_info: ObjectInfo,
     model_info: AqpInfo,
 ):
     mat_info = model_info.get_fbx_material(mat.name)
 
     if mat_info:
+        ensure_color_channels_updated(context)
         update_material_settings(mat, mat_info, object_info)
 
-        if builder := _get_material_builder(mat, mat_info, colors, object_info):
-            builder.build()
+        if builder := _get_material_builder(mat, mat_info, object_info):
+            builder.build(context)
 
     else:
         print("Failed to find material:", mat.name)
@@ -189,7 +124,7 @@ def update_material_settings(
             mat.blend_method = "CLIP"
             mat.alpha_threshold = mat_info.alpha_cutoff / 256
         else:
-            mat.blend_method = "HASHED" if object_info.is_hair_object else "BLEND"
+            mat.blend_method = "HASHED" if object_info.is_hair else "BLEND"
             mat.show_transparent_back = False
     else:
         mat.blend_method = "OPAQUE"
@@ -271,52 +206,44 @@ def levenshtein_dist(str0: str, str1: str):
 def _get_material_builder(
     mat: bpy.types.Material,
     mat_info: AqpMaterial,
-    colors: CustomColors = None,
     object_info: ObjectInfo = None,
 ):
-    colors = colors or CustomColors()
     object_info = object_info or ObjectInfo()
 
     main_mats = []
     sub_mats = []
-    shader_colors = colors.group_basewear
-    shader_colors2: Optional[ColorGroup] = None
+    colors = get_object_color_channels(object_info)
 
     # TODO: find textures based on textures list in mat_info instead of this
-    # TODO: set shader colors according to object_info instead of mat_info
     match mat_info.special_type:
         case "pl":  # Classic outfit, cast body
             main_mats += ["bd", "tr"]
-            shader_colors = colors.group_classic_outfit
 
         case "fc":  # NGS face
             main_mats += ["rhd"]
-            shader_colors = colors.group_classic_outfit
 
         case "hr":  # Classic hair, some NGS hair parts
             main_mats += ["hr", "rhr"]
-            shader_colors = colors.group_hair
+            if not colors:
+                colors = [Colors.Hair1, Colors.Hair2]
 
         case "rhr":  # NGS Hair
             main_mats += ["rhr"]
-            shader_colors = colors.group_hair
+            if not colors:
+                colors = [Colors.Hair1, Colors.Hair2]
 
         case "rbd" | "rbd_d":  # NGS outfit, cast body
             main_mats += ["bw", "bd"]
-            if object_info.use_cast_colors:
-                shader_colors = colors.group_cast_part
-            else:
-                shader_colors = colors.group_basewear
-                shader_colors2 = colors.group_innerwear
+            if not colors:
+                if object_info.use_cast_colors:
+                    colors = [Colors.Cast1, Colors.Cast2, Colors.Cast3, Colors.Cast4]
+                else:
+                    colors = [Colors.Base1, Colors.Base2]
 
         case "rbd_ou":  # NGS outerwear
             main_mats += ["ow"]
-            shader_colors = colors.group_basewear
-
-        case "rbd_sk":  # NGS body skin + innerwear
-            main_mats += ["sk"]
-            sub_mats += ["iw", "rba"]
-            shader_colors = colors.group_skin
+            if not colors:
+                colors = [Colors.Outer1, Colors.Outer2]
 
         case _:
             main_mats += ["ah", "rac"]  # Classic or NGS accessory
@@ -326,15 +253,12 @@ def _get_material_builder(
     match mat_info.name:
         case "eyebrow_mat":
             main_mats += ["reb"]  # NGS Eyebrow
-            shader_colors = colors.group_hair
 
         case "eyelash_mat":
             main_mats += ["res"]  # NGS Eyelash
-            shader_colors = colors.group_hair
 
         case "eye_l" | "eye_r" | "tear_l" | "tear_r":
             main_mats += ["rey"]
-            shader_colors = colors.group_eyes
 
     # TODO: Unhandled shaders
     # 1106 - fur?
@@ -352,30 +276,26 @@ def _get_material_builder(
             return ClassicDefaultMaterial(
                 mat,
                 textures=get_textures(mat_info, *main_mats),
-                colors=shader_colors,
             )
 
         case "1102p,1102":
             return NgsSkinMaterial(
                 mat,
-                skin_textures=get_textures(mat_info, *main_mats),
-                inner_textures=get_textures(mat_info, *sub_mats),
-                skin_colors=shader_colors,
-                inner_colors=colors.group_innerwear,
+                skin_textures=get_textures(mat_info, "sk"),
+                inner_textures=get_textures(mat_info, "iw", "rba"),
             )
 
         case "1103p,1103":
             return NgsHairMaterial(
                 mat,
                 textures=get_textures(mat_info, *main_mats),
-                colors=shader_colors,
+                colors=colors,
             )
 
         case "1104p,1104":
             return NgsEyeMaterial(
                 mat,
                 textures=get_textures(mat_info, *main_mats),
-                colors=shader_colors,
                 eye_index=1 if mat_info.name == "eye_r" else 0,
             )
 
@@ -386,7 +306,6 @@ def _get_material_builder(
             return NgsDefaultMaterial(
                 mat,
                 textures=get_textures(mat_info, *main_mats),
-                colors=shader_colors,
-                inner_colors=shader_colors2,
+                colors=colors,
                 object_info=object_info,
             )

@@ -5,7 +5,6 @@ from .aqp_info import AqpInfo
 
 BIN_DIR = Path(__file__).parent / "bin"
 PSO_CLI = BIN_DIR / "pso.exe"
-ICE_CLI = BIN_DIR / "ice.exe"
 
 
 def run(args, **kwargs):
@@ -15,7 +14,7 @@ def run(args, **kwargs):
 
 
 def aqp_to_fbx(model: Path, dest: Path, *args):
-    return run([PSO_CLI, "fbx", model, dest, *args])
+    return run([PSO_CLI, "convert", "fbx", model, dest, *args])
 
 
 def aqp_to_fbx_with_info(model: Path, dest: Path) -> AqpInfo:
@@ -27,8 +26,16 @@ def aqp_to_fbx_with_info(model: Path, dest: Path) -> AqpInfo:
 
 
 def fbx_to_aqp(model: Path, dest: Path, *args):
-    return run([PSO_CLI, "aqp", model, dest, *args])
+    return run([PSO_CLI, "convert", "aqp", model, dest, *args])
 
 
 def make_file_lists(pso2_bin: Path, dest: Path, *args):
-    return run([PSO_CLI, "filelist", dest, "--bin", pso2_bin, *args])
+    return run([PSO_CLI, "cmx", "sheets", dest, "--bin", pso2_bin, *args])
+
+
+def make_color_channels(pso2_bin: Path, dest: Path, *args):
+    result = run([PSO_CLI, "cmx", "colorchannels", "--bin", pso2_bin, *args])
+
+    dest.parent.mkdir(exist_ok=True, parents=True)
+    with dest.open("w") as f:
+        f.write(result.stdout)

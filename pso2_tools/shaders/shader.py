@@ -23,46 +23,45 @@ from bpy.types import (
     ShaderNodeVertexColor,
 )
 
+from pso2_tools.colors import COLOR_CHANNELS, Colors
+from pso2_tools.preferences import get_preferences
+
+
 GRID = 50
 
 
-Color = Tuple[float, float, float, float]
 Vec2 = Tuple[float, float]
 OVec2 = Optional[Vec2]
 
 
-@dataclass
-class ColorGroup:
-    name: str
-    colors: list[Tuple[str, Color]]
+_COLOR_GROUP_NAME = "PSO2 Colors"
+_COLOR_GROUP_COLS = 6
 
 
-def get_custom_color_group(group: ColorGroup) -> bpy.types.ShaderNodeTree:
+def get_color_channels_node(context: bpy.types.Context) -> bpy.types.ShaderNodeTree:
     """
-    Get a node group for a set of custom colors.
-
-    If a node group with the given name has already been created, this returns it.
-    Otherwise, it creates one with the given default colors.
-
-    :param name: The group name.
-    :param colors: A list of (name, default_color) tuples.
+    Get a node group for PSO2 color channels.
     """
-    if tree := bpy.data.node_groups.get(group.name, None):
+    if tree := bpy.data.node_groups.get(_COLOR_GROUP_NAME, None):
         return tree
 
-    tree = bpy.data.node_groups.new(group.name, "ShaderNodeTree")
+    prefs = get_preferences(context)
+    tree = bpy.data.node_groups.new(_COLOR_GROUP_NAME, "ShaderNodeTree")
     builder = NodeTreeBuilder(tree)
 
-    output = builder.add_node("NodeGroupOutput", (6, 0))
+    output = builder.add_node("NodeGroupOutput", (28, 0))
 
-    for i, item in enumerate(group.colors):
-        label, default_color = item
-        color = builder.add_node("ShaderNodeRGB", (0, i * -4))
-        color.label = label
-        color.outputs[0].default_value = default_color
+    for i, channel in COLOR_CHANNELS.items():
+        index = i.value - 1
+        x = (index % _COLOR_GROUP_COLS) * 4
+        y = (index // _COLOR_GROUP_COLS) * -4
 
-        tree.outputs.new("NodeSocketColor", label)
-        tree.links.new(color.outputs[0], output.inputs[i])
+        color = builder.add_node("ShaderNodeRGB", (x, y))
+        color.label = channel.name
+        color.outputs[0].default_value = getattr(prefs, channel.prop)
+
+        tree.outputs.new("NodeSocketColor", color.label)
+        tree.links.new(color.outputs[0], output.inputs[index])
 
     return tree
 
@@ -99,7 +98,7 @@ class ShaderBuilder:
 
         return NodeTreeBuilder(self.tree)
 
-    def build(self):
+    def build(self, context: bpy.types.Context):
         raise NotImplementedError()
 
 
@@ -113,6 +112,17 @@ class NodeTreeBuilder:
         self, input: bpy.types.NodeSocket, output: bpy.types.NodeSocket
     ) -> bpy.types.NodeLink:
         return self.tree.links.new(input, output)
+
+    def add_color_link(
+        self,
+        channel: Colors,
+        colors: bpy.types.ShaderNodeGroup,
+        output: bpy.types.NodeSocket,
+    ):
+        if channel == Colors.Unused:
+            return
+
+        return self.tree.links.new(colors.outputs[channel.value - 1], output)
 
     @overload
     def add_node(self, t: Literal["NodeFrame"], loc: OVec2) -> NodeFrame:

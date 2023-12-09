@@ -11,7 +11,7 @@ def main():
     if not CLI_PATH.exists():
         subprocess.check_call(["git", "submodule", "update", "--init", "--recursive"])
 
-    subprocess.check_call(["pwsh", CLI_PATH / "BuildRelease.ps1"])
+    subprocess.check_call(["pwsh", CLI_PATH / "BuildRelease.ps1"], cwd=CLI_PATH)
 
     bin_source = CLI_PATH / "Release" / "Pso2Cli"
     bin_target = ADDON_PATH / "bin"

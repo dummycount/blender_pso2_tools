@@ -1,30 +1,25 @@
 from typing import Optional
-from bpy.types import Material
+import bpy
 
+from pso2_tools.colors import Colors
 from pso2_tools.shaders import shader, ngs_common
 
 
 class NgsSkinMaterial(shader.ShaderBuilder):
     skin_textures: shader.MaterialTextures
     inner_textures: Optional[shader.MaterialTextures]
-    skin_colors: shader.ColorGroup
-    inner_colors: shader.ColorGroup
 
     def __init__(
         self,
-        material: Material,
+        material: bpy.types.Material,
         skin_textures: shader.MaterialTextures,
         inner_textures: Optional[shader.MaterialTextures],
-        skin_colors: shader.ColorGroup,
-        inner_colors: shader.ColorGroup,
     ):
         super().__init__(material)
         self.skin_textures = skin_textures
         self.inner_textures = inner_textures
-        self.skin_colors = skin_colors
-        self.inner_colors = inner_colors
 
-    def build(self):
+    def build(self, context: bpy.types.Context):
         x2 = 18
 
         build = self.init_tree()
@@ -58,12 +53,12 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         build.add_link(multi.outputs["Color"], skin_group.inputs["Mask RGB"])
 
         colors = build.add_node("ShaderNodeGroup", (6, 8))
-        colors.label = "Skin Colors"
+        colors.label = "Colors"
         colors.parent = skin_frame
-        colors.node_tree = shader.get_custom_color_group(self.skin_colors)
+        colors.node_tree = shader.get_color_channels_node(context)
 
-        build.add_link(colors.outputs[0], skin_group.inputs["Color 1"])
-        build.add_link(colors.outputs[1], skin_group.inputs["Color 2"])
+        build.add_color_link(Colors.MainSkin, colors, skin_group.inputs["Color 1"])
+        build.add_color_link(Colors.SubSkin, colors, skin_group.inputs["Color 2"])
 
         # Specular Map
         specular = build.add_node("ShaderNodeTexImage", (0, 0))
@@ -120,12 +115,12 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         build.add_link(in_multi.outputs["Color"], inner_group.inputs["Mask RGB"])
 
         in_colors = build.add_node("ShaderNodeGroup", (x2 + 6, 8))
-        in_colors.label = "Innerwear Colors"
+        in_colors.label = "Colors"
         in_colors.parent = inner_frame
-        in_colors.node_tree = shader.get_custom_color_group(self.inner_colors)
+        in_colors.node_tree = shader.get_color_channels_node(context)
 
-        build.add_link(in_colors.outputs[0], inner_group.inputs["Color 1"])
-        build.add_link(in_colors.outputs[1], inner_group.inputs["Color 2"])
+        build.add_color_link(Colors.Inner1, in_colors, inner_group.inputs["Color 1"])
+        build.add_color_link(Colors.Inner1, in_colors, inner_group.inputs["Color 2"])
 
         # Specular Map
         in_specular = build.add_node("ShaderNodeTexImage", (x2 + 0, 0))

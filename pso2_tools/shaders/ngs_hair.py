@@ -1,25 +1,25 @@
 import bpy
-from bpy.types import Material
 
 from pso2_tools import classes
-from pso2_tools.shaders import default_colors, shader
+from pso2_tools.colors import BLACK, Colors, WHITE, DEFAULT_HAIR_1, DEFAULT_HAIR_2
+from pso2_tools.shaders import shader
 
 
 class NgsHairMaterial(shader.ShaderBuilder):
     textures: shader.MaterialTextures
-    colors: shader.ColorGroup
+    colors: list[Colors]
 
     def __init__(
         self,
-        material: Material,
+        material: bpy.types.Material,
         textures: shader.MaterialTextures,
-        colors: shader.ColorGroup,
+        colors: list[Colors],
     ):
         super().__init__(material)
         self.textures = textures
         self.colors = colors
 
-    def build(self):
+    def build(self, context: bpy.types.Context):
         build = self.init_tree()
 
         shader_group: ShaderNodePso2NgsHair = build.add_node(
@@ -59,11 +59,13 @@ class NgsHairMaterial(shader.ShaderBuilder):
         build.add_link(multi.outputs["Color"], shader_group.inputs["Mask RGB"])
 
         colors = build.add_node("ShaderNodeGroup", (6, 8))
-        colors.label = "Hair Colors"
-        colors.node_tree = shader.get_custom_color_group(self.colors)
+        colors.label = "Colors"
+        colors.node_tree = shader.get_color_channels_node(context)
 
-        build.add_link(colors.outputs[0], shader_group.inputs["Color 1"])
-        build.add_link(colors.outputs[1], shader_group.inputs["Color 2"])
+        build.add_color_link(self._channel(0), colors, shader_group.inputs["Color 1"])
+        build.add_color_link(self._channel(1), colors, shader_group.inputs["Color 2"])
+        build.add_color_link(self._channel(2), colors, shader_group.inputs["Color 3"])
+        build.add_color_link(self._channel(3), colors, shader_group.inputs["Color 4"])
 
         # Specular Map
         specular = build.add_node("ShaderNodeTexImage", (0, 0))
@@ -89,6 +91,12 @@ class NgsHairMaterial(shader.ShaderBuilder):
         build.add_link(uv.outputs[0], texture_o.inputs["Vector"])
         build.add_link(texture_o.outputs["Color"], shader_group.inputs["Texture O"])
 
+    def _channel(self, idx: int):
+        try:
+            return self.colors[idx]
+        except IndexError:
+            return Colors.Unused
+
 
 @classes.register_class
 class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
@@ -103,10 +111,12 @@ class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
     def init(self, context):
         self.node_tree = self.build()
 
-        self.inputs["Diffuse"].default_value = default_colors.WHITE
+        self.inputs["Diffuse"].default_value = WHITE
         self.inputs["Alpha"].default_value = 1
-        self.inputs["Color 1"].default_value = default_colors.HAIR_COLOR_1
-        self.inputs["Color 2"].default_value = default_colors.HAIR_COLOR_2
+        self.inputs["Color 1"].default_value = DEFAULT_HAIR_1
+        self.inputs["Color 2"].default_value = DEFAULT_HAIR_2
+        self.inputs["Color 3"].default_value = BLACK
+        self.inputs["Color 4"].default_value = BLACK
 
     def free(self):
         if self.node_tree.users == 1:
@@ -126,6 +136,8 @@ class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
         tree.inputs.new("NodeSocketColor", "Diffuse")
         tree.inputs.new("NodeSocketColor", "Color 1")
         tree.inputs.new("NodeSocketColor", "Color 2")
+        tree.inputs.new("NodeSocketColor", "Color 3")
+        tree.inputs.new("NodeSocketColor", "Color 4")
         tree.inputs.new("NodeSocketColor", "Mask RGB")
         tree.inputs.new("NodeSocketColor", "Specular RGB")
         tree.inputs.new("NodeSocketFloat", "Specular A")

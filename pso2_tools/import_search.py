@@ -1,7 +1,10 @@
+from subprocess import CalledProcessError
 from typing import Any, Optional, Set
 
 import bpy
 from bpy.types import Context, UILayout
+
+from .object_category import get_category_info
 
 from . import classes
 from .preferences import get_preferences
@@ -15,8 +18,8 @@ from .filelist import (
     FileGroup,
     find_ice_file,
     get_file_groups,
-    update_file_lists,
 )
+from .metadata import update_file_lists
 
 
 @classes.register_class
@@ -46,7 +49,7 @@ class ListItem(bpy.types.PropertyGroup):
     @property
     def description(self):
         return (
-            self.get_object_info().description or _get_category_info(self.category)[0]
+            self.get_object_info().description or get_category_info(self.category)[0]
         )
 
 
@@ -114,11 +117,12 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
         )
 
         col = split.column()
+        col.context_pointer_set("parent", self)
         col.prop(self, "variant")
 
         col.context_pointer_set("active_operator", self)
 
-        col.label(text="Textures")
+        col.label(text="Material")
         box = col.box()
         self.draw_texture_props(context, box)
 
@@ -131,6 +135,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
 
     def execute(self, context: bpy.types.Context) -> Set[str]:
         if selection := self.get_selected_model():
+            object_info = selection.get_object_info()
             variant = next(
                 (item for item in selection.files if item.variant == self.variant),
                 selection.files[0],
@@ -138,7 +143,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, ImportProperties):
 
             for filehash in variant.files.split(","):
                 if path := find_ice_file(context, filehash):
-                    self.import_ice(self, context, path)
+                    self.import_ice(self, context, path, object_info=object_info)
                 else:
                     self.report({"ERROR"}, f"Could not find file {filehash}")
 
@@ -156,11 +161,15 @@ class PSO2_OT_RebuildFileList(bpy.types.Operator):
     bl_idname = "pso2tools.rebuild_file_list"
 
     def execute(self, context: Context) -> Set[str]:
-        result = update_file_lists(self, context)
+        try:
+            update_file_lists(context)
+        except CalledProcessError as ex:
+            self.report({"ERROR"}, f"Failed to update file lists:\n{ex.stderr}")
+            return {"CANCELLED"}
 
         _populate_model_list(context.parent.models)
 
-        return result
+        return {"FINISHED"}
 
 
 def _file_group_key(group: FileGroup):
@@ -189,39 +198,39 @@ def _populate_model_list(collection):
             prop.files = ",".join(files)
 
 
-_CATEGORY_INFO: dict[Category, tuple[str, str]] = {
-    Category.NgsOutfit: ("Outfit (NGS)", "MOD_CLOTH"),
-    Category.NgsCastPart: ("Cast Part (NGS)", "MOD_CLOTH"),
-    Category.NgsHeadPart: ("Head Part (NGS)", "USER"),
-    Category.NgsBodyPaint: ("Body Paint (NGS)", "TEXTURE"),
-    Category.NgsMag: ("Mag (NGS)", "GHOST_DISABLED"),
-    Category.NgsOther: ("Other (NGS)", "AUTO"),
-    Category.ClassicOutfit: ("Outfit (Classic)", "MOD_CLOTH"),
-    Category.ClassicCastPart: ("Cast Part (Classic)", "MOD_CLOTH"),
-    Category.ClassicHeadPart: ("Head Part (Classic)", "USER"),
-    Category.ClassicBodyPaint: ("Body Paint (Classic)", "TEXTURE"),
-    Category.ClassicMag: ("Mag (Classic)", "GHOST_DISABLED"),
-    Category.ClassicOther: ("Other (Classic)", "AUTO"),
-    Category.Accessory: ("Accessory", "MESH_TORUS"),
-    Category.Sticker: ("Sticker", "TEXTURE"),
-    Category.Room: ("Room (Classic)", "HOME"),
-    Category.MySpace: ("My Space (NGS)", "WORLD"),
-    Category.NgsEnemies: ("Enemy (NGS)", "MONKEY"),
-    Category.ClassicEnemies: ("Enemy (Classic)", "MONKEY"),
-}
+# _CATEGORY_INFO: dict[Category, tuple[str, str]] = {
+#     Category.NgsOutfit: ("Outfit (NGS)", "MOD_CLOTH"),
+#     Category.NgsCastPart: ("Cast Part (NGS)", "MOD_CLOTH"),
+#     Category.NgsHeadPart: ("Head Part (NGS)", "USER"),
+#     Category.NgsBodyPaint: ("Body Paint (NGS)", "TEXTURE"),
+#     Category.NgsMag: ("Mag (NGS)", "GHOST_DISABLED"),
+#     Category.NgsOther: ("Other (NGS)", "AUTO"),
+#     Category.ClassicOutfit: ("Outfit (Classic)", "MOD_CLOTH"),
+#     Category.ClassicCastPart: ("Cast Part (Classic)", "MOD_CLOTH"),
+#     Category.ClassicHeadPart: ("Head Part (Classic)", "USER"),
+#     Category.ClassicBodyPaint: ("Body Paint (Classic)", "TEXTURE"),
+#     Category.ClassicMag: ("Mag (Classic)", "GHOST_DISABLED"),
+#     Category.ClassicOther: ("Other (Classic)", "AUTO"),
+#     Category.Accessory: ("Accessory", "MESH_TORUS"),
+#     Category.Sticker: ("Sticker", "TEXTURE"),
+#     Category.Room: ("Room (Classic)", "HOME"),
+#     Category.MySpace: ("My Space (NGS)", "WORLD"),
+#     Category.NgsEnemies: ("Enemy (NGS)", "MONKEY"),
+#     Category.ClassicEnemies: ("Enemy (Classic)", "MONKEY"),
+# }
 
 
-def _get_category_info(category: Category) -> tuple[str, str]:
-    if info := _CATEGORY_INFO.get(category):
-        return info
-    return ("", "NONE")
+# def _get_category_info(category: Category) -> tuple[str, str]:
+#     if info := _CATEGORY_INFO.get(category):
+#         return info
+#     return ("", "NONE")
 
 
-def _get_enum_item(category: Category):
-    text, icon = _get_category_info(category)
-    index = 1 << list(Category).index(category)
+# def _get_enum_item(category: Category):
+#     text, icon = _get_category_info(category)
+#     index = 1 << list(Category).index(category)
 
-    return (category, text, "", icon, index)
+#     return (category, text, "", icon, index)
 
 
 @classes.register_class
@@ -231,34 +240,35 @@ class PSO2_UL_ModelList(bpy.types.UIList):
     bl_idname = "PSO2_UL_ModelList"
     layout_type = "DEFAULT"
 
-    categories: bpy.props.EnumProperty(
-        name="Model Categories",
-        options={"ENUM_FLAG"},
-        items=(
-            _get_enum_item(Category.NgsOutfit),
-            _get_enum_item(Category.NgsCastPart),
-            _get_enum_item(Category.NgsHeadPart),
-            _get_enum_item(Category.NgsBodyPaint),
-            _get_enum_item(Category.Accessory),
-            _get_enum_item(Category.ClassicOutfit),
-            _get_enum_item(Category.ClassicCastPart),
-            _get_enum_item(Category.ClassicHeadPart),
-            _get_enum_item(Category.ClassicBodyPaint),
-            _get_enum_item(Category.Sticker),
-            _get_enum_item(Category.MySpace),
-            _get_enum_item(Category.Room),
-            _get_enum_item(Category.NgsMag),
-            _get_enum_item(Category.ClassicMag),
-            _get_enum_item(Category.ClassicOther),
-            _get_enum_item(Category.NgsOther),
-            _get_enum_item(Category.NgsEnemies),
-            _get_enum_item(Category.ClassicEnemies),
-        ),
-        description="Filter by object category",
-        default=set(),
-    )
+    # categories: bpy.props.EnumProperty(
+    #     name="Model Categories",
+    #     options={"ENUM_FLAG"},
+    #     items=(
+    #         _get_enum_item(Category.NgsOutfit),
+    #         _get_enum_item(Category.NgsCastPart),
+    #         _get_enum_item(Category.NgsHeadPart),
+    #         _get_enum_item(Category.NgsBodyPaint),
+    #         _get_enum_item(Category.Accessory),
+    #         _get_enum_item(Category.ClassicOutfit),
+    #         _get_enum_item(Category.ClassicCastPart),
+    #         _get_enum_item(Category.ClassicHeadPart),
+    #         _get_enum_item(Category.ClassicBodyPaint),
+    #         _get_enum_item(Category.Sticker),
+    #         _get_enum_item(Category.MySpace),
+    #         _get_enum_item(Category.Room),
+    #         _get_enum_item(Category.NgsMag),
+    #         _get_enum_item(Category.ClassicMag),
+    #         _get_enum_item(Category.ClassicOther),
+    #         _get_enum_item(Category.NgsOther),
+    #         _get_enum_item(Category.NgsEnemies),
+    #         _get_enum_item(Category.ClassicEnemies),
+    #     ),
+    #     description="Filter by object category",
+    #     default=set(),
+    # )
 
     def filter_items(self, context: Context, data: Any, prop: str) -> None:
+        preferences = get_preferences(context)
         items = getattr(data, prop)
 
         if not items:
@@ -271,14 +281,16 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         else:
             flt_flags = [self.bitflag_filter_item] * len(items)
 
-        if self.categories:
+        if preferences.model_search_categories:
             for idx, item in enumerate(items):
-                if not item.category in self.categories:
+                if not item.category in preferences.model_search_categories:
                     flt_flags[idx] &= ~self.bitflag_filter_item
 
         return flt_flags, []
 
     def draw_filter(self, context: Context, layout: UILayout) -> None:
+        preferences = get_preferences(context)
+
         row = layout.row(align=True)
         # This does activate the text field, but then it doesn't work correctly
         # https://projects.blender.org/blender/blender/issues/109710
@@ -290,7 +302,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
 
         flow = layout.grid_flow(columns=4, align=True)
         flow.context_pointer_set("parent", self)
-        flow.prop(self, "categories", expand=True)
+        flow.prop(preferences, "model_search_categories", expand=True)
         flow.operator(PSO2_OT_AllCategories.bl_idname)
 
     def draw_item(
@@ -309,7 +321,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         self.use_filter_show = True
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            category, icon = _get_category_info(item.category)
+            category, icon = get_category_info(item.category)
             layout.label(text=item.name, icon=icon)
             layout.label(text=item.description)
 

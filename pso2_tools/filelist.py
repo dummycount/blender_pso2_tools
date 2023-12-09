@@ -2,52 +2,14 @@ from collections import defaultdict
 import csv
 from dataclasses import dataclass, field
 from pathlib import Path
-import shutil
-from subprocess import CalledProcessError
 from typing import Optional
-
-try:
-    from enum import StrEnum
-except ImportError:
-    from .strenum import StrEnum
 
 import bpy
 
-from .convert import make_file_lists
+from .metadata import FILE_LIST_DIR
+from .object_category import Category
 from .object_info import ModelPart, ObjectType
 from .preferences import get_preferences
-
-DATA_DIR = Path(__file__).parent / "data"
-FILE_LIST_DIR = DATA_DIR / "FileLists"
-
-
-class Category(StrEnum):
-    NgsOutfit = "NGS_OUTFIT"
-    NgsCastPart = "NGS_CAST"
-    NgsHeadPart = "NGS_HEAD"
-    NgsBodyPaint = "NGS_PAINT"
-    NgsMag = "NGS_MAG"
-    NgsOther = "NGS_OTHER"
-
-    ClassicOutfit = "CLASSIC_OUTFIT"
-    ClassicCastPart = "CLASSIC_CAST"
-    ClassicHeadPart = "CLASSIC_HEAD"
-    ClassicBodyPaint = "CLASSIC_PAINT"
-    ClassicMag = "CLASSIC_MAG"
-    ClassicOther = "CLASSIC_OTHER"
-
-    Accessory = "ACCESSORY"
-    Sticker = "STICKER"
-    Room = "ROOM"
-    MySpace = "MY_SPACE"
-
-    NgsEnemies = "NGS_ENEMY"
-    ClassicEnemies = "CLASSIC_ENEMY"
-
-    # TODO: add motions
-
-
-ALL_CATEGORIES = set(str(value) for value in Category)
 
 VARIANT_HIGH_QUALITY = "High Quality"
 VARIANT_NORMAL_QUALITY = "Normal Quality"
@@ -70,25 +32,13 @@ class FileGroup:
         return list(self.files.keys())
 
 
-def update_file_lists(operator: bpy.types.Operator, context: bpy.types.Context):
-    shutil.rmtree(FILE_LIST_DIR, ignore_errors=True)
-
-    try:
-        pso2_bin = Path(get_preferences(context).pso2_data_path).parent
-        make_file_lists(pso2_bin, FILE_LIST_DIR)
-        return {"FINISHED"}
-    except CalledProcessError as ex:
-        operator.report({"ERROR"}, f"Failed to update file lists:\n{ex.stderr}")
-        return {"CANCELLED"}
-
-
 FileTuple = tuple[Category, str, ObjectType | None, ModelPart | None]
 
 _NGS_PLAYER_FILES: list[FileTuple] = [
     (Category.NgsHeadPart, "AllFacesNGS.csv", ObjectType.NGS_HEAD, None),
     (Category.NgsHeadPart, "AllHairNGS.csv", ObjectType.NGS_HAIR, None),
     (Category.NgsHeadPart, "EarsNGS.csv", ObjectType.NGS_EAR, None),
-    (Category.NgsHeadPart, "EyebrowsNVS.csv", ObjectType.NGS_EYEBROW, None),
+    (Category.NgsHeadPart, "EyebrowsNGS.csv", ObjectType.NGS_EYEBROW, None),
     (Category.NgsHeadPart, "EyelashesNGS.csv", ObjectType.NGS_EYELASHES, None),
     (Category.NgsHeadPart, "EyesNGS.csv", ObjectType.NGS_EYE, None),
     (Category.NgsHeadPart, "FacePaintNGS.csv", ObjectType.NGS_FACE_PAINT, None),
@@ -182,7 +132,7 @@ _NGS_PLAYER_FILES: list[FileTuple] = [
         None,
     ),
     (Category.NgsBodyPaint, "MaleNGSBodyPaint.csv", ObjectType.NGS_BODY_PAINT, None),
-    (Category.NgsBodyPaint, "Skins.csv", ObjectType.NGS_BODY, ModelPart.NGS_SKIN),
+    (Category.NgsBodyPaint, "SkinsNGS.csv", ObjectType.NGS_BODY, ModelPart.NGS_SKIN),
 ]
 
 _CLASSIC_PLAYER_FILES: list[FileTuple] = [
@@ -287,7 +237,7 @@ _SEARCH_PATHS = ["win32", "win32_na", "win32reboot", "win32reboot_na"]
 
 
 def find_ice_file(context: bpy.types.Context, filehash: str) -> Path | None:
-    pso2_data = Path(get_preferences(context).pso2_data_path)
+    pso2_data = get_preferences(context).get_pso2_data_path()
 
     for basedir in _SEARCH_PATHS:
         path = pso2_data / basedir / filehash
@@ -303,13 +253,18 @@ def _read_player_csv(
     object_type: Optional[ObjectType] = None,
     model_part: Optional[ModelPart] = None,
 ):
+    print(file)
+
     try:
         objects: dict[int, dict[str, str]] = {}
 
         for row in _read_csv(file):
-            yield from _parse_player_csv_row(
-                objects, category, row, object_type, model_part
-            )
+            try:
+                yield from _parse_player_csv_row(
+                    objects, category, row, object_type, model_part
+                )
+            except ValueError as ex:
+                print(ex)
     except OSError as ex:
         print(ex)
 
@@ -322,7 +277,10 @@ def _read_mag_csv(
 ):
     try:
         for row in _read_headerless_csv(f"Player/{file}"):
-            yield from _parse_mag_csv_row(category, row)
+            try:
+                yield from _parse_mag_csv_row(category, row)
+            except ValueError as ex:
+                print(ex)
     except OSError as ex:
         print(ex)
 
@@ -334,14 +292,12 @@ def _parse_player_csv_row(
     object_type: Optional[ObjectType] = None,
     model_part: Optional[ModelPart] = None,
 ):
-    name = (
-        row.get("English Name")
-        or row.get("Japanese Name")
-        or f"Unnamed {row.get('Id')}"
-    )
-
     object_id = int(row.get("Id", "0"))
     objects[object_id] = row
+
+    en_name = row.get("English Name")
+    jp_name = row.get("Japanese Name")
+    name = en_name or f"{jp_name} ({object_id})" if jp_name else f"Unnamed {object_id}"
 
     adjusted_id = int(row.get("Adjusted Id", "0"))
     base_object = objects.get(adjusted_id, {}) if adjusted_id != object_id else {}
@@ -379,7 +335,8 @@ def _parse_player_csv_row(
 
     # TODO: "High Quality RP" column exists, but nothing uses it?
 
-    yield group
+    if group.files:
+        yield group
 
 
 def _filter_list(*files: list[str]):

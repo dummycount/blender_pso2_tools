@@ -86,4 +86,4 @@ def _print_tree(node: Node, depth=0):
     indent = "  " * depth
     print(indent + node.name)
     for edge in node.edges:
-        edge.print(depth + 1)
+        _print_tree(edge, depth + 1)

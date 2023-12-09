@@ -1,7 +1,7 @@
 from pathlib import Path
 from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
-from typing import Union
+from typing import Optional, Union
 
 import bpy
 from bpy.types import Context, Operator, OperatorFileListElement
@@ -10,6 +10,7 @@ from io_scene_fbx import import_fbx
 import zamboni
 
 from . import classes, convert, material, preferences
+from .colors import Colors, COLOR_CHANNELS
 from .object_info import ObjectInfo
 
 
@@ -22,6 +23,11 @@ class ImportProperties:
         default=False,
     )
     use_textures: bpy.props.BoolProperty(
+        name="Import textures",
+        description="Import DDS textures from the model directory",
+        default=True,
+    )
+    use_inner_colors: bpy.props.BoolProperty(
         name="Import textures",
         description="Import DDS textures from the model directory",
         default=True,
@@ -42,25 +48,38 @@ class ImportProperties:
 
         layout.prop(self, "use_textures")
         if object_info.use_skin_colors:
-            layout.prop(prefs, "main_skin_color")
-            layout.prop(prefs, "sub_skin_color")
+            layout.prop(prefs, COLOR_CHANNELS[Colors.MainSkin].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.SubSkin].prop)
 
-        layout.prop(prefs, "custom_color_1")
-        layout.prop(prefs, "custom_color_2")
+        # TODO: filter this better using CMX data
         if object_info.use_cast_colors:
-            layout.prop(prefs, "custom_color_3")
-            layout.prop(prefs, "custom_color_4")
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast3].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast4].prop)
 
+        # TODO: filter this better using CMX data
         if object_info.use_costume_colors:
-            layout.prop(prefs, "inner_color_1")
-            layout.prop(prefs, "inner_color_2")
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Base1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Base2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Outer1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Outer2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Inner1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Inner2].prop)
 
         if object_info.use_hair_colors:
-            layout.prop(prefs, "hair_color_1")
-            layout.prop(prefs, "hair_color_2")
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Hair1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Hair2].prop)
 
         if object_info.use_eye_colors:
-            layout.prop(prefs, "eye_color")
+            layout.prop(prefs, COLOR_CHANNELS[Colors.RightEye].prop)
+            layout.prop(prefs, COLOR_CHANNELS[Colors.LeftEye].prop)
+
+        if object_info.use_eyebrow_colors:
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Eyebrow].prop)
+
+        if object_info.use_eyelash_colors:
+            layout.prop(prefs, COLOR_CHANNELS[Colors.Eyelash].prop)
 
     def draw_armature_props(self, context: Context, layout: bpy.types.UILayout):
         layout.prop(self, "automatic_bone_orientation")
@@ -69,25 +88,11 @@ class ImportProperties:
         if self.use_textures:
             material.load_textures(directory)
 
-    def import_aqp(self, context: Context, path: Path):
-        prefs = preferences.get_preferences(context)
-
-        colors = material.CustomColors(
-            custom_color_1=prefs.custom_color_1,
-            custom_color_2=prefs.custom_color_2,
-            custom_color_3=prefs.custom_color_3,
-            custom_color_4=prefs.custom_color_4,
-            main_skin_color=prefs.main_skin_color,
-            sub_skin_color=prefs.sub_skin_color,
-            inner_color_1=prefs.inner_color_1,
-            inner_color_2=prefs.inner_color_2,
-            hair_color_1=prefs.hair_color_1,
-            hair_color_2=prefs.hair_color_2,
-            eye_color=prefs.eye_color,
-        )
-
+    def import_aqp(
+        self, context: Context, path: Path, object_info: Optional[ObjectInfo] = None
+    ):
         original_mats = set(bpy.data.materials.keys())
-        object_info = ObjectInfo.from_file_name(path)
+        object_info = object_info or ObjectInfo.from_file_name(path)
 
         with TemporaryDirectory() as tempdir:
             fbxfile = Path(tempdir) / path.with_suffix(".fbx").name
@@ -108,7 +113,10 @@ class ImportProperties:
 
             new_mats = set(bpy.data.materials.keys())
             material.update_materials(
-                new_mats.difference(original_mats), colors, object_info, model_info
+                context,
+                new_mats.difference(original_mats),
+                object_info,
+                model_info,
             )
 
     def load_skin_textures(self, context: Context):
@@ -117,7 +125,7 @@ class ImportProperties:
         if body_ice is None:
             return
 
-        data_dir = Path(preferences.get_preferences(context).pso2_data_path)
+        data_dir = preferences.get_preferences(context).get_pso2_data_path()
         if not data_dir.exists():
             return
 
@@ -135,6 +143,7 @@ class ImportProperties:
         operator: Union[Operator, "ImportProperties"],
         context: Context,
         filepath: Path | str,
+        object_info: Optional[ObjectInfo] = None,
     ):
         """Load a model from an ICE file"""
         filepath = Path(filepath)
@@ -146,7 +155,7 @@ class ImportProperties:
 
                 operator.import_directory_textures(context, tempdir)
                 for aqpfile in tempdir.rglob("*.aqp"):
-                    operator.import_aqp(context, aqpfile)
+                    operator.import_aqp(context, aqpfile, object_info=object_info)
         except CalledProcessError as ex:
             operator.report({"ERROR"}, f"Failed to import {filepath}:\n{ex.stderr}")
             return {"CANCELLED"}

@@ -1,25 +1,23 @@
-from bpy.types import Material
+import bpy
 
-from pso2_tools.shaders import default_colors, shader, ngs_common
+from pso2_tools.colors import Colors, WHITE
+from pso2_tools.shaders import shader, ngs_common
 
 
 class NgsEyeMaterial(shader.ShaderBuilder):
     textures: shader.MaterialTextures
-    colors: shader.ColorGroup
 
     def __init__(
         self,
-        material: Material,
+        material: bpy.types.Material,
         textures: shader.MaterialTextures,
-        colors: shader.ColorGroup,
         eye_index=0,
     ):
         super().__init__(material)
         self.textures = textures
-        self.colors = colors
         self.eye_index = eye_index
 
-    def build(self):
+    def build(self, context: bpy.types.Context):
         build = self.init_tree()
 
         shader_group: ngs_common.ShaderNodePso2Ngs = build.add_node(
@@ -45,10 +43,11 @@ class NgsEyeMaterial(shader.ShaderBuilder):
         build.add_link(multi.outputs["Color"], shader_group.inputs["Mask RGB"])
 
         colors = build.add_node("ShaderNodeGroup", (6, 8))
-        colors.label = "Eye Colors"
-        colors.node_tree = shader.get_custom_color_group(self.colors)
+        colors.label = "Colors"
+        colors.node_tree = shader.get_color_channels_node(context)
 
-        build.add_link(colors.outputs[self.eye_index], shader_group.inputs["Color 1"])
+        channel = Colors.LeftEye if self.eye_index == 0 else Colors.RightEye
+        build.add_color_link(channel, colors, shader_group.inputs["Color 1"])
 
         # Specular Map
         specular = build.add_node("ShaderNodeTexImage", (0, 0))
@@ -82,6 +81,6 @@ class NgsEyeTearMaterial(shader.ShaderBuilder):
 
         # TODO: Not sure how this should look. Just make it totally transparent for now.
         bsdf = build.add_node("ShaderNodeBsdfTransparent", (0, 0))
-        bsdf.inputs["Color"].default_value = default_colors.WHITE
+        bsdf.inputs["Color"].default_value = WHITE
 
         build.add_link(bsdf.outputs["BSDF"], output.inputs["Surface"])

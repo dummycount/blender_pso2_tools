@@ -1,8 +1,8 @@
 import bpy
-from bpy.types import Material
 
 from pso2_tools import classes
-from pso2_tools.shaders import default_colors, shader
+from pso2_tools.colors import Colors, MAGENTA
+from pso2_tools.shaders import shader
 
 
 def is_classic_shader(name: str):
@@ -14,19 +14,16 @@ def is_classic_shader(name: str):
 
 class ClassicDefaultMaterial(shader.ShaderBuilder):
     textures: shader.MaterialTextures
-    colors: shader.ColorGroup
 
     def __init__(
         self,
-        material: Material,
+        material: bpy.types.Material,
         textures: shader.MaterialTextures,
-        colors: shader.ColorGroup,
     ):
         super().__init__(material)
         self.textures = textures
-        self.colors = colors
 
-    def build(self):
+    def build(self, context: bpy.types.Context):
         build = self.init_tree()
 
         shader_group: ShaderNodePso2ClassicOutfit = build.add_node(
@@ -53,10 +50,11 @@ class ClassicDefaultMaterial(shader.ShaderBuilder):
 
         colors = build.add_node("ShaderNodeGroup", (6, 8))
         colors.label = "Colors"
-        colors.node_tree = shader.get_custom_color_group(self.colors)
+        colors.node_tree = shader.get_color_channels_node(context)
 
-        build.add_link(colors.outputs[0], shader_group.inputs["Color 1"])
-        build.add_link(colors.outputs[1], shader_group.inputs["Color 2"])
+        # TODO: handle cast part colors?
+        build.add_color_link(Colors.MainSkin, colors, shader_group.inputs["Color 1"])
+        build.add_color_link(Colors.Base1, colors, shader_group.inputs["Color 2"])
 
         # Specular Map
         specular = build.add_node("ShaderNodeTexImage", (0, 0))
@@ -103,7 +101,7 @@ class ShaderNodePso2ClassicOutfit(bpy.types.ShaderNodeCustomGroup):
     def init(self, context):
         self.node_tree = self.build()
 
-        self.inputs["Diffuse"].default_value = default_colors.MAGENTA
+        self.inputs["Diffuse"].default_value = MAGENTA
         self.inputs["Alpha"].default_value = 1
 
     def free(self):

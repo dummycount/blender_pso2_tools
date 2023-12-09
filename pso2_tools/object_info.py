@@ -147,6 +147,25 @@ HEAD_OBJECTS = (
     ObjectType.NGS_EAR,
     ObjectType.NGS_HEAD,
 )
+EYE_OBJECTS = (ObjectType.EYE, ObjectType.NGS_EYE)
+EYEBROW_OBJECTS = (ObjectType.EYEBROW, ObjectType.NGS_EYEBROW)
+EYELASH_OBJECTS = (ObjectType.EYELASHES, ObjectType.NGS_EYELASHES)
+
+BASEWEAR_PARTS = (
+    ModelPart.NGS_BASEWEAR,
+    ModelPart.MALE_BASEWEAR,
+    ModelPart.FEMALE_BASEWEAR,
+)
+OUTERWEAR_PARTS = (
+    ModelPart.NGS_OUTERWEAR,
+    ModelPart.MALE_OUTERWEAR,
+    ModelPart.FEMALE_OUTERWEAR,
+)
+INNERWEAR_PARTS = (
+    ModelPart.NGS_INNERWEAR,
+    ModelPart.MALE_INNERWEAR,
+    ModelPart.FEMALE_INNERWEAR,
+)
 
 CAST_ARMS_PARTS = (
     ModelPart.FEMALE_CAST_ARMS,
@@ -205,8 +224,11 @@ class ObjectInfo:
     def from_file_name(cls, path: str | Path):
         # category_...
 
-        path = Path(path)
-        category, _, rest = path.with_suffix("").name.partition("_")
+        try:
+            path = Path(path)
+            category, _, rest = path.with_suffix("").name.partition("_")
+        except ValueError:
+            return ObjectInfo(name=path.name)
 
         info = ObjectInfo(name=path.name, extension=path.suffix, category=category)
 
@@ -261,19 +283,51 @@ class ObjectInfo:
         )
 
     @property
+    def is_basewear(self):
+        return self.category == ObjectCategory.PLAYER and self.part in BASEWEAR_PARTS
+
+    @property
+    def is_outerwear(self):
+        return self.category == ObjectCategory.PLAYER and self.part in OUTERWEAR_PARTS
+
+    @property
+    def is_innerwear(self):
+        return self.category == ObjectCategory.PLAYER and self.part in INNERWEAR_PARTS
+
+    @property
     def is_cast_part(self):
         return self.is_body_object and self.part in CAST_PARTS
 
     @property
-    def is_hair_object(self):
+    def is_hair(self):
         return (
             self.category == ObjectCategory.PLAYER and self.object_type in HAIR_OBJECTS
         )
 
     @property
-    def is_head_object(self):
+    def is_head(self):
         return (
             self.category == ObjectCategory.PLAYER and self.object_type in HEAD_OBJECTS
+        )
+
+    @property
+    def is_eye(self):
+        return (
+            self.category == ObjectCategory.PLAYER and self.object_type in EYE_OBJECTS
+        )
+
+    @property
+    def is_eyebrow(self):
+        return (
+            self.category == ObjectCategory.PLAYER
+            and self.object_type in EYEBROW_OBJECTS
+        )
+
+    @property
+    def is_eyelash(self):
+        return (
+            self.category == ObjectCategory.PLAYER
+            and self.object_type in EYELASH_OBJECTS
         )
 
     @property
@@ -282,7 +336,7 @@ class ObjectInfo:
 
     @property
     def use_skin_colors(self):
-        return self.is_body_object or self.is_head_object
+        return self.is_body_object or self.is_head
 
     @property
     def use_cast_colors(self):
@@ -290,11 +344,19 @@ class ObjectInfo:
 
     @property
     def use_hair_colors(self):
-        return self.is_hair_object
+        return self.is_hair
 
     @property
     def use_eye_colors(self):
-        return self.is_head_object
+        return self.is_eye
+
+    @property
+    def use_eyebrow_colors(self):
+        return self.is_eyebrow
+
+    @property
+    def use_eyelash_colors(self):
+        return self.is_eyelash
 
     @property
     def uv_mapping(self) -> Optional[UVMapping]:
