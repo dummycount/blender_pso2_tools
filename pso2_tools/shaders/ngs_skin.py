@@ -153,7 +153,7 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         mask_rgb.mode = "RGB"
         mask_rgb.parent = inner_frame
         build.add_link(mask.outputs["Color"], mask_rgb.inputs["Color"])
-        # TODO: how do R, G, B channels work?
+        # TODO: how do G, B channels work?
         # Upper body is colored blue? Lower body is colored green?
 
         inner_enable = build.add_node("ShaderNodeValue", (x2 + 6, -8))
@@ -165,7 +165,7 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         mix_fac.use_clamp = True
 
         build.add_link(inner_enable.outputs[0], mix_fac.inputs[0])
-        build.add_link(mask_rgb.outputs["R"], mix_fac.inputs[1])
+        build.add_link(mask_rgb.outputs["Red"], mix_fac.inputs[1])
 
         mix = build.add_node("ShaderNodeMixShader", (x2 + 18, 11))
         build.add_link(mix_fac.outputs[0], mix.inputs["Fac"])
