@@ -240,7 +240,7 @@ def _get_material_builder(
                 else:
                     colors = [Colors.Base1, Colors.Base2]
 
-        case "rbd_ou":  # NGS outerwear
+        case "rbd_ou" | "rbd_ou_d":  # NGS outerwear
             main_mats += ["ow"]
             if not colors:
                 colors = [Colors.Outer1, Colors.Outer2]
