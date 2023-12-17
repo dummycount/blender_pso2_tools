@@ -58,8 +58,6 @@ class ShaderNodePso2NgsBasic(bpy.types.ShaderNodeCustomGroup):
         build.add_link(group_inputs.outputs["Specular RGB"], spec_rgb.inputs["Color"])
         build.add_link(spec_rgb.outputs["Red"], bsdf.inputs["Metallic"])
         build.add_link(spec_rgb.outputs["Green"], bsdf.inputs["Roughness"])
-        # TODO: what is alpha channel for?
-        # build.add_link(group_inputs.outputs["Specular A"], ???)
 
         # ========== Ambient Occlusion ==========
 
@@ -139,6 +137,13 @@ class ShaderNodePso2NgsBasic(bpy.types.ShaderNodeCustomGroup):
 
         build.add_link(color4.outputs["Result"], ao.inputs["A"])
         build.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
+
+        # ========== Emissive Map ==========
+
+        build.add_link(
+            group_inputs.outputs["Specular A"], bsdf.inputs["Emission Strength"]
+        )
+        build.add_link(color4.outputs["Result"], bsdf.inputs["Emission Color"])
 
         return tree
 
