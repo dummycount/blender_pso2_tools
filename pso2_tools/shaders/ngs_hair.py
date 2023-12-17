@@ -132,62 +132,39 @@ class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
         group_inputs = build.add_node("NodeGroupInput")
         group_outputs = build.add_node("NodeGroupOutput")
 
-        tree.inputs.new("NodeSocketFloat", "Alpha")
-        tree.inputs.new("NodeSocketColor", "Diffuse")
-        tree.inputs.new("NodeSocketColor", "Color 1")
-        tree.inputs.new("NodeSocketColor", "Color 2")
-        tree.inputs.new("NodeSocketColor", "Color 3")
-        tree.inputs.new("NodeSocketColor", "Color 4")
-        tree.inputs.new("NodeSocketColor", "Mask RGB")
-        tree.inputs.new("NodeSocketColor", "Specular RGB")
-        tree.inputs.new("NodeSocketFloat", "Specular A")
-        tree.inputs.new("NodeSocketColor", "Normal")
-        tree.inputs.new("NodeSocketColor", "Texture O")
+        build.new_input("NodeSocketFloat", "Alpha")
+        build.new_input("NodeSocketColor", "Diffuse")
+        build.new_input("NodeSocketColor", "Color 1")
+        build.new_input("NodeSocketColor", "Color 2")
+        build.new_input("NodeSocketColor", "Color 3")
+        build.new_input("NodeSocketColor", "Color 4")
+        build.new_input("NodeSocketColor", "Mask RGB")
+        build.new_input("NodeSocketColor", "Specular RGB")
+        build.new_input("NodeSocketFloat", "Specular A")
+        build.new_input("NodeSocketColor", "Normal")
+        build.new_input("NodeSocketColor", "Texture O")
 
-        tree.outputs.new("NodeSocketShader", "BSDF")
+        build.new_output("NodeSocketShader", "BSDF")
 
         bsdf = build.add_node("ShaderNodeBsdfPrincipled")
-        bsdf.inputs["Specular"].default_value = 0.03
+        # bsdf.inputs["Specular"].default_value = 0.03
 
         build.add_link(bsdf.outputs["BSDF"], group_outputs.inputs["BSDF"])
 
-        # ========== Base Color ==========
-
-        multi_rgb = build.add_node("ShaderNodeSeparateRGB")
-        build.add_link(group_inputs.outputs["Mask RGB"], multi_rgb.inputs[0])
-
-        color1 = build.add_node("ShaderNodeMixRGB")
-        color1.label = "Color 1"
-        color1.blend_type = "MULTIPLY"
-        color1.use_clamp = True
-
-        color2 = build.add_node("ShaderNodeMixRGB")
-        color2.label = "Color 2"
-        color2.blend_type = "MULTIPLY"
-        color2.use_clamp = True
-
-        build.add_link(multi_rgb.outputs["R"], color1.inputs["Fac"])
-        build.add_link(group_inputs.outputs["Diffuse"], color1.inputs["Color1"])
-        build.add_link(group_inputs.outputs["Color 1"], color1.inputs["Color2"])
-
-        build.add_link(multi_rgb.outputs["G"], color2.inputs["Fac"])
-        build.add_link(color1.outputs["Color"], color2.inputs["Color1"])
-        build.add_link(group_inputs.outputs["Color 2"], color2.inputs["Color2"])
-
-        build.add_link(color2.outputs[0], bsdf.inputs["Base Color"])
-        build.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
-
         # ========== Specular Map ==========
 
-        spec_rgb = build.add_node("ShaderNodeSeparateRGB")
-        spec_rgb.label = "Specular RGB"
+        spec_rgb = build.add_node("ShaderNodeSeparateColor")
+        spec_rgb.name = "Specular RGB"
+        spec_rgb.label = spec_rgb.name
+        spec_rgb.mode = "RGB"
 
         build.add_link(group_inputs.outputs["Specular RGB"], spec_rgb.inputs[0])
-        # TODO, what are each of R, G, B, and A used for? Just guessing here.
-        # build.add_link(spec_rgb.outputs["R"], bsdf.inputs["Metallic"])
-        # build.add_link(spec_rgb.outputs["G"], bsdf.inputs["Specular"])
-        # build.add_link(spec_rgb.outputs["B"], bsdf.inputs["Specular"])
-        build.add_link(group_inputs.outputs["Specular A"], bsdf.inputs["Clearcoat"])
+        # Are these used at all for hair, or are they just for the parts of the
+        # hair model that use the regular shader?
+        # build.add_link(spec_rgb.outputs["Red"], ???)
+        # build.add_link(spec_rgb.outputs["Green"], ???)
+        # build.add_link(spec_rgb.outputs["Blue"], ???)
+        # build.add_link(group_inputs.outputs["Specular A"], ???)
 
         # ========== Normal Map ==========
 
@@ -198,5 +175,37 @@ class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
 
         # ========== Unknown ==========
         # TODO: figure out what texture _o does.
+
+        # ========== Base Color ==========
+
+        multi_rgb = build.add_node("ShaderNodeSeparateColor")
+        multi_rgb.name = "Multi Color"
+        multi_rgb.label = multi_rgb.name
+        multi_rgb.mode = "RGB"
+
+        build.add_link(group_inputs.outputs["Mask RGB"], multi_rgb.inputs["Color"])
+
+        color1 = build.add_node("ShaderNodeMix")
+        color1.label = "Color 1"
+        color1.data_type = "RGBA"
+        color1.blend_type = "MULTIPLY"
+        color1.clamp_factor = True
+
+        color2 = build.add_node("ShaderNodeMix")
+        color2.label = "Color 2"
+        color2.data_type = "RGBA"
+        color2.blend_type = "MULTIPLY"
+        color2.clamp_factor = True
+
+        build.add_link(multi_rgb.outputs["Red"], color1.inputs["Factor"])
+        build.add_link(group_inputs.outputs["Diffuse"], color1.inputs["A"])
+        build.add_link(group_inputs.outputs["Color 1"], color1.inputs["B"])
+
+        build.add_link(multi_rgb.outputs["Green"], color2.inputs["Factor"])
+        build.add_link(color1.outputs["Result"], color2.inputs["A"])
+        build.add_link(group_inputs.outputs["Color 2"], color2.inputs["B"])
+
+        build.add_link(color2.outputs["Result"], bsdf.inputs["Base Color"])
+        build.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
 
         return tree

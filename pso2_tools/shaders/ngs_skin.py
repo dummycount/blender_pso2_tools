@@ -13,7 +13,7 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         self,
         material: bpy.types.Material,
         skin_textures: shader.MaterialTextures,
-        inner_textures: Optional[shader.MaterialTextures],
+        inner_textures: Optional[shader.MaterialTextures] = None,
     ):
         super().__init__(material)
         self.skin_textures = skin_textures
@@ -149,9 +149,10 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         if self.inner_textures:
             mask.image = self.inner_textures.layer
 
-        mask_rgb = build.add_node("ShaderNodeSeparateRGB", (x2 + 6, -12))
+        mask_rgb = build.add_node("ShaderNodeSeparateColor", (x2 + 6, -12))
+        mask_rgb.mode = "RGB"
         mask_rgb.parent = inner_frame
-        build.add_link(mask.outputs["Color"], mask_rgb.inputs[0])
+        build.add_link(mask.outputs["Color"], mask_rgb.inputs["Color"])
         # TODO: how do R, G, B channels work?
         # Upper body is colored blue? Lower body is colored green?
 

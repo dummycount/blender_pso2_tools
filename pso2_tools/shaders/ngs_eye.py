@@ -75,7 +75,7 @@ class NgsEyeMaterial(shader.ShaderBuilder):
 
 
 class NgsEyeTearMaterial(shader.ShaderBuilder):
-    def build(self):
+    def build(self, context: bpy.types.Context):
         build = self.init_tree()
         output = build.add_node("ShaderNodeOutputMaterial", (6, 0))
 

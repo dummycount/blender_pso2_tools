@@ -279,6 +279,9 @@ def _get_material_builder(
             )
 
         case "1102p,1102":
+            if object_info.is_head:
+                return NgsSkinMaterial(mat, skin_textures=get_textures(mat_info, "rhd"))
+
             return NgsSkinMaterial(
                 mat,
                 skin_textures=get_textures(mat_info, "sk"),

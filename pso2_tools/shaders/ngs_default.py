@@ -50,7 +50,7 @@ class NgsDefaultMaterial(shader.ShaderBuilder):
         if self._channel(3) != Colors.Unused:
             build.add_link(multi.outputs["Alpha"], shader_group.inputs["Mask A"])
 
-        colors = build.add_node("ShaderNodeGroup", (6, 12))
+        colors = build.add_node("ShaderNodeGroup", (6, 9))
         colors.label = "Colors"
         colors.node_tree = shader.get_color_channels_node(context)
 

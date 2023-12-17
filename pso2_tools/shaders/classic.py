@@ -118,60 +118,84 @@ class ShaderNodePso2ClassicOutfit(bpy.types.ShaderNodeCustomGroup):
         group_inputs = build.add_node("NodeGroupInput")
         group_outputs = build.add_node("NodeGroupOutput")
 
-        tree.inputs.new("NodeSocketColor", "Diffuse")
-        tree.inputs.new("NodeSocketFloat", "Alpha")
-        tree.inputs.new("NodeSocketColor", "Color 1")
-        tree.inputs.new("NodeSocketColor", "Color 2")
-        tree.inputs.new("NodeSocketColor", "Mask RGB")
-        tree.inputs.new("NodeSocketColor", "Specular RGB")
-        tree.inputs.new("NodeSocketFloat", "Specular A")
-        tree.inputs.new("NodeSocketColor", "Normal")
-        tree.inputs.new("NodeSocketColor", "Texture O")
+        build.new_input("NodeSocketColor", "Diffuse")
+        build.new_input("NodeSocketFloat", "Alpha")
+        build.new_input("NodeSocketColor", "Color 1")
+        build.new_input("NodeSocketColor", "Color 2")
+        build.new_input("NodeSocketColor", "Mask RGB")
+        build.new_input("NodeSocketColor", "Specular RGB")
+        build.new_input("NodeSocketFloat", "Specular A")
+        build.new_input("NodeSocketColor", "Normal")
+        build.new_input("NodeSocketColor", "Texture O")
 
-        tree.outputs.new("NodeSocketShader", "BSDF")
+        build.new_output("NodeSocketShader", "BSDF")
 
         bsdf = build.add_node("ShaderNodeBsdfPrincipled")
         build.add_link(bsdf.outputs["BSDF"], group_outputs.inputs["BSDF"])
 
         # ========== Specular Map ==========
 
-        spec_rgb = build.add_node("ShaderNodeSeparateRGB")
-        spec_rgb.label = "Specular RGB"
+        spec_rgb = build.add_node("ShaderNodeSeparateColor")
+        spec_rgb.name = "Specular RGB"
+        spec_rgb.label = spec_rgb.name
+        spec_rgb.mode = "RGB"
 
-        build.add_link(group_inputs.outputs["Specular RGB"], spec_rgb.inputs[0])
+        build.add_link(group_inputs.outputs["Specular RGB"], spec_rgb.inputs["Color"])
 
         # G channel is skin mask
         # TODO, what are each of R, B, and A used for? Just guessing here.
-        build.add_link(spec_rgb.outputs["R"], bsdf.inputs["Specular"])
-        build.add_link(spec_rgb.outputs["B"], bsdf.inputs["Metallic"])
-        build.add_link(group_inputs.outputs["Specular A"], bsdf.inputs["Clearcoat"])
+        # R seems to be some sort of shading value? Most is 50% gray, and some
+        # regions are brighter or darker.
+
+        # build.add_link(spec_rgb.outputs["Red"], ???)
+        build.add_link(spec_rgb.outputs["Blue"], bsdf.inputs["Metallic"])
+
+        # A seems to be shininess?
+        spec_a_inv = build.add_node("ShaderNodeMapRange")
+        spec_a_inv.name = "Invert Specular A"
+        spec_a_inv.label = spec_a_inv.name
+        spec_a_inv.data_type = "FLOAT"
+        spec_a_inv.interpolation_type = "LINEAR"
+        spec_a_inv.inputs["From Min"].default_value = 0
+        spec_a_inv.inputs["From Max"].default_value = 1
+        spec_a_inv.inputs["To Min"].default_value = 1
+        spec_a_inv.inputs["To Max"].default_value = 0
+
+        build.add_link(group_inputs.outputs["Specular A"], spec_a_inv.inputs["Value"])
+        build.add_link(spec_a_inv.outputs["Result"], bsdf.inputs["Roughness"])
 
         # ========== Base Color ==========
 
-        multi_rgb = build.add_node("ShaderNodeSeparateRGB")
-        build.add_link(group_inputs.outputs["Mask RGB"], multi_rgb.inputs[0])
+        multi_rgb = build.add_node("ShaderNodeSeparateColor")
+        multi_rgb.name = "Multi Color"
+        multi_rgb.label = multi_rgb.name
+        multi_rgb.mode = "RGB"
 
-        color1 = build.add_node("ShaderNodeMixRGB")
+        build.add_link(group_inputs.outputs["Mask RGB"], multi_rgb.inputs["Color"])
+
+        color1 = build.add_node("ShaderNodeMix")
         color1.label = "Color 1"
+        color1.data_type = "RGBA"
         color1.blend_type = "MIX"  # Assuming color 1 is always skin?
-        color1.use_clamp = True
+        color1.clamp_factor = True
 
-        color2 = build.add_node("ShaderNodeMixRGB")
+        color2 = build.add_node("ShaderNodeMix")
         color2.label = "Color 2"
+        color2.data_type = "RGBA"
         color2.blend_type = "MIX"
-        color2.use_clamp = True
+        color2.clamp_factor = True
 
-        build.add_link(spec_rgb.outputs["G"], color1.inputs["Fac"])
-        build.add_link(group_inputs.outputs["Diffuse"], color1.inputs["Color1"])
-        build.add_link(group_inputs.outputs["Color 1"], color1.inputs["Color2"])
+        build.add_link(spec_rgb.outputs["Green"], color1.inputs["Factor"])
+        build.add_link(group_inputs.outputs["Diffuse"], color1.inputs["A"])
+        build.add_link(group_inputs.outputs["Color 1"], color1.inputs["B"])
 
-        build.add_link(multi_rgb.outputs["G"], color2.inputs["Fac"])
-        build.add_link(color1.outputs["Color"], color2.inputs["Color1"])
-        build.add_link(group_inputs.outputs["Color 2"], color2.inputs["Color2"])
+        build.add_link(multi_rgb.outputs["Green"], color2.inputs["Factor"])
+        build.add_link(color1.outputs["Result"], color2.inputs["A"])
+        build.add_link(group_inputs.outputs["Color 2"], color2.inputs["B"])
 
         # TODO: R channel appears unused? G and B channels are similar but not the same.
 
-        build.add_link(color2.outputs[0], bsdf.inputs["Base Color"])
+        build.add_link(color2.outputs["Result"], bsdf.inputs["Base Color"])
         build.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
 
         # ========== Normal Map ==========

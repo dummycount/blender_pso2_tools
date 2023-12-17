@@ -253,8 +253,6 @@ def _read_player_csv(
     object_type: Optional[ObjectType] = None,
     model_part: Optional[ModelPart] = None,
 ):
-    print(file)
-
     try:
         objects: dict[int, dict[str, str]] = {}
 
