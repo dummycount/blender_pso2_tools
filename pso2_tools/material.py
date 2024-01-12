@@ -1,12 +1,10 @@
 from pathlib import Path
-import tempfile
 from typing import Iterable, Optional
 
 import bpy
 
 from .aqp_info import AqpInfo, AqpMaterial
 from .colors import Colors
-from .import_dds import dds_to_png
 from .object_info import ObjectInfo
 from .object_colors import ensure_color_channels_updated, get_object_color_channels
 from .shaders.shader import MaterialTextures
@@ -41,27 +39,11 @@ def load_textures(folder: Path, pattern="*.dds"):
         load_image(texture)
 
 
-def _load_dds(file: Path) -> bpy.types.Image:
-    with tempfile.TemporaryDirectory() as tempdir:
-        pngfile = Path(tempdir) / file.with_suffix(".png").name
-        dds_to_png(str(file), str(pngfile))
-
-        image = bpy.data.images.load(str(pngfile))
-        image.name = file.name
-
-        image.pack()
-
-        return image
-
-
 def load_image(file: Path) -> bpy.types.Image:
-    """Load a PSO2 texture from a .png image"""
+    """Load a PSO2 texture from an image"""
 
-    if file.suffix == ".dds":
-        image = _load_dds(file)
-    else:
-        image = bpy.data.images.load(str(file))
-        image.pack()
+    image = bpy.data.images.load(str(file))
+    image.pack()
 
     if texture_has_part(image.name, ("d")):
         image.colorspace_settings.is_data = False
