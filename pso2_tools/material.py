@@ -192,30 +192,29 @@ def _get_material_builder(
 ):
     object_info = object_info or ObjectInfo()
 
-    main_mats = []
-    sub_mats = []
+    tex_tags = []
     colors = get_object_color_channels(object_info)
 
     # TODO: find textures based on textures list in mat_info instead of this
     match mat_info.special_type:
         case "pl":  # Classic outfit, cast body
-            main_mats += ["bd", "tr"]
+            tex_tags += ["bd", "tr"]
 
         case "fc":  # NGS face
-            main_mats += ["rhd"]
+            tex_tags += ["rhd"]
 
         case "hr":  # Classic hair, some NGS hair parts
-            main_mats += ["hr", "rhr"]
+            tex_tags += ["hr", "rhr"]
             if not colors:
                 colors = [Colors.Hair1, Colors.Hair2]
 
         case "rhr":  # NGS Hair
-            main_mats += ["rhr"]
+            tex_tags += ["rhr"]
             if not colors:
                 colors = [Colors.Hair1, Colors.Hair2]
 
         case "rbd" | "rbd_d":  # NGS outfit, cast body
-            main_mats += ["bw", "bd"]
+            tex_tags += ["bw", "bd"]
             if not colors:
                 if object_info.use_cast_colors:
                     colors = [Colors.Cast1, Colors.Cast2, Colors.Cast3, Colors.Cast4]
@@ -223,24 +222,24 @@ def _get_material_builder(
                     colors = [Colors.Base1, Colors.Base2]
 
         case "rbd_ou" | "rbd_ou_d":  # NGS outerwear
-            main_mats += ["ow"]
+            tex_tags += ["ow"]
             if not colors:
                 colors = [Colors.Outer1, Colors.Outer2]
 
         case _:
-            main_mats += ["ah", "rac"]  # Classic or NGS accessory
-            main_mats += ["wp"]  # Weapon
-            main_mats += ["en"]  # Enemy
+            tex_tags += ["ah", "rac"]  # Classic or NGS accessory
+            tex_tags += ["wp"]  # Weapon
+            tex_tags += ["en"]  # Enemy
 
     match mat_info.name:
         case "eyebrow_mat":
-            main_mats += ["reb"]  # NGS Eyebrow
+            tex_tags += ["reb"]  # NGS Eyebrow
 
         case "eyelash_mat":
-            main_mats += ["res"]  # NGS Eyelash
+            tex_tags += ["res"]  # NGS Eyelash
 
         case "eye_l" | "eye_r" | "tear_l" | "tear_r":
-            main_mats += ["rey"]
+            tex_tags += ["rey"]
 
     # TODO: Unhandled shaders
     # 1106 - fur?
@@ -257,10 +256,19 @@ def _get_material_builder(
         case name if is_classic_shader(name):
             return ClassicDefaultMaterial(
                 mat,
-                textures=get_textures(mat_info, *main_mats),
+                textures=get_textures(mat_info, *tex_tags),
             )
 
         case "1102p,1102":
+            # This can be used for costume materials instead of skin in some setwears?
+            if mat_info.special_type in ["rbd", "rbd_d"]:
+                return NgsDefaultMaterial(
+                    mat,
+                    textures=get_textures(mat_info, *tex_tags),
+                    colors=colors,
+                    object_info=object_info,
+                )
+
             if object_info.is_head:
                 return NgsSkinMaterial(mat, skin_textures=get_textures(mat_info, "rhd"))
 
@@ -273,24 +281,24 @@ def _get_material_builder(
         case "1103p,1103":
             return NgsHairMaterial(
                 mat,
-                textures=get_textures(mat_info, *main_mats),
+                textures=get_textures(mat_info, *tex_tags),
                 colors=colors,
             )
 
         case "1104p,1104":
             return NgsEyeMaterial(
                 mat,
-                textures=get_textures(mat_info, *main_mats),
+                textures=get_textures(mat_info, *tex_tags),
                 eye_index=1 if mat_info.name == "eye_r" else 0,
             )
 
         case "1105p,1105":
             return NgsEyeTearMaterial(mat)
 
-        case _:  # 1100p,1100
-            return NgsDefaultMaterial(
-                mat,
-                textures=get_textures(mat_info, *main_mats),
-                colors=colors,
-                object_info=object_info,
-            )
+    # 1100p,1100
+    return NgsDefaultMaterial(
+        mat,
+        textures=get_textures(mat_info, *tex_tags),
+        colors=colors,
+        object_info=object_info,
+    )
