@@ -62,6 +62,11 @@ def skin_material_exists(model_info: AqpInfo) -> bool:
     return any(mat.shaders == ["1102p", "1102"] for mat in model_info.materials)
 
 
+def create_custom_properties(context: bpy.types.Context, model_info: AqpInfo):
+    if skin_material_exists(model_info):
+        context.scene.world["Hide Innerwear"] = False
+
+
 def update_materials(
     context: bpy.types.Context,
     names: Iterable[str],
@@ -72,8 +77,11 @@ def update_materials(
     Take the materials with the given names which resulted from an FBX import
     and update them to approximate PSO2 shaders.
     """
+
     for name in names:
         update_material(context, bpy.data.materials[name], object_info, model_info)
+
+    create_custom_properties(context, model_info)
 
 
 def update_material(

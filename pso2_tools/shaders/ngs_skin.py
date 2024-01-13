@@ -156,11 +156,18 @@ class NgsSkinMaterial(shader.ShaderBuilder):
         # TODO: how do G, B channels work?
         # Upper body is colored blue? Lower body is colored green?
 
-        inner_enable = build.add_node("ShaderNodeValue", (x2 + 6, -8))
-        inner_enable.label = "Show Innerwear"
-        inner_enable.outputs[0].default_value = 1
+        inner_hide = build.add_node("ShaderNodeAttribute", (x2 + 6, -8))
+        inner_hide.label = "Hide Innerwear"
+        inner_hide.attribute_type = "VIEW_LAYER"
+        inner_hide.attribute_name = "Hide Innerwear"
 
-        mix_fac = build.add_node("ShaderNodeMath", (x2 + 12, -6))
+        inner_enable = build.add_node("ShaderNodeMath", (x2 + 10, -6))
+        inner_enable.operation = "SUBTRACT"
+        inner_enable.inputs[0].default_value = 1
+
+        build.add_link(inner_hide.outputs["Fac"], inner_enable.inputs[1])
+
+        mix_fac = build.add_node("ShaderNodeMath", (x2 + 14, -6))
         mix_fac.operation = "MULTIPLY"
         mix_fac.use_clamp = True
 

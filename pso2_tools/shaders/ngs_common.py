@@ -11,7 +11,10 @@ class ShaderNodePso2NgsBasic(bpy.types.ShaderNodeCustomGroup):
         self.node_tree = None
 
     def init(self, context):
-        self.node_tree = self.build(self.blend_type)
+        if tree := bpy.data.node_groups.get(self.name, None):
+            self.node_tree = tree
+        else:
+            self.node_tree = self.build(self.blend_type)
 
         self.inputs["Diffuse"].default_value = MAGENTA
         self.inputs["Alpha"].default_value = 1
@@ -20,10 +23,7 @@ class ShaderNodePso2NgsBasic(bpy.types.ShaderNodeCustomGroup):
         if self.node_tree.users == 1:
             bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
 
-    def build(self, blend_type):
-        if tree := bpy.data.node_groups.get(self.name, None):
-            return tree
-
+    def build(self, blend_type: str):
         tree = bpy.data.node_groups.new(self.name, "ShaderNodeTree")
         build = shader.NodeTreeBuilder(tree)
 
@@ -57,7 +57,17 @@ class ShaderNodePso2NgsBasic(bpy.types.ShaderNodeCustomGroup):
 
         build.add_link(group_inputs.outputs["Specular RGB"], spec_rgb.inputs["Color"])
         build.add_link(spec_rgb.outputs["Red"], bsdf.inputs["Metallic"])
-        build.add_link(spec_rgb.outputs["Green"], bsdf.inputs["Roughness"])
+
+        # Tone down the shininess a bit to better match in game visuals
+        roughness_map = build.add_node("ShaderNodeMapRange")
+        roughness_map.data_type = "FLOAT"
+        roughness_map.interpolation_type = "LINEAR"
+        roughness_map.clamp = True
+        roughness_map.inputs["To Min"].default_value = 0.2
+        roughness_map.inputs["To Max"].default_value = 1
+
+        build.add_link(spec_rgb.outputs["Green"], roughness_map.inputs["Value"])
+        build.add_link(roughness_map.outputs["Result"], bsdf.inputs["Roughness"])
 
         # ========== Ambient Occlusion ==========
 
@@ -165,4 +175,13 @@ class ShaderNodePso2NgsSkin(ShaderNodePso2NgsBasic):
     bl_icon = "NONE"
 
     def __init__(self):
-        super().__init__("MULTIPLY")
+        super().__init__("MIX")
+
+    def build(self, blend_type: str):
+        tree = super().build(blend_type)
+        bsdf = tree.nodes["Principled BSDF"]
+
+        bsdf.subsurface_method = "RANDOM_WALK_SKIN"
+        bsdf.inputs["Subsurface Weight"].default_value = 0.2
+
+        return tree

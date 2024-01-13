@@ -1,27 +1,6 @@
 from dataclasses import dataclass
 from typing import Literal, Optional, Tuple, overload
 import bpy
-from bpy.types import (
-    NodeFrame,
-    NodeGroupInput,
-    NodeGroupOutput,
-    NodeReroute,
-    ShaderNodeBsdfPrincipled,
-    ShaderNodeBsdfTransparent,
-    ShaderNodeGroup,
-    ShaderNodeMix,
-    ShaderNodeNormalMap,
-    ShaderNodeOutputMaterial,
-    ShaderNodeRGB,
-    ShaderNodeMapRange,
-    ShaderNodeMath,
-    ShaderNodeMixShader,
-    ShaderNodeSeparateColor,
-    ShaderNodeTexImage,
-    ShaderNodeUVMap,
-    ShaderNodeValue,
-    ShaderNodeVertexColor,
-)
 
 from pso2_tools.colors import COLOR_CHANNELS, Colors
 from pso2_tools.preferences import get_preferences
@@ -137,9 +116,9 @@ class NodeTreeBuilder:
         )
 
     def add_link(
-        self, input: bpy.types.NodeSocket, output: bpy.types.NodeSocket
+        self, in_socket: bpy.types.NodeSocket, out_socket: bpy.types.NodeSocket
     ) -> bpy.types.NodeLink:
-        return self.tree.links.new(input, output)
+        return self.tree.links.new(in_socket, out_socket)
 
     def add_color_link(
         self,
@@ -153,109 +132,123 @@ class NodeTreeBuilder:
         return self.tree.links.new(colors.outputs[channel.value - 1], output)
 
     @overload
-    def add_node(self, t: Literal["NodeFrame"], loc: OVec2 = None) -> NodeFrame:
+    def add_node(
+        self, t: Literal["NodeFrame"], loc: OVec2 = None
+    ) -> bpy.types.NodeFrame:
         ...
 
     @overload
     def add_node(
         self, t: Literal["NodeGroupInput"], loc: OVec2 = None
-    ) -> NodeGroupInput:
+    ) -> bpy.types.NodeGroupInput:
         ...
 
     @overload
     def add_node(
         self, t: Literal["NodeGroupOutput"], loc: OVec2 = None
-    ) -> NodeGroupOutput:
+    ) -> bpy.types.NodeGroupOutput:
         ...
 
     @overload
-    def add_node(self, t: Literal["NodeReroute"], loc: OVec2 = None) -> NodeReroute:
+    def add_node(
+        self, t: Literal["NodeReroute"], loc: OVec2 = None
+    ) -> bpy.types.NodeReroute:
+        ...
+
+    @overload
+    def add_node(
+        self, t: Literal["ShaderNodeAttribute"], loc: OVec2 = None
+    ) -> bpy.types.ShaderNodeAttribute:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeBsdfPrincipled"], loc: OVec2 = None
-    ) -> ShaderNodeBsdfPrincipled:
+    ) -> bpy.types.ShaderNodeBsdfPrincipled:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeBsdfTransparent"], loc: OVec2 = None
-    ) -> ShaderNodeBsdfTransparent:
+    ) -> bpy.types.ShaderNodeBsdfTransparent:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeGroup"], loc: OVec2 = None
-    ) -> ShaderNodeGroup:
+    ) -> bpy.types.ShaderNodeGroup:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeMath"], loc: OVec2 = None
-    ) -> ShaderNodeMath:
+    ) -> bpy.types.ShaderNodeMath:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeMapRange"], loc: OVec2 = None
-    ) -> ShaderNodeMapRange:
+    ) -> bpy.types.ShaderNodeMapRange:
         ...
 
     @overload
-    def add_node(self, t: Literal["ShaderNodeMix"], loc: OVec2 = None) -> ShaderNodeMix:
+    def add_node(
+        self, t: Literal["ShaderNodeMix"], loc: OVec2 = None
+    ) -> bpy.types.ShaderNodeMix:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeMixShader"], loc: OVec2 = None
-    ) -> ShaderNodeMixShader:
+    ) -> bpy.types.ShaderNodeMixShader:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeNormalMap"], loc: OVec2 = None
-    ) -> ShaderNodeNormalMap:
+    ) -> bpy.types.ShaderNodeNormalMap:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeOutputMaterial"], loc: OVec2 = None
-    ) -> ShaderNodeOutputMaterial:
+    ) -> bpy.types.ShaderNodeOutputMaterial:
         ...
 
     @overload
-    def add_node(self, t: Literal["ShaderNodeRGB"], loc: OVec2 = None) -> ShaderNodeRGB:
+    def add_node(
+        self, t: Literal["ShaderNodeRGB"], loc: OVec2 = None
+    ) -> bpy.types.ShaderNodeRGB:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeSeparateColor"], loc: OVec2 = None
-    ) -> ShaderNodeSeparateColor:
+    ) -> bpy.types.ShaderNodeSeparateColor:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeTexImage"], loc: OVec2 = None
-    ) -> ShaderNodeTexImage:
+    ) -> bpy.types.ShaderNodeTexImage:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeUVMap"], loc: OVec2 = None
-    ) -> ShaderNodeUVMap:
+    ) -> bpy.types.ShaderNodeUVMap:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeValue"], loc: OVec2 = None
-    ) -> ShaderNodeValue:
+    ) -> bpy.types.ShaderNodeValue:
         ...
 
     @overload
     def add_node(
         self, t: Literal["ShaderNodeVertexColor"], loc: OVec2 = None
-    ) -> ShaderNodeVertexColor:
+    ) -> bpy.types.ShaderNodeVertexColor:
         ...
 
     def add_node(
