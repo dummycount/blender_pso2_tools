@@ -1,5 +1,7 @@
 """
 Script to run in Blender's Python environment to build and install the add-on.
+
+Do not run this directly. Run install.py instead.
 """
 
 import ensurepip
@@ -10,7 +12,7 @@ import sys
 
 import bpy
 
-SCRIPT_DIR = Path(__file__).parent
+REPO_PATH = Path(__file__).parent.parent
 
 VSWHERE_PATH = Path(
     f"{os.getenv('ProgramFiles(x86)')}/Microsoft Visual Studio/Installer/vswhere.exe"
@@ -26,7 +28,7 @@ def get_vsdevcmd():
 def link_addon():
     user_path = Path(bpy.utils.resource_path("USER"))
 
-    source = SCRIPT_DIR / "pso2_tools"
+    source = REPO_PATH / "pso2_tools"
     target = user_path / "scripts" / "addons" / "pso2_tools"
 
     if not target.exists():

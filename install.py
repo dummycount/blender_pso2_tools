@@ -1,30 +1,18 @@
-"""
-Build the add-on and install it into Blender.
-"""
-
-import os
 from pathlib import Path
+import sys
 import subprocess
 
-
-def find_blender():
-    # TODO: add handling for multiple installed versions
-    program_files = Path(os.getenv("ProgramFiles", "C:/Program Files"))
-    blender_root = program_files / "Blender Foundation"
-    return next(blender_root.rglob("blender.exe"), None)
-
-
-def blender(*args: list[str]):
-    blender_path = find_blender()
-
-    if not blender_path:
-        raise EnvironmentError("Could not find Blender")
-
-    subprocess.check_call([blender_path, *args])
+REPO_PATH = Path(__file__).parent
+BUILD_SCRIPT = REPO_PATH / "scripts" / "build.py"
+INSTALL_SCRIPT = REPO_PATH / "scripts" / "install.py"
 
 
 def main():
-    blender("-b", "--factory-startup", "-P", "install-blender.py")
+    subprocess.check_call(
+        ["git", "submodule", "update", "--init", "--recursive"], cwd=REPO_PATH
+    )
+    subprocess.check_call([sys.executable, BUILD_SCRIPT])
+    subprocess.check_call([sys.executable, INSTALL_SCRIPT])
 
 
 if __name__ == "__main__":

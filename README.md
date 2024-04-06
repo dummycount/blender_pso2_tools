@@ -13,18 +13,23 @@ To build and install the add-on:
 
 1. Open a terminal to a location where you'd like to place the add-on files and run the following commands:
 
-    ```sh
-    git clone https://github.com/dummycount/blender_pso2_tools.git
-    cd blender_pso2_tools
-    git submodule update --init --recursive
-    python build-cli.py
-    python install.py
-    ```
+   ```sh
+   git clone https://github.com/dummycount/blender_pso2_tools.git
+   cd blender_pso2_tools
+   python3 install.py
+   ```
 
 1. In Blender, open **Edit > Preferences > Add-ons > Install**.
 1. Enable the checkbox next to **Import-Export: PSO2 format**.
 1. Click the arrow next to **Import-Export: PSO2 format** to expand the add-on preferences.
 1. Set the path to the PSO2 data folder if it is not set automatically.
+
+To update the add-on, open a terminal to the add-on folder and run the following commands:
+
+```sh
+git pull
+python3 install.py
+```
 
 ## Usage
 
