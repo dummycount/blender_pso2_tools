@@ -342,7 +342,7 @@ def _filter_list(*files: list[str]):
 
 
 def _read_csv(name: str):
-    path = FILE_LIST_DIR / name
+    path = FILE_LIST_DIR / "Sheets" / name
     with path.open(
         newline="", encoding="utf-8-sig", errors="surrogateescape"
     ) as csvfile:
