@@ -26,7 +26,7 @@ def aqp_to_fbx_with_info(model: Path, dest: Path) -> AqpInfo:
 
 
 def fbx_to_aqp(model: Path, dest: Path, *args):
-    return run([PSO_CLI, "convert", "aqp", model, dest, *args])
+    return run([PSO_CLI, "convert", "aqp", model, dest, "--scale", "100", *args])
 
 
 def make_file_lists(pso2_bin: Path, dest: Path, *args):

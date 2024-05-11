@@ -388,7 +388,7 @@ class ExportAqp(BaseExport):
         args = ["--update-aqn"] if self.update_skeleton else []
 
         try:
-            result = convert.fbx_to_aqp(fbx_file, filepath, *args)
+            convert.fbx_to_aqp(fbx_file, filepath, *args)
             return {"FINISHED"}
         except CalledProcessError as ex:
             self.report({"ERROR"}, f"Failed to convert FBX to AQP:\n{ex.stderr}")
