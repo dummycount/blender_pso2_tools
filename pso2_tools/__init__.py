@@ -14,6 +14,12 @@ if "reloader" in locals():
     reloader.reload_addon(__name__)
 
 
+import sysconfig
+import sys
+
+sys.path.append(sysconfig.get_path("platlib", "nt_user"))
+
+
 import bpy
 from . import classes, import_model, export_model, import_search, reloader
 
