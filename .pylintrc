@@ -1,0 +1,13 @@
+[MAIN]
+extension-pkg-whitelist=bpy,bpy_extras,AquaModelLibrary
+
+[MESSAGES CONTROL]
+disable=import-error,
+        invalid-name,
+        unused-argument,
+
+[TYPECHECK]
+# ignored-modules=bpy,bpy_extras,io_scene_fbx,AquaModelLibrary
+
+[FORMAT]
+good-names=d,ex,f,i,id
