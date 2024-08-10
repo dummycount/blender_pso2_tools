@@ -4,11 +4,10 @@ Build .net dependencies.
 
 import argparse
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 
@@ -20,8 +19,8 @@ VISUAL_STUDIO_URL = "https://visualstudio.microsoft.com/vs/community/"
 
 VSWHERE = Path("C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe")
 
-FBX_TARGET = Path("C:/Program Files/Autodesk/FBX/FBX SDK/2020.1")
-FBX_PATH = ROOT / "PSO2-Aqua-Library/AquaModelLibrary.Native/Dependencies/FBX"
+FBX_SRC = Path("C:/Program Files/Autodesk/FBX/FBX SDK/2020.1")
+FBX_DEST = ROOT / "PSO2-Aqua-Library/AquaModelLibrary.Native/Dependencies/FBX"
 BIN_PATH = ROOT / "pso2_tools/bin"
 
 AQUA_SLN = ROOT / "PSO2-Aqua-Library/AquaModelLibrary.sln"
@@ -42,20 +41,16 @@ def check_dependencies():
         print(f"Please install Visual Studio: {VISUAL_STUDIO_URL}")
         sys.exit(1)
 
-    if not FBX_TARGET.exists():
+    if not FBX_SRC.exists():
         print(f"Please install FBX SDK 2020.1: {FBX_URL}")
         sys.exit(1)
 
 
-def make_symlink(path: Path, target: Path):
-    if path.is_symlink():
-        if path.readlink() == target:
-            # Already symlinked to the correct thing.
-            return
-        path.unlink()
+def make_junction(src: Path, dest: Path):
+    if dest.exists():
+        return
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.symlink_to(target, target_is_directory=target.is_dir())
+    subprocess.call(["mklink", "/J", dest, src], shell=True)
 
 
 def install_packages():
@@ -109,8 +104,10 @@ def main():
     config = "Debug" if args.debug else "Release"
 
     # Set up Aqua Library dependencies
-    make_symlink(FBX_PATH / "lib", FBX_TARGET / "lib")
-    make_symlink(FBX_PATH / "include", FBX_TARGET / "include")
+    # Use junction points instead of symlinks so Git sees them as directories
+    # and they fit PSO2-Aqua-Library's .gitignore patterns.
+    make_junction(FBX_SRC / "lib", FBX_DEST / "lib")
+    make_junction(FBX_SRC / "include", FBX_DEST / "include")
 
     install_packages()
 

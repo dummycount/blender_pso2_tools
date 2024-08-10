@@ -20,11 +20,14 @@ if "bpy" in locals():
     importlib.reload(reloader)
     reloader.reload_addon(__name__)
 
-from pathlib import Path
-import sys
-import bpy
+    first_load = False
+else:
+    first_load = True
 
-from . import classes, watcher
+import sys
+from pathlib import Path
+
+import bpy
 from pythonnet import load
 
 load("coreclr")
@@ -38,11 +41,16 @@ if BIN_PATH not in sys.path:
     sys.path.append(BIN_PATH)
 
 # pylint: disable=no-member
+clr.AddReference("System")
+clr.AddReference("System.IO")
 clr.AddReference("AquaModelLibrary.Core")
 clr.AddReference("AquaModelLibrary.Data")
 clr.AddReference("AquaModelLibrary.Helpers")
 clr.AddReference("ZamboniLib")
 # pylint: enable=no-member
+
+
+from . import classes, watcher
 
 
 def register():
@@ -71,14 +79,17 @@ def menu_func_export(self: bpy.types.Operator, context: bpy.types.Context):
 
 def reload():
     print("RELOAD!")
-    unregister()
-    reloader.reload_addon(__name__)
-    register()
+    bpy.ops.script.reload()
 
 
 # TODO: disable this in release versions (test if module directory is a symlink?)
-watcher = watcher.FileWatcher(reload)
-watcher.start()
+if "watch" not in locals():
+    watch = watcher.FileWatcher(reload)
+
+if first_load:
+    watch.start()
+else:
+    watch.reset()
 
 if __name__ == "__main__":
     register()

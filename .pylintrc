@@ -1,13 +1,16 @@
 [MAIN]
-extension-pkg-whitelist=bpy,bpy_extras,AquaModelLibrary
+extension-pkg-whitelist=bpy,bpy_extras,AquaModelLibrary,Zamboni
 
 [MESSAGES CONTROL]
 disable=import-error,
         invalid-name,
+        missing-class-docstring,
+        missing-function-docstring,
+        missing-module-docstring,
         unused-argument,
 
 [TYPECHECK]
-# ignored-modules=bpy,bpy_extras,io_scene_fbx,AquaModelLibrary
+ignored-modules=AquaModelLibrary,Zamboni
 
 [FORMAT]
 good-names=d,ex,f,i,id

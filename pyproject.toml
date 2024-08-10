@@ -1,0 +1,4 @@
+[tool.pyright]
+reportInvalidTypeForm = false
+reportMissingImports = false
+reportMissingModuleSource = false
