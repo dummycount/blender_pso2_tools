@@ -5,7 +5,7 @@ from pathlib import Path
 import bpy
 
 from . import classes
-from .colors import COLOR_CHANNELS, Colors
+from .colors import COLOR_CHANNELS, ColorId
 
 PROGRAM_FILES = Path(os.getenv("PROGRAMFILES(x86)"))
 
@@ -35,7 +35,7 @@ def _get_default_data_path() -> str:
     return ""
 
 
-def color_property(color: Colors, description: str):
+def color_property(color: ColorId, description: str):
     channel = COLOR_CHANNELS[color]
 
     return bpy.props.FloatVectorProperty(
@@ -61,26 +61,26 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
 
     debug: bpy.props.BoolProperty(name="Show debug info", default=False)
 
-    outer_color_1: color_property(Colors.Outer1, "Primary outerwear color")
-    outer_color_2: color_property(Colors.Outer2, "Secondary outerwear color")
-    base_color_1: color_property(Colors.Base1, "Primary basewear color")
-    base_color_2: color_property(Colors.Base2, "Secondary basewear color")
-    inner_color_1: color_property(Colors.Inner1, "Primary innerwear color")
-    inner_color_2: color_property(Colors.Inner2, "Secondary innerwear color")
+    outer_color_1: color_property(ColorId.OUTER1, "Primary outerwear color")
+    outer_color_2: color_property(ColorId.OUTER2, "Secondary outerwear color")
+    base_color_1: color_property(ColorId.BASE1, "Primary basewear color")
+    base_color_2: color_property(ColorId.BASE2, "Secondary basewear color")
+    inner_color_1: color_property(ColorId.INNER1, "Primary innerwear color")
+    inner_color_2: color_property(ColorId.INNER2, "Secondary innerwear color")
 
-    cast_color_1: color_property(Colors.Cast1, "Cast part color 1")
-    cast_color_2: color_property(Colors.Cast2, "Cast part color 2")
-    cast_color_3: color_property(Colors.Cast3, "Cast part color 3")
-    cast_color_4: color_property(Colors.Cast4, "Cast part color 4")
+    cast_color_1: color_property(ColorId.CAST1, "Cast part color 1")
+    cast_color_2: color_property(ColorId.CAST2, "Cast part color 2")
+    cast_color_3: color_property(ColorId.CAST3, "Cast part color 3")
+    cast_color_4: color_property(ColorId.CAST4, "Cast part color 4")
 
-    main_skin_color: color_property(Colors.MainSkin, "Main skin color")
-    sub_skin_color: color_property(Colors.SubSkin, "Sub skin color")
-    right_eye_color: color_property(Colors.RightEye, "Right eye color")
-    left_eye_color: color_property(Colors.LeftEye, "Left eye color")
-    eyebrow_color: color_property(Colors.Eyebrow, "Eyebrow color")
-    eyelash_color: color_property(Colors.Eyelash, "Eyelash color")
-    hair_color_1: color_property(Colors.Hair1, "Primary hair color")
-    hair_color_2: color_property(Colors.Hair2, "Secondary hair color")
+    main_skin_color: color_property(ColorId.MAIN_SKIN, "Main skin color")
+    sub_skin_color: color_property(ColorId.SUB_SKIN, "Sub skin color")
+    right_eye_color: color_property(ColorId.RIGHT_EYE, "Right eye color")
+    left_eye_color: color_property(ColorId.LEFT_EYE, "Left eye color")
+    eyebrow_color: color_property(ColorId.EYEBROW, "Eyebrow color")
+    eyelash_color: color_property(ColorId.EYELASH, "Eyelash color")
+    hair_color_1: color_property(ColorId.HAIR1, "Primary hair color")
+    hair_color_2: color_property(ColorId.HAIR2, "Secondary hair color")
 
     def draw(self, context: bpy.types.Context):
         layout: bpy.types.UILayout = self.layout

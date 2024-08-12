@@ -4,7 +4,10 @@ PSO2 Tools Blender addon
 
 # pylint: disable=wrong-import-position
 # pylint: disable=wrong-import-order
-from . import reloader
+import sys
+import traceback
+
+from .paths import BIN_PATH
 
 bl_info = {
     "name": "PSO2 Tools",
@@ -13,7 +16,7 @@ bl_info = {
     "category": "Import-Export",
 }
 
-if "bpy" in locals():
+if "reloader" in locals():
     import importlib
 
     # pylint: disable=used-before-assignment
@@ -24,9 +27,6 @@ if "bpy" in locals():
 else:
     first_load = True
 
-import sys
-from pathlib import Path
-
 import bpy
 from pythonnet import load
 
@@ -36,9 +36,8 @@ import clr
 
 # Blender complains about this, but there's no other way to get pythonnet
 # to find the assemblies.
-BIN_PATH = str(Path(__file__).parent / "bin")
-if BIN_PATH not in sys.path:
-    sys.path.append(BIN_PATH)
+if str(BIN_PATH) not in sys.path:
+    sys.path.append(str(BIN_PATH))
 
 # pylint: disable=no-member
 clr.AddReference("System")
@@ -50,13 +49,20 @@ clr.AddReference("ZamboniLib")
 # pylint: enable=no-member
 
 
-from . import classes, watcher
+from . import classes, object_database, reloader, watcher
 
 
 def register():
     classes.bpy_register()
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+
+    # TODO: do this when requested instead of at startup
+    try:
+        db = object_database.ObjectDatabase(bpy.context)
+        db.update_database()
+    except Exception:
+        print(traceback.format_exc())
 
 
 def unregister():

@@ -5,8 +5,8 @@ from typing import Optional
 import bpy
 
 from . import preferences
-from .colors import COLOR_CHANNELS, Colors
-from .object_info import ObjectInfo
+from .colors import COLOR_CHANNELS, ColorId
+from .old_object_info import ObjectInfo
 
 
 class ImportProperties:
@@ -45,38 +45,38 @@ class ImportProperties:
 
         layout.prop(self, "use_textures")
         if object_info.use_skin_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.MainSkin].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.SubSkin].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.MAIN_SKIN].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.SUB_SKIN].prop)
 
         # TODO: filter this better using CMX data
         if object_info.use_cast_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast1].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast2].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast3].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Cast4].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.CAST1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.CAST2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.CAST3].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.CAST4].prop)
 
         # TODO: filter this better using CMX data
         if object_info.use_costume_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Base1].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Base2].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Outer1].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Outer2].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Inner1].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Inner2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.BASE1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.BASE2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.OUTER1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.OUTER2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.INNER1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.INNER2].prop)
 
         if object_info.use_hair_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Hair1].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Hair2].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.HAIR1].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.HAIR2].prop)
 
         if object_info.use_eye_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.RightEye].prop)
-            layout.prop(prefs, COLOR_CHANNELS[Colors.LeftEye].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.RIGHT_EYE].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.LEFT_EYE].prop)
 
         if object_info.use_eyebrow_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Eyebrow].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.EYEBROW].prop)
 
         if object_info.use_eyelash_colors:
-            layout.prop(prefs, COLOR_CHANNELS[Colors.Eyelash].prop)
+            layout.prop(prefs, COLOR_CHANNELS[ColorId.EYELASH].prop)
 
     def draw_armature_props(
         self, context: bpy.types.Context, layout: bpy.types.UILayout

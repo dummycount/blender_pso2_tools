@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Tuple
 
-
 Color = Tuple[float, float, float, float]
 
 WHITE: Color = (1, 1, 1, 1)
@@ -17,26 +16,26 @@ DEFAULT_HAIR_2: Color = (1, 0.82, 0.67, 1)
 DEFAULT_EYE: Color = (0, 0.85, 0.85, 1)
 
 
-class Colors(IntEnum):
-    Unused = 0
-    Outer1 = 1
-    Outer2 = 2
-    Base1 = 3
-    Base2 = 4
-    Inner1 = 5
-    Inner2 = 6
-    Cast1 = 7
-    Cast2 = 8
-    Cast3 = 9
-    Cast4 = 10
-    MainSkin = 11
-    SubSkin = 12
-    RightEye = 13
-    LeftEye = 14
-    Eyebrow = 15
-    Eyelash = 16
-    Hair1 = 17
-    Hair2 = 18
+class ColorId(IntEnum):
+    UNUSED = 0
+    OUTER1 = 1
+    OUTER2 = 2
+    BASE1 = 3
+    BASE2 = 4
+    INNER1 = 5
+    INNER2 = 6
+    CAST1 = 7
+    CAST2 = 8
+    CAST3 = 9
+    CAST4 = 10
+    MAIN_SKIN = 11
+    SUB_SKIN = 12
+    RIGHT_EYE = 13
+    LEFT_EYE = 14
+    EYEBROW = 15
+    EYELASH = 16
+    HAIR1 = 17
+    HAIR2 = 18
 
 
 @dataclass
@@ -48,26 +47,28 @@ class ColorChannel:
 
 
 COLOR_CHANNELS = {
-    Colors.Outer1: ColorChannel("Costume", "outer_color_1", "Outerwear 1", GRAY),
-    Colors.Outer2: ColorChannel("Costume", "outer_color_2", "Outerwear 2", GRAY),
-    Colors.Base1: ColorChannel("Costume", "base_color_1", "Basewear 1", GRAY),
-    Colors.Base2: ColorChannel("Costume", "base_color_2", "Basewear 2", GRAY),
-    Colors.Inner1: ColorChannel("Costume", "inner_color_1", "Innerwear 1", GRAY),
-    Colors.Inner2: ColorChannel("Costume", "inner_color_2", "Innerwear 2", GRAY),
-    Colors.Cast1: ColorChannel("Cast Parts", "cast_color_1", "Cast 1", GRAY),
-    Colors.Cast2: ColorChannel("Cast Parts", "cast_color_2", "Cast 2", GRAY),
-    Colors.Cast3: ColorChannel("Cast Parts", "cast_color_3", "Cast 3", GRAY),
-    Colors.Cast4: ColorChannel("Cast Parts", "cast_color_4", "Cast 4", GRAY),
-    Colors.MainSkin: ColorChannel(
+    ColorId.OUTER1: ColorChannel("Costume", "outer_color_1", "Outerwear 1", GRAY),
+    ColorId.OUTER2: ColorChannel("Costume", "outer_color_2", "Outerwear 2", GRAY),
+    ColorId.BASE1: ColorChannel("Costume", "base_color_1", "Basewear 1", GRAY),
+    ColorId.BASE2: ColorChannel("Costume", "base_color_2", "Basewear 2", GRAY),
+    ColorId.INNER1: ColorChannel("Costume", "inner_color_1", "Innerwear 1", GRAY),
+    ColorId.INNER2: ColorChannel("Costume", "inner_color_2", "Innerwear 2", GRAY),
+    ColorId.CAST1: ColorChannel("Cast Parts", "cast_color_1", "Cast 1", GRAY),
+    ColorId.CAST2: ColorChannel("Cast Parts", "cast_color_2", "Cast 2", GRAY),
+    ColorId.CAST3: ColorChannel("Cast Parts", "cast_color_3", "Cast 3", GRAY),
+    ColorId.CAST4: ColorChannel("Cast Parts", "cast_color_4", "Cast 4", GRAY),
+    ColorId.MAIN_SKIN: ColorChannel(
         "Skin", "main_skin_color", "Main Skin", DEFAULT_MAIN_SKIN
     ),
-    Colors.SubSkin: ColorChannel(
+    ColorId.SUB_SKIN: ColorChannel(
         "Skin", "sub_skin_color", "Sub Skin", DEFAULT_SUB_SKIN
     ),
-    Colors.RightEye: ColorChannel("Head", "right_eye_color", "Right Eye", DEFAULT_EYE),
-    Colors.LeftEye: ColorChannel("Head", "left_eye_color", "Left Eye", DEFAULT_EYE),
-    Colors.Eyebrow: ColorChannel("Head", "eyebrow_color", "Eyebrow", DEFAULT_HAIR_1),
-    Colors.Eyelash: ColorChannel("Head", "eyelash_color", "Eyelash", DEFAULT_HAIR_1),
-    Colors.Hair1: ColorChannel("Head", "hair_color_1", "Hair 1", DEFAULT_HAIR_1),
-    Colors.Hair2: ColorChannel("Head", "hair_color_2", "Hair 2", DEFAULT_HAIR_2),
+    ColorId.RIGHT_EYE: ColorChannel(
+        "Head", "right_eye_color", "Right Eye", DEFAULT_EYE
+    ),
+    ColorId.LEFT_EYE: ColorChannel("Head", "left_eye_color", "Left Eye", DEFAULT_EYE),
+    ColorId.EYEBROW: ColorChannel("Head", "eyebrow_color", "Eyebrow", DEFAULT_HAIR_1),
+    ColorId.EYELASH: ColorChannel("Head", "eyelash_color", "Eyelash", DEFAULT_HAIR_1),
+    ColorId.HAIR1: ColorChannel("Head", "hair_color_1", "Hair 1", DEFAULT_HAIR_1),
+    ColorId.HAIR2: ColorChannel("Head", "hair_color_2", "Hair 2", DEFAULT_HAIR_2),
 }

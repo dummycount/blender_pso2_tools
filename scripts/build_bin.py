@@ -30,6 +30,7 @@ PACKAGES_PATH = ROOT / "packages"
 PACKAGES = [
     ("AssimpNet", "5.0.0-beta1"),
     ("Reloaded.Memory", "9.3.2"),
+    ("System.Drawing.Common", "8.0.0"),
 ]
 
 

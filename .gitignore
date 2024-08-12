@@ -166,4 +166,5 @@ cython_debug/
 
 # generated files
 /pso2_tools/bin
+/pso2_tools/data
 /typings
