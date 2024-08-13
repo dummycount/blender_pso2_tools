@@ -49,20 +49,13 @@ clr.AddReference("ZamboniLib")
 # pylint: enable=no-member
 
 
-from . import classes, object_database, reloader, watcher
+from . import classes, import_search, reloader, watcher
 
 
 def register():
     classes.bpy_register()
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
-
-    # TODO: do this when requested instead of at startup
-    try:
-        db = object_database.ObjectDatabase(bpy.context)
-        db.update_database()
-    except Exception:
-        print(traceback.format_exc())
 
 
 def unregister():
@@ -72,10 +65,9 @@ def unregister():
 
 
 def menu_func_import(self: bpy.types.Operator, context: bpy.types.Context):
-    pass
     # self.layout.operator(import_model.ImportAqp.bl_idname, text="PSO2 Model (.aqp)")
     # self.layout.operator(import_model.ImportIce.bl_idname, text="PSO2 ICE Archive")
-    # self.layout.operator(import_search.PSO2_OT_ModelSearch.bl_idname, text="PSO2 Item")
+    self.layout.operator(import_search.PSO2_OT_ModelSearch.bl_idname, text="PSO2 Model")
 
 
 def menu_func_export(self: bpy.types.Operator, context: bpy.types.Context):

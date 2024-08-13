@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, fields
 from enum import Enum, StrEnum, auto
 from pathlib import Path
-from typing import Optional, Type, TypeVar, overload
+from typing import Optional, Type, TypeVar
 
 import bpy
 from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text
@@ -13,11 +13,15 @@ from AquaModelLibrary.Helpers import HashHelpers
 
 from . import preferences
 from .colors import ColorId
-from .paths import DATA_PATH
+from .paths import get_data_path
 from .util import dict_get
 
 T = TypeVar("T")
 NameDict = dict[int, list[str]]
+
+
+def is_ngs(item_id):
+    return item_id >= 100000
 
 
 class Table(StrEnum):
@@ -64,7 +68,7 @@ class CmxCategory(StrEnum):
     HAIR = "hair"
     HORN = "horn"
     INNERWEAR = "innerwear"
-    LEG = "leg"
+    LEG = "Leg"
     MOTION = "motion"
     SKIN = "skin"
     TEETH = "dental"
@@ -135,10 +139,13 @@ class CmxColorMapping:
         )
 
 
-def convert_color_map(text: str):
-    r, g, b, a = text.split(";")
+def convert_color_map(data: bytes):
+    r, g, b, a = data.decode().split(";")
     return CmxColorMapping(
-        red=ColorId(r), green=ColorId(g), blue=ColorId(b), alpha=ColorId(a)
+        red=ColorId(int(r)),
+        green=ColorId(int(g)),
+        blue=ColorId(int(b)),
+        alpha=ColorId(int(a)),
     )
 
 
@@ -164,11 +171,6 @@ class CmxFileName:
         return HashHelpers.GetFileHash(self.name)
 
     @property
-    def reboot_hash(self):
-        name = self.hash
-        return name[0:2] + "/" + name[2:]
-
-    @property
     def ex(self):
         start: str = CharacterMakingDynamic.rebootStart
         ex: str = CharacterMakingDynamic.rebootExStart
@@ -179,13 +181,25 @@ class CmxFileName:
         name = self.name.replace(start, ex).replace(".ice", "_ex.ice")
         return CmxFileName(name)
 
-    def path(self, data_path: Path, is_reboot=False):
-        name = self.reboot_hash if is_reboot else self.hash
-        return data_path / name
+    def path(self, data_path: Path):
+        file_hash = self.hash
+        reboot_hash = file_hash[0:2] + "/" + file_hash[2:]
+
+        paths = [
+            data_path / "win32" / file_hash,
+            data_path / "win32reboot" / reboot_hash,
+            data_path / "win32_na" / file_hash,
+            data_path / "win32reboot_na" / reboot_hash,
+        ]
+
+        return next((p for p in paths if p.exists()), None)
+
+    def exists(self, data_path: Path):
+        return self.path(data_path) is not None
 
 
-def convert_file_name(text: str):
-    return CmxFileName(text)
+def convert_file_name(data: bytes):
+    return CmxFileName(data.decode())
 
 
 sqlite3.register_converter("FILENAME", convert_file_name)
@@ -235,7 +249,7 @@ class CmxObjectBase:
 
     @classmethod
     def from_db_row(cls, row: sqlite3.Row):
-        d = {k: row[k] for k in row.keys()}
+        d = {k: row[k] for k in row.keys() if row[k] is not None}
 
         return cls(**d)
 
@@ -313,10 +327,10 @@ class CmxSkinObject(CmxObjectBase):
 
 @dataclass
 class CmxBodyObject(CmxObjectBase):
-    head_item_id: Optional[int] = None
-    sound_item_id: Optional[int] = None
-    linked_inner_item_id: Optional[int] = None
-    linked_outer_item_id: Optional[int] = None
+    head_id: Optional[int] = None
+    sound_id: Optional[int] = None
+    linked_inner_id: Optional[int] = None
+    linked_outer_id: Optional[int] = None
 
     file: CmxFileName = field(default_factory=CmxFileName)
     linked_inner_file: CmxFileName = field(default_factory=CmxFileName)
@@ -486,10 +500,12 @@ class ObjectDatabase:
     def _get_objects(
         self, cls: Type[T], table: str, item_id: Optional[int] = None
     ) -> list[T]:
-        if id is not None:
+        if item_id is not None:
             return [
                 cls.from_db_row(row)
-                for row in self.con.execute(f"SELECT * FROM {table} WHERE id=?", (id,))
+                for row in self.con.execute(
+                    f"SELECT * FROM {table} WHERE id=?", (item_id,)
+                )
             ]
 
         return [
@@ -535,12 +551,8 @@ class ObjectDatabase:
 
     @staticmethod
     def _open_db():
-        path = DATA_PATH / "objects.db"
+        path = get_data_path() / "objects.db"
         path.parent.mkdir(parents=True, exist_ok=True)
-
-        # TODO: Remove once database schema is stable
-        if path.exists():
-            path.unlink()
 
         con = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
         con.row_factory = sqlite3.Row
@@ -574,8 +586,7 @@ class ObjectDatabase:
                     {CmxHairObject.db_schema(Table.HAIR)}
                     """
                 )
-
-            con.execute("PRAGMA user_version=1")
+                con.execute("PRAGMA user_version=1")
 
         return con
 
@@ -598,7 +609,7 @@ class ObjectDatabase:
             obj.db_insert(self.con, Table.CAST_ARMS)
 
     def _read_cast_legs(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.ARM)
+        names = _get_item_names(text, CmxCategory.LEG)
         for item_id in cmx.clegDict.Keys:
             obj = _get_body(cmx.clegDict, cmx.clegIdLink, names, item_id, "lg")
             obj.db_insert(self.con, Table.CAST_LEGS)
@@ -748,12 +759,8 @@ def _get_adjusted_id(item_id, link_id_dict):
     return item_id
 
 
-def _is_ngs(item_id):
-    return item_id >= 100000
-
-
 def _get_file_path_start(item_id):
-    if _is_ngs(item_id):
+    if is_ngs(item_id):
         return CharacterMakingDynamic.rebootStart
 
     return CharacterMakingDynamic.classicStart
@@ -805,14 +812,14 @@ def _get_body(
     data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
 
     if data.linked_inner_id is not None:
-        data.linked_inner_file.name = f"{start}b1_{data.adjusted_id:05d}.ice"
+        data.linked_inner_file.name = f"{start}b1_{data.linked_inner_id:05d}.ice"
 
     if data.linked_outer_id is not None:
-        data.linked_outer_file.name = f"{start}ow_{data.adjusted_id:05d}.ice"
+        data.linked_outer_file.name = f"{start}ow_{data.linked_outer_id:05d}.ice"
 
     if data.sound_id is not None:
-        data.sound_file.name = f"{start}bs_{data.adjusted_id:05d}.ice"
-        data.cast_sound_file.name = f"{start}ls_{data.adjusted_id:05d}.ice"
+        data.sound_file.name = f"{start}bs_{data.sound_id:05d}.ice"
+        data.cast_sound_file.name = f"{start}ls_{data.sound_id:05d}.ice"
 
     return data
 

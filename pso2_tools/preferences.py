@@ -82,6 +82,53 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
     hair_color_1: color_property(ColorId.HAIR1, "Primary hair color")
     hair_color_2: color_property(ColorId.HAIR2, "Secondary hair color")
 
+    model_search_categories: bpy.props.EnumProperty(
+        name="Model Categories",
+        options={"ENUM_FLAG"},
+        items=[
+            ("COSTUME", "Costumes", "Costumes", "MATCLOTH", 1 << 0),
+            ("BASEWEAR", "Basewear", "Basewear", "MATCLOTH", 1 << 1),
+            ("OUTERWEAR", "Outerwear", "Outerwear", "MATCLOTH", 1 << 2),
+            ("INNERWEAR", "Innerwear", "Innerwear", "TEXTURE", 1 << 3),
+            ("BODYPAINT", "Bodypaint", "Bodypaint", "TEXTURE", 1 << 8),
+            ("CAST_ARMS", "Cast Arms", "Cast Arms", "MATCLOTH", 1 << 4),
+            ("CAST_BODY", "Cast Body", "Cast Body", "MATCLOTH", 1 << 5),
+            ("CAST_LEGS", "Cast Legs", "Cast Legs", "MATCLOTH", 1 << 6),
+            ("SKIN", "Skin", "Skin", "TEXTURE", 1 << 7),
+            ("HAIR", "Hair", "Hair", "USER", 1 << 10),
+            ("FACE | FACE_TEXTURE", "Face", "Face", "USER", 1 << 11),
+            ("FACEPAINT", "Facepaint", "Facepaint", "USER", 1 << 13),
+            ("EARS", "Ears", "Ears", "USER", 1 << 14),
+            ("HORNS", "Horns", "Horns", "USER", 1 << 15),
+            ("TEETH", "Teeth", "Teeth", "USER", 1 << 16),
+            ("EYES", "Eyes", "Eyes", "HIDE_OFF", 1 << 17),
+            ("EYEBROWS", "Eyebrows", "Eyebrows", "HIDE_OFF", 1 << 18),
+            ("EYELASHES", "Eyelashes", "Eyelashes", "HIDE_OFF", 1 << 19),
+            ("STICKER", "Stickers", "Stickers", "TEXTURE", 1 << 9),
+            ("ACCESSORY", "Accessories", "Accessories", "MESH_TORUS", 1 << 20),
+        ],
+        description="Filter by object category",
+        default={
+            "COSTUME",
+            "BASEWEAR",
+            "OUTERWEAR",
+            "CAST_ARMS",
+            "CAST_BODY",
+            "CAST_LEGS",
+        },
+    )
+
+    model_search_versions: bpy.props.EnumProperty(
+        name="Model Versions",
+        options={"ENUM_FLAG"},
+        items=[
+            ("NGS", "NGS", "NGS", "", 1 << 0),
+            ("CLASSIC", "Classic", "Classic", "", 1 << 1),
+        ],
+        description="Filter by game version",
+        default={"NGS"},
+    )
+
     def draw(self, context: bpy.types.Context):
         layout: bpy.types.UILayout = self.layout
         layout.prop(self, "pso2_data_path")
