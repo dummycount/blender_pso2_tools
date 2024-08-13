@@ -1,5 +1,4 @@
 import sys
-import time
 from contextlib import closing
 from dataclasses import fields
 from pathlib import Path
@@ -8,7 +7,8 @@ from typing import Iterable, Optional, Type
 import bpy
 
 from . import classes, objects
-from .colors import ColorId
+from .colors import COLOR_CHANNELS, ColorId
+from .objects import ObjectType
 from .preferences import get_preferences
 
 
@@ -60,36 +60,36 @@ class ColorMapItem(bpy.types.PropertyGroup):
 
 @classes.register
 class ListItem(bpy.types.PropertyGroup):
-    item_type: bpy.props.EnumProperty(
+    object_type: bpy.props.EnumProperty(
         name="Type",
         items=[
-            ("ACCESSORY", "Accessory", "Accessory"),
-            ("BASEWEAR", "Basewear", "Basewear"),
-            ("BODYPAINT", "Bodypaint", "Bodypaint"),
-            ("CAST_ARMS", "Cast Arms", "Cast Arms"),
-            ("CAST_BODY", "Cast Body", "Cast Body"),
-            ("CAST_LEGS", "Cast Legs", "Cast Legs"),
-            ("COSTUME", "Costume", "Costume"),
-            ("EARS", "Ears", "Ears"),
-            ("EYES", "Eyes", "Eyes"),
-            ("EYEBROWS", "Eyebrows", "Eyebrows"),
-            ("EYELASHES", "Eyelashes", "Eyelashes"),
-            ("FACE", "Face", "Face"),
-            ("FACE_TEXTURE", "Face Texture", "Face texture"),
-            ("FACEPAINT", "Facepaint", "Facepaint"),
-            ("HAIR", "Hair", "Hair"),
-            ("HORNS", "Horns", "Horns"),
-            ("INNERWEAR", "Innerwear", "Innerwear"),
-            ("OUTERWEAR", "Outerwear", "Outerwear"),
-            ("SKIN", "Skin", "Skin"),
-            ("STICKER", "Sticker", "Sticker"),
-            ("TEETH", "Teeth", "Teeth"),
+            (str(ObjectType.ACCESSORY), "Accessory", "Accessory"),
+            (str(ObjectType.BASEWEAR), "Basewear", "Basewear"),
+            (str(ObjectType.BODYPAINT), "Bodypaint", "Bodypaint"),
+            (str(ObjectType.CAST_ARMS), "Cast Arms", "Cast Arms"),
+            (str(ObjectType.CAST_BODY), "Cast Body", "Cast Body"),
+            (str(ObjectType.CAST_LEGS), "Cast Legs", "Cast Legs"),
+            (str(ObjectType.COSTUME), "Costume", "Costume"),
+            (str(ObjectType.EAR), "Ears", "Ears"),
+            (str(ObjectType.EYE), "Eyes", "Eyes"),
+            (str(ObjectType.EYEBROW), "Eyebrows", "Eyebrows"),
+            (str(ObjectType.EYELASH), "Eyelashes", "Eyelashes"),
+            (str(ObjectType.FACE), "Face", "Face"),
+            (str(ObjectType.FACE_TEXTURE), "Face Texture", "Face texture"),
+            (str(ObjectType.FACEPAINT), "Facepaint", "Facepaint"),
+            (str(ObjectType.HAIR), "Hair", "Hair"),
+            (str(ObjectType.HORN), "Horns", "Horns"),
+            (str(ObjectType.INNERWEAR), "Innerwear", "Innerwear"),
+            (str(ObjectType.OUTERWEAR), "Outerwear", "Outerwear"),
+            (str(ObjectType.SKIN), "Skin", "Skin"),
+            (str(ObjectType.STICKER), "Sticker", "Sticker"),
+            (str(ObjectType.TEETH), "Teeth", "Teeth"),
         ],
     )
     name: bpy.props.StringProperty(name="Name")
     name_en: bpy.props.StringProperty(name="English Name")
     name_jp: bpy.props.StringProperty(name="Japanese Name")
-    item_id: bpy.props.IntProperty(name="ID")
+    object_id: bpy.props.IntProperty(name="ID")
     adjusted_id: bpy.props.IntProperty(name="Adjusted ID")
 
     files: bpy.props.CollectionProperty(type=FileNameItem)
@@ -100,27 +100,27 @@ class ListItem(bpy.types.PropertyGroup):
 
     @property
     def is_ngs(self):
-        return objects.is_ngs(self.item_id)
+        return objects.is_ngs(self.object_id)
 
     @property
     def description(self):
-        enum_items = self.bl_rna.properties["item_type"].enum_items
-        desc = enum_items.get(self.item_type).description
+        enum_items = self.bl_rna.properties["object_type"].enum_items
+        desc = enum_items.get(self.object_type).description
         if self.is_ngs:
             desc += " (NGS)"
 
         return desc
 
-    def populate(self, item_type: str, obj: objects.CmxObjectBase):
-        self.item_type = item_type
-        self.item_id = obj.id
+    def populate(self, obj: objects.CmxObjectBase):
+        self.object_type = str(obj.object_type)
+        self.object_id = obj.id
         self.adjusted_id = obj.adjusted_id
         self.name = obj.name
         self.name_en = obj.name_en
         self.name_jp = obj.name_jp
 
         for field in fields(obj):
-            if field.name in ("id", "adjusted_id", "name_en", "name_jp"):
+            if field.name in ("object_type", "id", "adjusted_id", "name_en", "name_jp"):
                 continue
 
             name = field.name
@@ -158,9 +158,11 @@ class ListItem(bpy.types.PropertyGroup):
                 raise NotImplementedError(f"Unhandled field type {field.type}")
 
     def to_object(self):
-        cls = _get_object_class(self.item_type)
+        object_type = ObjectType(self.object_type)
+        cls = _get_object_class(object_type)
         obj = cls(
-            id=self.item_id,
+            object_type=object_type,
+            id=self.object_id,
             adjusted_id=self.adjusted_id,
             name_en=self.name_en,
             name_jp=self.name_jp,
@@ -188,39 +190,41 @@ class ListItem(bpy.types.PropertyGroup):
             prop: ColorMapItem
             setattr(obj, prop.name, prop.to_color_map())
 
+        return obj
 
-def _get_object_class(item_type: str) -> Type[objects.CmxObjectBase]:
-    match item_type:
-        case "ACCESSORY":
+
+def _get_object_class(object_type: ObjectType) -> Type[objects.CmxObjectBase]:
+    match object_type:
+        case ObjectType.ACCESSORY:
             return objects.CmxAccessory
-        case "BASEWEAR" | "COSTUME" | "OUTERWEAR":
+        case ObjectType.BASEWEAR | ObjectType.COSTUME | ObjectType.OUTERWEAR:
             return objects.CmxBodyObject
-        case "CAST_ARMS" | "CAST_BODY" | "CAST_LEGS":
+        case ObjectType.CAST_ARMS | ObjectType.CAST_BODY | ObjectType.CAST_LEGS:
             return objects.CmxBodyObject
-        case "BODYPAINT" | "INNERWEAR":
+        case ObjectType.BODYPAINT | ObjectType.INNERWEAR:
             return objects.CmxBodyPaint
-        case "EARS":
+        case ObjectType.EAR:
             return objects.CmxEarObject
-        case "EYES":
+        case ObjectType.EYE:
             return objects.CmxEyeObject
-        case "EYEBROWS" | "EYELASHES":
+        case ObjectType.EYEBROW | ObjectType.EYELASH:
             return objects.CmxEyebrowObject
-        case "FACE":
+        case ObjectType.FACE:
             return objects.CmxFaceObject
-        case "FACE_TEXTURE" | "FACEPAINT":
+        case ObjectType.FACE_TEXTURE | ObjectType.FACEPAINT:
             return objects.CmxFacePaint
-        case "HAIR":
+        case ObjectType.HAIR:
             return objects.CmxHairObject
-        case "HORNS":
+        case ObjectType.HORN:
             return objects.CmxHornObject
-        case "SKIN":
+        case ObjectType.SKIN:
             return objects.CmxSkinObject
-        case "STICKER":
+        case ObjectType.STICKER:
             return objects.CmxSticker
-        case "TEETH":
+        case ObjectType.TEETH:
             return objects.CmxTeethObject
         case _:
-            raise NotImplementedError(f"Unhandled item type {item_type}")
+            raise NotImplementedError(f"Unhandled item type {object_type}")
 
 
 @classes.register
@@ -230,9 +234,6 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
     bl_label = "Import PSO2 Model"
     bl_idname = "pso2.model_search"
     bl_options = {"REGISTER", "UNDO"}
-
-    models: bpy.props.CollectionProperty(name="Models", type=ListItem)
-    models_index: bpy.props.IntProperty(name="Selected Index")
 
     def _get_selected_model_files(self, context: bpy.types.Context):
         try:
@@ -244,6 +245,8 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
 
         return [v for item in selected.files for v in _get_file_items(item, data_path)]
 
+    models: bpy.props.CollectionProperty(name="Models", type=ListItem)
+    models_index: bpy.props.IntProperty(name="Selected Index")
     model_file: bpy.props.EnumProperty(name="File", items=_get_selected_model_files)
 
     def __init__(self):
@@ -251,8 +254,9 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         _populate_model_list(self.models, bpy.context)
 
     def draw(self, context):
+        preferences = get_preferences(context)
         layout = self.layout
-        split = layout.split(factor=0.7)
+        split = layout.split(factor=0.75)
 
         col = split.column()
         col.context_pointer_set("parent", self)
@@ -267,20 +271,34 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         )
 
         col = split.column()
+        col.use_property_split = True
+        col.use_property_decorate = False
         col.context_pointer_set("parent", self)
         col.prop(self, "model_file")
 
-        col.separator_spacer()
+        if obj := self.get_selected_object():
+            if colors := sorted(obj.get_colors()):
+                col.label(text="Colors", icon="COLOR")
+                for color in colors:
+                    col.prop(preferences, COLOR_CHANNELS[color].prop)
+
+        col.separator(factor=2, type="LINE")
         col.operator(PSO2_OT_UpdateModelList.bl_idname, text="Update Model List")
 
     def execute(self, context):
         # TODO
-        return super().execute(context)
+        pass
 
     def invoke(self, context, event) -> set[str]:
         return context.window_manager.invoke_props_dialog(
             self, width=800, confirm_text="Import"
         )
+
+    def get_selected_object(self) -> objects.CmxObjectBase:
+        try:
+            return self.models[self.models_index].to_object()
+        except IndexError:
+            return None
 
 
 def _get_file_display_name(filename: str):
@@ -321,39 +339,37 @@ def _populate_model_list(collection, context: bpy.types.Context):
     collection.clear()
 
     with closing(objects.ObjectDatabase(context)) as db:
-        for item_type, obj in _get_items(db):
+        for obj in _get_items(db):
             item: ListItem = collection.add()
-            item.populate(item_type, obj)
+            item.populate(obj)
 
 
 def _get_items(db: objects.ObjectDatabase):
-    categories = [
-        ("ACCESSORY", db.get_accessories),
-        ("BASEWEAR", db.get_basewear),
-        ("BODYPAINT", db.get_bodypaint),
-        ("CAST_ARMS", db.get_cast_arms),
-        ("CAST_BODY", db.get_cast_bodies),
-        ("CAST_LEGS", db.get_cast_legs),
-        ("COSTUME", db.get_costumes),
-        ("EARS", db.get_ears),
-        ("EYES", db.get_eyes),
-        ("EYEBROWS", db.get_eyebrows),
-        ("EYELASHES", db.get_eyelashes),
-        ("FACE", db.get_faces),
-        ("FACE_TEXTURE", db.get_face_textures),
-        ("FACEPAINT", db.get_facepaint),
-        ("HAIR", db.get_hair),
-        ("HORNS", db.get_horns),
-        ("INNERWEAR", db.get_innerwear),
-        ("OUTERWEAR", db.get_outerwear),
-        ("SKIN", db.get_skins),
-        ("STICKER", db.get_stickers),
-        ("TEETH", db.get_teeth),
+    getters = [
+        db.get_accessories,
+        db.get_basewear,
+        db.get_bodypaint,
+        db.get_cast_arms,
+        db.get_cast_bodies,
+        db.get_cast_legs,
+        db.get_costumes,
+        db.get_ears,
+        db.get_eyes,
+        db.get_eyebrows,
+        db.get_eyelashes,
+        db.get_faces,
+        db.get_face_textures,
+        db.get_facepaint,
+        db.get_hair,
+        db.get_horns,
+        db.get_innerwear,
+        db.get_outerwear,
+        db.get_skins,
+        db.get_stickers,
+        db.get_teeth,
     ]
 
-    return (
-        (item_type, item) for item_type, get_items in categories for item in get_items()
-    )
+    return (item for getter in getters for item in getter())
 
 
 @classes.register
@@ -409,7 +425,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
                 for x in enum.split("|")
             }
             for idx, item in enumerate(items):
-                if item.item_type not in show_types:
+                if str(item.object_type) not in show_types:
                     flt_flags[idx] &= ~self.bitflag_filter_item
 
         flt_neworder = bpy.types.UI_UL_list.sort_items_by_name(items, "name")
@@ -450,49 +466,49 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         self.use_filter_show = True
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
-            icon = _get_icon(item.item_type)
+            icon = _get_icon(ObjectType(item.object_type))
             layout.label(text=item.name, icon=icon)
             layout.label(text=item.description)
 
             if get_preferences(context).debug:
-                layout.label(text=str(item.item_id))
+                layout.label(text=str(item.object_id))
 
         elif self.layout_type == "GRID":
             pass
 
 
-def _get_icon(item_type: str) -> str:
-    match item_type:
-        case "ACCESSORY":
+def _get_icon(object_type: ObjectType) -> str:
+    match object_type:
+        case ObjectType.ACCESSORY:
             return "MESH_TORUS"
-        case "BASEWEAR" | "COSTUME" | "OUTERWEAR":
+        case ObjectType.BASEWEAR | ObjectType.COSTUME | ObjectType.OUTERWEAR:
             return "MATCLOTH"
-        case "CAST_ARMS" | "CAST_BODY" | "CAST_LEGS":
+        case ObjectType.CAST_ARMS | ObjectType.CAST_BODY | ObjectType.CAST_LEGS:
             return "MATCLOTH"
-        case "BODYPAINT" | "INNERWEAR":
+        case ObjectType.BODYPAINT | ObjectType.INNERWEAR:
             return "TEXTURE"
-        case "EARS":
+        case ObjectType.EAR:
             return "USER"
-        case "EYES":
+        case ObjectType.EYE:
             return "HIDE_OFF"
-        case "EYEBROWS" | "EYELASHES":
+        case ObjectType.EYEBROW | ObjectType.EYELASH:
             return "HIDE_OFF"
-        case "FACE":
+        case ObjectType.FACE:
             return "USER"
-        case "FACE_TEXTURE" | "FACEPAINT":
+        case ObjectType.FACE_TEXTURE | ObjectType.FACEPAINT:
             return "USER"
-        case "HAIR":
+        case ObjectType.HAIR:
             return "USER"
-        case "HORNS":
+        case ObjectType.HORN:
             return "USER"
-        case "SKIN":
+        case ObjectType.SKIN:
             return "TEXTURE"
-        case "STICKER":
+        case ObjectType.STICKER:
             return "TEXTURE"
-        case "TEETH":
+        case ObjectType.TEETH:
             return "USER"
         case _:
-            raise NotImplementedError(f"Unhandled item type {item_type}")
+            raise NotImplementedError(f"Unhandled item type {object_type}")
 
 
 @classes.register

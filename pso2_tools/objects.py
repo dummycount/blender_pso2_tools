@@ -20,32 +20,32 @@ T = TypeVar("T")
 NameDict = dict[int, list[str]]
 
 
-def is_ngs(item_id):
-    return item_id >= 100000
+def is_ngs(object_id):
+    return object_id >= 100000
 
 
-class Table(StrEnum):
-    ACCESSORIES = "accessories"
-    COSTUMES = "costumes"
+class ObjectType(StrEnum):
+    ACCESSORY = "accessory"
     BASEWEAR = "basewear"
-    OUTERWEAR = "outerwear"
-    CAST_ARMS = "cast_arms"
-    CAST_BODIES = "cast_bodies"
-    CAST_LEGS = "cast_legs"
-    INNERWEAR = "innerwear"
     BODYPAINT = "bodypaint"
-    STICKERS = "stickers"
-    SKINS = "skins"
-    FACES = "faces"
-    FACE_TEXTURES = "face_textures"
+    CAST_ARMS = "cast_arms"
+    CAST_BODY = "cast_body"
+    CAST_LEGS = "cast_legs"
+    COSTUME = "costume"
+    EAR = "ear"
+    EYE = "eye"
+    EYEBROW = "eyebrow"
+    EYELASH = "eyelash"
+    FACE = "face"
+    FACE_TEXTURE = "face_texture"
     FACEPAINT = "facepaint"
-    EYES = "eyes"
-    EYEBROWS = "eyebrows"
-    EYELASHES = "eyelashes"
-    EARS = "ears"
-    TEETH = "teeth"
-    HORNS = "horns"
     HAIR = "hair"
+    HORN = "horn"
+    INNERWEAR = "innerwear"
+    OUTERWEAR = "outerwear"
+    SKIN = "skin"
+    STICKER = "sticker"
+    TEETH = "teeth"
 
 
 class CmxCategory(StrEnum):
@@ -128,6 +128,13 @@ class CmxColorMapping:
         if protocol is sqlite3.PrepareProtocol:
             return f"{self.red};{self.green};{self.blue};{self.alpha}"
         raise NotImplementedError()
+
+    def get_colors(self) -> set[ColorId]:
+        return {
+            c
+            for c in (self.red, self.green, self.blue, self.alpha)
+            if c != ColorId.UNUSED
+        }
 
     @classmethod
     def from_body_obj(cls, obj):
@@ -234,10 +241,13 @@ def _db_type(cls: Type):
 
 @dataclass
 class CmxObjectBase:
+    object_type: ObjectType
     id: int
     adjusted_id: int
     name_en: str = ""
     name_jp: str = ""
+
+    _NO_COLUMN = "object_type"
 
     @property
     def name(self):
@@ -247,27 +257,35 @@ class CmxObjectBase:
     def type(self):
         return CmxPartType.from_id(self.id)
 
+    def get_colors(self) -> set[ColorId]:
+        return set()
+
     @classmethod
-    def from_db_row(cls, row: sqlite3.Row):
+    def from_db_row(cls, object_type: ObjectType, row: sqlite3.Row):
         d = {k: row[k] for k in row.keys() if row[k] is not None}
 
-        return cls(**d)
+        return cls(object_type=object_type, **d)
 
     @classmethod
-    def db_schema(cls, table: Table):
+    def db_schema(cls, table: ObjectType):
         columns = [
             f"{field.name} {_db_type(field.type)} {_db_attr(field.name)}"
             for field in fields(cls)
+            if field.name not in cls._NO_COLUMN
         ]
 
         return f"CREATE TABLE {table}( {','.join(columns)} );"
 
-    def db_insert(self, con: sqlite3.Connection, table: Table):
-        d = {field.name: getattr(self, field.name) for field in fields(self)}
+    def db_insert(self, con: sqlite3.Connection):
+        d = {
+            field.name: getattr(self, field.name)
+            for field in fields(self)
+            if field.name not in self._NO_COLUMN
+        }
 
         placeholders = ",".join(":" + k for k in d.keys())
 
-        con.execute(f"INSERT INTO {table} VALUES({placeholders})", d)
+        con.execute(f"INSERT INTO {self.object_type} VALUES({placeholders})", d)
 
 
 @dataclass
@@ -350,6 +368,13 @@ class CmxBodyObject(CmxObjectBase):
     leg_length: float = 0
     color_mapping: CmxColorMapping = field(default_factory=CmxColorMapping)
 
+    def get_colors(self) -> set[ColorId]:
+        # TODO: currently just assuming every body part uses skin colors.
+        # Is there a way to check without inspecting the .aqp file's materials?
+        colors = {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
+        colors |= self.color_mapping.get_colors()
+        return colors
+
 
 @dataclass
 class CmxFaceObject(CmxObjectBase):
@@ -360,6 +385,9 @@ class CmxFaceObject(CmxObjectBase):
     tex_4: str = ""
     tex_5: str = ""
     tex_6: str = ""
+
+    def get_colors(self) -> set[ColorId]:
+        return {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
 
 
 @dataclass
@@ -380,6 +408,9 @@ class CmxEyeObject(CmxObjectBase):
     tex_4: str = ""
     tex_5: str = ""
 
+    def get_colors(self) -> set[ColorId]:
+        return {ColorId.LEFT_EYE, ColorId.RIGHT_EYE}
+
 
 @dataclass
 class CmxEyebrowObject(CmxObjectBase):
@@ -388,6 +419,11 @@ class CmxEyebrowObject(CmxObjectBase):
     tex_2: str = ""
     tex_3: str = ""
     tex_4: str = ""
+
+    def get_colors(self) -> set[ColorId]:
+        if self.object_type == ObjectType.EYEBROW:
+            return {ColorId.EYEBROW}
+        return {ColorId.EYELASH}
 
 
 @dataclass
@@ -401,6 +437,9 @@ class CmxHairObject(CmxObjectBase):
     tex_6: str = ""
     tex_7: str = ""
 
+    def get_colors(self) -> set[ColorId]:
+        return {ColorId.HAIR1, ColorId.HAIR2}
+
 
 @dataclass
 class CmxEarObject(CmxObjectBase):
@@ -410,6 +449,9 @@ class CmxEarObject(CmxObjectBase):
     tex_3: str = ""
     tex_4: str = ""
     tex_5: str = ""
+
+    def get_colors(self) -> set[ColorId]:
+        return {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
 
 
 @dataclass
@@ -435,82 +477,77 @@ class ObjectDatabase:
         self.con.close()
 
     def get_accessories(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxAccessory, Table.ACCESSORIES, item_id)
+        return self._get_objects(CmxAccessory, ObjectType.ACCESSORY, item_id)
 
     def get_costumes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, Table.COSTUMES, item_id)
+        return self._get_objects(CmxBodyObject, ObjectType.COSTUME, item_id)
 
     def get_basewear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, Table.BASEWEAR, item_id)
+        return self._get_objects(CmxBodyObject, ObjectType.BASEWEAR, item_id)
 
     def get_outerwear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, Table.OUTERWEAR, item_id)
+        return self._get_objects(CmxBodyObject, ObjectType.OUTERWEAR, item_id)
 
     def get_cast_arms(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, Table.CAST_ARMS, item_id)
+        return self._get_objects(CmxBodyObject, ObjectType.CAST_ARMS, item_id)
 
     def get_cast_bodies(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, Table.CAST_BODIES, item_id)
+        return self._get_objects(CmxBodyObject, ObjectType.CAST_BODY, item_id)
 
     def get_cast_legs(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, Table.CAST_LEGS, item_id)
+        return self._get_objects(CmxBodyObject, ObjectType.CAST_LEGS, item_id)
 
     def get_innerwear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyPaint, Table.INNERWEAR, item_id)
+        return self._get_objects(CmxBodyPaint, ObjectType.INNERWEAR, item_id)
 
     def get_bodypaint(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyPaint, Table.BODYPAINT, item_id)
+        return self._get_objects(CmxBodyPaint, ObjectType.BODYPAINT, item_id)
 
     def get_stickers(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxSticker, Table.STICKERS, item_id)
+        return self._get_objects(CmxSticker, ObjectType.STICKER, item_id)
 
     def get_skins(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxSkinObject, Table.SKINS, item_id)
+        return self._get_objects(CmxSkinObject, ObjectType.SKIN, item_id)
 
     def get_faces(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFaceObject, Table.FACES, item_id)
+        return self._get_objects(CmxFaceObject, ObjectType.FACE, item_id)
 
     def get_face_textures(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFacePaint, Table.FACE_TEXTURES, item_id)
+        return self._get_objects(CmxFacePaint, ObjectType.FACE_TEXTURE, item_id)
 
     def get_facepaint(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFacePaint, Table.FACEPAINT, item_id)
+        return self._get_objects(CmxFacePaint, ObjectType.FACEPAINT, item_id)
 
     def get_eyes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEyeObject, Table.EYES, item_id)
+        return self._get_objects(CmxEyeObject, ObjectType.EYE, item_id)
 
     def get_eyebrows(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEyebrowObject, Table.EYEBROWS, item_id)
+        return self._get_objects(CmxEyebrowObject, ObjectType.EYEBROW, item_id)
 
     def get_eyelashes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEyebrowObject, Table.EYELASHES, item_id)
+        return self._get_objects(CmxEyebrowObject, ObjectType.EYELASH, item_id)
 
     def get_ears(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEarObject, Table.EARS, item_id)
+        return self._get_objects(CmxEarObject, ObjectType.EAR, item_id)
 
     def get_teeth(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxTeethObject, Table.TEETH, item_id)
+        return self._get_objects(CmxTeethObject, ObjectType.TEETH, item_id)
 
     def get_horns(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxHornObject, Table.HORNS, item_id)
+        return self._get_objects(CmxHornObject, ObjectType.HORN, item_id)
 
     def get_hair(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxHairObject, Table.HAIR, item_id)
+        return self._get_objects(CmxHairObject, ObjectType.HAIR, item_id)
 
     def _get_objects(
-        self, cls: Type[T], table: str, item_id: Optional[int] = None
+        self, cls: Type[T], object_type: ObjectType, item_id: Optional[int] = None
     ) -> list[T]:
         if item_id is not None:
-            return [
-                cls.from_db_row(row)
-                for row in self.con.execute(
-                    f"SELECT * FROM {table} WHERE id=?", (item_id,)
-                )
-            ]
+            q = self.con.execute(f"SELECT * FROM {object_type} WHERE id=?", (item_id,))
+        else:
+            q = self.con.execute(f"SELECT * FROM {object_type}")
 
-        return [
-            cls.from_db_row(row) for row in self.con.execute(f"SELECT * FROM {table}")
-        ]
+        return [cls.from_db_row(object_type, row) for row in q]
 
     def update_database(self):
         bin_path = preferences.get_preferences(self.context).get_pso2_bin_path()
@@ -527,7 +564,7 @@ class ObjectDatabase:
             self._reset_db()
 
             self._read_accessories(cmx, accessory_text)
-            self._read_costumes(cmx, parts_text)
+            self._read_bodies(cmx, parts_text)
             self._read_basewear(cmx, parts_text)
             self._read_outerwear(cmx, parts_text)
             self._read_cast_arms(cmx, parts_text)
@@ -563,27 +600,27 @@ class ObjectDatabase:
             if version < 1:
                 con.executescript(
                     f"""
-                    {CmxAccessory.db_schema(Table.ACCESSORIES)}
-                    {CmxBodyObject.db_schema(Table.COSTUMES)}
-                    {CmxBodyObject.db_schema(Table.BASEWEAR)}
-                    {CmxBodyObject.db_schema(Table.OUTERWEAR)}
-                    {CmxBodyObject.db_schema(Table.CAST_BODIES)}
-                    {CmxBodyObject.db_schema(Table.CAST_ARMS)}
-                    {CmxBodyObject.db_schema(Table.CAST_LEGS)}
-                    {CmxBodyPaint.db_schema(Table.INNERWEAR)}
-                    {CmxBodyPaint.db_schema(Table.BODYPAINT)}
-                    {CmxSticker.db_schema(Table.STICKERS)}
-                    {CmxSkinObject.db_schema(Table.SKINS)}
-                    {CmxFaceObject.db_schema(Table.FACES)}
-                    {CmxFacePaint.db_schema(Table.FACE_TEXTURES)}
-                    {CmxFacePaint.db_schema(Table.FACEPAINT)}
-                    {CmxEyeObject.db_schema(Table.EYES)}
-                    {CmxEyebrowObject.db_schema(Table.EYEBROWS)}
-                    {CmxEyebrowObject.db_schema(Table.EYELASHES)}
-                    {CmxEarObject.db_schema(Table.EARS)}
-                    {CmxTeethObject.db_schema(Table.TEETH)}
-                    {CmxHornObject.db_schema(Table.HORNS)}
-                    {CmxHairObject.db_schema(Table.HAIR)}
+                    {CmxAccessory.db_schema(ObjectType.ACCESSORY)}
+                    {CmxBodyObject.db_schema(ObjectType.COSTUME)}
+                    {CmxBodyObject.db_schema(ObjectType.BASEWEAR)}
+                    {CmxBodyObject.db_schema(ObjectType.OUTERWEAR)}
+                    {CmxBodyObject.db_schema(ObjectType.CAST_BODY)}
+                    {CmxBodyObject.db_schema(ObjectType.CAST_ARMS)}
+                    {CmxBodyObject.db_schema(ObjectType.CAST_LEGS)}
+                    {CmxBodyPaint.db_schema(ObjectType.INNERWEAR)}
+                    {CmxBodyPaint.db_schema(ObjectType.BODYPAINT)}
+                    {CmxSticker.db_schema(ObjectType.STICKER)}
+                    {CmxSkinObject.db_schema(ObjectType.SKIN)}
+                    {CmxFaceObject.db_schema(ObjectType.FACE)}
+                    {CmxFacePaint.db_schema(ObjectType.FACE_TEXTURE)}
+                    {CmxFacePaint.db_schema(ObjectType.FACEPAINT)}
+                    {CmxEyeObject.db_schema(ObjectType.EYE)}
+                    {CmxEyebrowObject.db_schema(ObjectType.EYEBROW)}
+                    {CmxEyebrowObject.db_schema(ObjectType.EYELASH)}
+                    {CmxEarObject.db_schema(ObjectType.EAR)}
+                    {CmxTeethObject.db_schema(ObjectType.TEETH)}
+                    {CmxHornObject.db_schema(ObjectType.HORN)}
+                    {CmxHairObject.db_schema(ObjectType.HAIR)}
                     """
                 )
                 con.execute("PRAGMA user_version=1")
@@ -591,77 +628,116 @@ class ObjectDatabase:
         return con
 
     def _reset_db(self):
-        for table in Table:
+        for table in ObjectType:
             self.con.execute(f"DELETE FROM {table}")
 
     def _read_accessories(self, cmx, text):
         names = _get_item_names(text, CmxCategory.ACCESSORY)
         for item_id in cmx.accessoryDict.Keys:
             obj = _get_accessory(
-                cmx.accessoryDict, cmx.accessoryIdLink, names, item_id, "ac"
+                ObjectType.ACCESSORY,
+                cmx.accessoryDict,
+                cmx.accessoryIdLink,
+                names,
+                item_id,
             )
-            obj.db_insert(self.con, Table.ACCESSORIES)
+            obj.db_insert(self.con)
 
     def _read_cast_arms(self, cmx, text):
         names = _get_item_names(text, CmxCategory.ARM)
         for item_id in cmx.carmDict.Keys:
-            obj = _get_body(cmx.carmDict, cmx.castArmIdLink, names, item_id, "am")
-            obj.db_insert(self.con, Table.CAST_ARMS)
+            obj = _get_body(
+                ObjectType.CAST_ARMS,
+                cmx.carmDict,
+                cmx.castArmIdLink,
+                names,
+                item_id,
+            )
+            obj.db_insert(self.con)
 
     def _read_cast_legs(self, cmx, text):
         names = _get_item_names(text, CmxCategory.LEG)
         for item_id in cmx.clegDict.Keys:
-            obj = _get_body(cmx.clegDict, cmx.clegIdLink, names, item_id, "lg")
-            obj.db_insert(self.con, Table.CAST_LEGS)
+            obj = _get_body(
+                ObjectType.CAST_LEGS, cmx.clegDict, cmx.clegIdLink, names, item_id
+            )
+            obj.db_insert(self.con)
 
-    def _read_costumes(self, cmx, text):
+    def _read_bodies(self, cmx, text):
         names = _get_item_names(text, CmxCategory.COSTUME)
         names.update(_get_item_names(text, CmxCategory.BODY))
 
         for item_id in cmx.costumeDict.Keys:
-            obj = _get_body(cmx.costumeDict, cmx.costumeIdLink, names, item_id, "bd")
+            obj = _get_body(
+                ObjectType.CAST_BODY,
+                cmx.costumeDict,
+                cmx.costumeIdLink,
+                names,
+                item_id,
+            )
             if item_id < 40000:
-                obj.db_insert(self.con, Table.COSTUMES)
+                obj.object_type = ObjectType.COSTUME
+                obj.db_insert(self.con)
             else:
-                obj.db_insert(self.con, Table.CAST_BODIES)
+                obj.db_insert(self.con)
 
     def _read_basewear(self, cmx, text):
         names = _get_item_names(text, CmxCategory.BASEWEAR)
         for item_id in cmx.baseWearDict.Keys:
-            obj = _get_body(cmx.baseWearDict, cmx.baseWearIdLink, names, item_id, "bw")
-            obj.db_insert(self.con, Table.BASEWEAR)
+            obj = _get_body(
+                ObjectType.BASEWEAR,
+                cmx.baseWearDict,
+                cmx.baseWearIdLink,
+                names,
+                item_id,
+            )
+            obj.db_insert(self.con)
 
     def _read_outerwear(self, cmx, text):
         names = _get_item_names(text, CmxCategory.COSTUME)
         for item_id in cmx.outerDict.Keys:
-            obj = _get_body(cmx.outerDict, cmx.outerWearIdLink, names, item_id, "ow")
-            obj.db_insert(self.con, Table.OUTERWEAR)
+            obj = _get_body(
+                ObjectType.OUTERWEAR, cmx.outerDict, cmx.outerWearIdLink, names, item_id
+            )
+            obj.db_insert(self.con)
 
     def _read_innerwear(self, cmx, text):
         names = _get_item_names(text, CmxCategory.INNERWEAR)
         for item_id in cmx.innerWearDict.Keys:
             obj = _get_bodypaint(
-                cmx.innerWearDict, cmx.innerWearIdLink, names, item_id, "iw"
+                ObjectType.INNERWEAR,
+                cmx.innerWearDict,
+                cmx.innerWearIdLink,
+                names,
+                item_id,
             )
-            obj.db_insert(self.con, Table.INNERWEAR)
+            obj.db_insert(self.con)
 
     def _read_bodypaint(self, cmx, text):
         names = _get_item_names(text, CmxCategory.BODYPAINT1)
         for item_id in cmx.bodyPaintDict.Keys:
-            obj = _get_bodypaint(cmx.bodyPaintDict, None, names, item_id, "b1")
-            obj.db_insert(self.con, Table.BODYPAINT)
+            obj = _get_bodypaint(
+                ObjectType.BODYPAINT,
+                cmx.bodyPaintDict,
+                None,
+                names,
+                item_id,
+            )
+            obj.db_insert(self.con)
 
     def _read_stickers(self, cmx, text):
         names = _get_item_names(text, CmxCategory.BODYPAINT2)
         for item_id in cmx.stickerDict.Keys:
-            obj = _get_sticker(cmx.stickerDict, None, names, item_id, "b2")
-            obj.db_insert(self.con, Table.STICKERS)
+            obj = _get_sticker(
+                ObjectType.STICKER, cmx.stickerDict, None, names, item_id
+            )
+            obj.db_insert(self.con)
 
     def _read_skins(self, cmx, text):
         names = _get_item_names(text, CmxCategory.SKIN)
         for item_id in cmx.ngsSkinDict.Keys:
-            obj = _get_skin(cmx.ngsSkinDict, None, names, item_id, "sk")
-            obj.db_insert(self.con, Table.SKINS)
+            obj = _get_skin(ObjectType.SKIN, cmx.ngsSkinDict, None, names, item_id)
+            obj.db_insert(self.con)
 
     def _read_faces(self, cmx, text):
         names = _get_item_names(text, CmxCategory.FACE)
@@ -669,62 +745,70 @@ class ObjectDatabase:
         # names.update(_get_item_names(text, CmxCategory.FACE_VARIATION))
 
         for item_id in cmx.faceDict.Keys:
-            obj = _get_face(cmx.faceDict, None, names, item_id, "fc")
-            obj.db_insert(self.con, Table.FACES)
+            obj = _get_face(ObjectType.FACE, cmx.faceDict, None, names, item_id)
+            obj.db_insert(self.con)
 
     def _read_face_textures(self, cmx, text):
         names = _get_item_names(text, CmxCategory.FACEPAINT1)
         for item_id in cmx.faceTextureDict.Keys:
-            obj = _get_facepaint(cmx.faceTextureDict, None, names, item_id, "f1")
-            obj.db_insert(self.con, Table.FACE_TEXTURES)
+            obj = _get_facepaint(
+                ObjectType.FACE_TEXTURE, cmx.faceTextureDict, None, names, item_id
+            )
+            obj.db_insert(self.con)
 
     def _read_facepaint(self, cmx, text):
         names = _get_item_names(text, CmxCategory.FACEPAINT2)
         for item_id in cmx.fcpDict.Keys:
-            obj = _get_facepaint(cmx.fcpDict, None, names, item_id, "f2")
-            obj.db_insert(self.con, Table.FACEPAINT)
+            obj = _get_facepaint(
+                ObjectType.FACEPAINT, cmx.fcpDict, None, names, item_id
+            )
+            obj.db_insert(self.con)
 
     def _read_eyes(self, cmx, text):
         names = _get_item_names(text, CmxCategory.EYE)
         for item_id in cmx.eyeDict.Keys:
-            obj = _get_eye(cmx.eyeDict, None, names, item_id, "ey")
-            obj.db_insert(self.con, Table.EYES)
+            obj = _get_eye(ObjectType.EYE, cmx.eyeDict, None, names, item_id)
+            obj.db_insert(self.con)
 
     def _read_eyebrows(self, cmx, text):
         names = _get_item_names(text, CmxCategory.EYEBROWS)
         for item_id in cmx.eyebrowDict.Keys:
-            obj = _get_eyebrow(cmx.eyebrowDict, None, names, item_id, "eb")
-            obj.db_insert(self.con, Table.EYEBROWS)
+            obj = _get_eyebrow(
+                ObjectType.EYEBROW, cmx.eyebrowDict, None, names, item_id
+            )
+            obj.db_insert(self.con)
 
     def _read_eyelashes(self, cmx, text):
         names = _get_item_names(text, CmxCategory.EYELASHES)
         for item_id in cmx.eyelashDict.Keys:
-            obj = _get_eyebrow(cmx.eyelashDict, None, names, item_id, "el")
-            obj.db_insert(self.con, Table.EYELASHES)
+            obj = _get_eyebrow(
+                ObjectType.EYELASH, cmx.eyelashDict, None, names, item_id
+            )
+            obj.db_insert(self.con)
 
     def _read_hair(self, cmx, text):
         names = _get_item_names(text, CmxCategory.HAIR)
         for item_id in cmx.hairDict.Keys:
-            obj = _get_hair(cmx.hairDict, None, names, item_id, "hr")
-            obj.db_insert(self.con, Table.HAIR)
+            obj = _get_hair(ObjectType.HAIR, cmx.hairDict, None, names, item_id)
+            obj.db_insert(self.con)
 
     def _read_ears(self, cmx, text):
         names = _get_item_names(text, CmxCategory.EARS)
         for item_id in cmx.ngsEarDict.Keys:
-            obj = _get_ear(cmx.ngsEarDict, None, names, item_id, "ea")
-            obj.db_insert(self.con, Table.EARS)
+            obj = _get_ear(ObjectType.EAR, cmx.ngsEarDict, None, names, item_id)
+            obj.db_insert(self.con)
 
     def _read_teeth(self, cmx, text):
         names = _get_item_names(text, CmxCategory.TEETH)
         for item_id in cmx.ngsTeethDict.Keys:
-            obj = _get_teeth(cmx.ngsTeethDict, None, names, item_id, "de")
-            obj.db_insert(self.con, Table.TEETH)
+            obj = _get_teeth(ObjectType.TEETH, cmx.ngsTeethDict, None, names, item_id)
+            obj.db_insert(self.con)
 
     def _read_horns(self, cmx, text):
         names = _get_item_names(text, CmxCategory.HORN)
         for item_id in cmx.ngsHornDict.Keys:
-            obj = _get_horn(cmx.ngsHornDict, None, names, item_id, "hn")
-            obj.db_insert(self.con, Table.HORNS)
+            obj = _get_horn(ObjectType.HORN, cmx.ngsHornDict, None, names, item_id)
+            obj.db_insert(self.con)
 
 
 def _get_item_names(text, category: CmxCategory):
@@ -773,9 +857,10 @@ def _get_names(name_dict: NameDict, item_id: int):
         return ["", ""]
 
 
-def _get_base_cmx_props(item_id, name_dict, link_id_dict):
+def _common_props(object_type: ObjectType, item_id: int, name_dict, link_id_dict):
     names = _get_names(name_dict, item_id)
     return {
+        "object_type": object_type,
         "id": item_id,
         "adjusted_id": _get_adjusted_id(item_id, link_id_dict),
         "name_jp": names[0],
@@ -783,14 +868,61 @@ def _get_base_cmx_props(item_id, name_dict, link_id_dict):
     }
 
 
+def _get_file_tag(object_type: ObjectType):
+    match object_type:
+        case ObjectType.ACCESSORY:
+            return "ac"
+        case ObjectType.COSTUME:
+            return "bd"
+        case ObjectType.BASEWEAR:
+            return "bw"
+        case ObjectType.OUTERWEAR:
+            return "ow"
+        case ObjectType.CAST_ARMS:
+            return "am"
+        case ObjectType.CAST_BODY:
+            return "bd"
+        case ObjectType.CAST_LEGS:
+            return "lg"
+        case ObjectType.INNERWEAR:
+            return "iw"
+        case ObjectType.BODYPAINT:
+            return "b1"
+        case ObjectType.STICKER:
+            return "b2"
+        case ObjectType.SKIN:
+            return "sk"
+        case ObjectType.FACE:
+            return "fc"
+        case ObjectType.FACE_TEXTURE:
+            return "f1"
+        case ObjectType.FACEPAINT:
+            return "f2"
+        case ObjectType.EYE:
+            return "ey"
+        case ObjectType.EYEBROW:
+            return "eb"
+        case ObjectType.EYELASH:
+            return "el"
+        case ObjectType.EAR:
+            return "ea"
+        case ObjectType.TEETH:
+            return "de"
+        case ObjectType.HORN:
+            return "hn"
+        case ObjectType.HAIR:
+            return "hr"
+
+
 def _get_body(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxBodyObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxBodyObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.head_id = _optional_id(item.body2.headId)
@@ -809,7 +941,7 @@ def _get_body(
 
     start = _get_file_path_start(item_id)
 
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     if data.linked_inner_id is not None:
         data.linked_inner_file.name = f"{start}b1_{data.linked_inner_id:05d}.ice"
@@ -825,13 +957,14 @@ def _get_body(
 
 
 def _get_bodypaint(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxBodyPaint(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxBodyPaint(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -841,37 +974,39 @@ def _get_bodypaint(
         data.tex_5 = item.texString5 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_sticker(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxSticker(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxSticker(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex = item.texString or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_skin(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxSkinObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxSkinObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -886,19 +1021,20 @@ def _get_skin(
         data.tex_10 = item.texString10 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_face(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxFaceObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxFaceObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -909,19 +1045,20 @@ def _get_face(
         data.tex_6 = item.texString6 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_facepaint(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxFacePaint(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxFacePaint(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -930,19 +1067,20 @@ def _get_facepaint(
         data.tex_4 = item.texString4 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_eye(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxEyeObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxEyeObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -952,19 +1090,22 @@ def _get_eye(
         data.tex_5 = item.texString5 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_eyebrow(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxEyebrowObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxEyebrowObject(
+        **_common_props(object_type, item_id, name_dict, link_id_dict)
+    )
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -973,19 +1114,20 @@ def _get_eyebrow(
         data.tex_4 = item.texString4 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_hair(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxHairObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxHairObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -997,19 +1139,20 @@ def _get_hair(
         data.tex_7 = item.texString7 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_ear(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxEarObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxEarObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -1019,19 +1162,22 @@ def _get_ear(
         data.tex_5 = item.texString5 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_teeth(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxTeethObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxTeethObject(
+        **_common_props(object_type, item_id, name_dict, link_id_dict)
+    )
 
     if item := dict_get(object_dict, item_id):
         data.tex_1 = item.texString1 or ""
@@ -1040,34 +1186,36 @@ def _get_teeth(
         data.tex_4 = item.texString4 or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_horn(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxHornObject(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxHornObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
 
 
 def _get_accessory(
+    object_type: ObjectType,
     object_dict,
     link_id_dict,
     name_dict: NameDict,
     item_id: int,
-    file_type: str,
 ):
-    data = CmxAccessory(**_get_base_cmx_props(item_id, name_dict, link_id_dict))
+    tag = _get_file_tag(object_type)
+    data = CmxAccessory(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
         data.node_attach_1 = item.nodeAttach1 or ""
@@ -1091,6 +1239,6 @@ def _get_accessory(
         data.effect_name = item.effectName or ""
 
     start = _get_file_path_start(item_id)
-    data.file.name = f"{start}{file_type}_{data.adjusted_id:05d}.ice"
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
