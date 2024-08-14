@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, fields
 from enum import Enum, StrEnum, auto
 from pathlib import Path
-from typing import Optional, Type, TypeVar
+from typing import Generator, Optional, Type, TypeVar
 
 import bpy
 from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text
@@ -475,6 +475,28 @@ class ObjectDatabase:
 
     def close(self):
         self.con.close()
+
+    def get_all(self) -> Generator[CmxObjectBase, None, None]:
+        yield from self.get_accessories()
+        yield from self.get_costumes()
+        yield from self.get_basewear()
+        yield from self.get_outerwear()
+        yield from self.get_cast_arms()
+        yield from self.get_cast_bodies()
+        yield from self.get_cast_legs()
+        yield from self.get_innerwear()
+        yield from self.get_bodypaint()
+        yield from self.get_stickers()
+        yield from self.get_skins()
+        yield from self.get_faces()
+        yield from self.get_face_textures()
+        yield from self.get_eyes()
+        yield from self.get_eyebrows()
+        yield from self.get_eyelashes()
+        yield from self.get_ears()
+        yield from self.get_teeth()
+        yield from self.get_horns()
+        yield from self.get_hair()
 
     def get_accessories(self, item_id: Optional[int] = None):
         return self._get_objects(CmxAccessory, ObjectType.ACCESSORY, item_id)

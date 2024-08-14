@@ -242,8 +242,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
             return []
 
         data_path = get_preferences(context).get_pso2_data_path()
-
-        return [v for item in selected.files for v in _get_file_items(item, data_path)]
+        return _get_file_items(selected.files, data_path)
 
     models: bpy.props.CollectionProperty(name="Models", type=ListItem)
     models_index: bpy.props.IntProperty(name="Selected Index")
@@ -274,7 +273,10 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         col.use_property_split = True
         col.use_property_decorate = False
         col.context_pointer_set("parent", self)
-        col.prop(self, "model_file")
+
+        row = col.row(align=True)
+        row.use_property_split = False
+        row.props_enum(self, "model_file")
 
         if obj := self.get_selected_object():
             if colors := sorted(obj.get_colors()):
@@ -301,75 +303,28 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
             return None
 
 
-def _get_file_display_name(filename: str):
-    match filename:
-        case "file":
-            return "Normal Quality"
-        case "file_ex":
-            return "High Quality"
-        case "file_rp":
-            return "Replacement"
-        case "linked_inner_file":
-            return "Linked Innerwear"
-        case "linked_inner_file_ex":
-            return "Linked Innerwear (HQ)"
-        case "linked_outer_file":
-            return "Linked Outerwear"
-        case "linked_outer_file_ex":
-            return "Linked Outerwear (HQ)"
-        case _:
-            return filename
+def _get_file_items(items: Iterable[FileNameItem], data_path: Path):
+    item = next((item for item in items if item.name == "file"), None)
+    if item is None:
+        return []
 
+    normal = item.to_file_name()
+    high = normal.ex
 
-def _get_file_items(item: FileNameItem, data_path: Path):
-    if item.name in ("sound_file", "cast_sound_file"):
-        return
+    if high.exists(data_path):
+        yield ("HQ", "High Quality", "Select high quality model")
 
-    base = item.to_file_name()
-    ex = base.ex
-
-    if path := ex.path(data_path):
-        yield (str(path), _get_file_display_name(item.name + "_ex"), "")
-
-    if path := base.path(data_path):
-        yield (str(path), _get_file_display_name(item.name), "")
+    if normal.exists(data_path):
+        yield ("NQ", "Normal Quality", "Select normal quality model")
 
 
 def _populate_model_list(collection, context: bpy.types.Context):
     collection.clear()
 
     with closing(objects.ObjectDatabase(context)) as db:
-        for obj in _get_items(db):
+        for obj in db.get_all():
             item: ListItem = collection.add()
             item.populate(obj)
-
-
-def _get_items(db: objects.ObjectDatabase):
-    getters = [
-        db.get_accessories,
-        db.get_basewear,
-        db.get_bodypaint,
-        db.get_cast_arms,
-        db.get_cast_bodies,
-        db.get_cast_legs,
-        db.get_costumes,
-        db.get_ears,
-        db.get_eyes,
-        db.get_eyebrows,
-        db.get_eyelashes,
-        db.get_faces,
-        db.get_face_textures,
-        db.get_facepaint,
-        db.get_hair,
-        db.get_horns,
-        db.get_innerwear,
-        db.get_outerwear,
-        db.get_skins,
-        db.get_stickers,
-        db.get_teeth,
-    ]
-
-    return (item for getter in getters for item in getter())
 
 
 @classes.register
