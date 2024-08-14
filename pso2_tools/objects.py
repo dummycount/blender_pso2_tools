@@ -501,14 +501,11 @@ class ObjectDatabase:
     def get_accessories(self, item_id: Optional[int] = None):
         return self._get_objects(CmxAccessory, ObjectType.ACCESSORY, item_id)
 
-    def get_costumes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.COSTUME, item_id)
-
     def get_basewear(self, item_id: Optional[int] = None):
         return self._get_objects(CmxBodyObject, ObjectType.BASEWEAR, item_id)
 
-    def get_outerwear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.OUTERWEAR, item_id)
+    def get_bodypaint(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxBodyPaint, ObjectType.BODYPAINT, item_id)
 
     def get_cast_arms(self, item_id: Optional[int] = None):
         return self._get_objects(CmxBodyObject, ObjectType.CAST_ARMS, item_id)
@@ -519,26 +516,11 @@ class ObjectDatabase:
     def get_cast_legs(self, item_id: Optional[int] = None):
         return self._get_objects(CmxBodyObject, ObjectType.CAST_LEGS, item_id)
 
-    def get_innerwear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyPaint, ObjectType.INNERWEAR, item_id)
+    def get_costumes(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxBodyObject, ObjectType.COSTUME, item_id)
 
-    def get_bodypaint(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyPaint, ObjectType.BODYPAINT, item_id)
-
-    def get_stickers(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxSticker, ObjectType.STICKER, item_id)
-
-    def get_skins(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxSkinObject, ObjectType.SKIN, item_id)
-
-    def get_faces(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFaceObject, ObjectType.FACE, item_id)
-
-    def get_face_textures(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFacePaint, ObjectType.FACE_TEXTURE, item_id)
-
-    def get_facepaint(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFacePaint, ObjectType.FACEPAINT, item_id)
+    def get_ears(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxEarObject, ObjectType.EAR, item_id)
 
     def get_eyes(self, item_id: Optional[int] = None):
         return self._get_objects(CmxEyeObject, ObjectType.EYE, item_id)
@@ -549,17 +531,35 @@ class ObjectDatabase:
     def get_eyelashes(self, item_id: Optional[int] = None):
         return self._get_objects(CmxEyebrowObject, ObjectType.EYELASH, item_id)
 
-    def get_ears(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEarObject, ObjectType.EAR, item_id)
+    def get_faces(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxFaceObject, ObjectType.FACE, item_id)
 
-    def get_teeth(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxTeethObject, ObjectType.TEETH, item_id)
+    def get_face_textures(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxFacePaint, ObjectType.FACE_TEXTURE, item_id)
+
+    def get_facepaint(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxFacePaint, ObjectType.FACEPAINT, item_id)
+
+    def get_hair(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxHairObject, ObjectType.HAIR, item_id)
 
     def get_horns(self, item_id: Optional[int] = None):
         return self._get_objects(CmxHornObject, ObjectType.HORN, item_id)
 
-    def get_hair(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxHairObject, ObjectType.HAIR, item_id)
+    def get_innerwear(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxBodyPaint, ObjectType.INNERWEAR, item_id)
+
+    def get_outerwear(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxBodyObject, ObjectType.OUTERWEAR, item_id)
+
+    def get_skins(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxSkinObject, ObjectType.SKIN, item_id)
+
+    def get_stickers(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxSticker, ObjectType.STICKER, item_id)
+
+    def get_teeth(self, item_id: Optional[int] = None):
+        return self._get_objects(CmxTeethObject, ObjectType.TEETH, item_id)
 
     def _get_objects(
         self, cls: Type[T], object_type: ObjectType, item_id: Optional[int] = None
@@ -586,25 +586,25 @@ class ObjectDatabase:
             self._reset_db()
 
             self._read_accessories(cmx, accessory_text)
-            self._read_bodies(cmx, parts_text)
             self._read_basewear(cmx, parts_text)
-            self._read_outerwear(cmx, parts_text)
+            self._read_bodies(cmx, parts_text)
+            self._read_bodypaint(cmx, parts_text)
             self._read_cast_arms(cmx, parts_text)
             self._read_cast_legs(cmx, parts_text)
-            self._read_innerwear(cmx, parts_text)
-            self._read_bodypaint(cmx, parts_text)
-            self._read_stickers(cmx, parts_text)
-            self._read_skins(cmx, parts_text)
-            self._read_faces(cmx, parts_text)
-            self._read_face_textures(cmx, parts_text)
-            self._read_facepaint(cmx, parts_text)
+            self._read_ears(cmx, parts_text)
             self._read_eyes(cmx, parts_text)
             self._read_eyebrows(cmx, parts_text)
             self._read_eyelashes(cmx, parts_text)
-            self._read_ears(cmx, parts_text)
-            self._read_teeth(cmx, parts_text)
-            self._read_horns(cmx, parts_text)
+            self._read_faces(cmx, parts_text)
+            self._read_face_textures(cmx, parts_text)
+            self._read_facepaint(cmx, parts_text)
             self._read_hair(cmx, parts_text)
+            self._read_horns(cmx, parts_text)
+            self._read_innerwear(cmx, parts_text)
+            self._read_outerwear(cmx, parts_text)
+            self._read_skins(cmx, parts_text)
+            self._read_stickers(cmx, parts_text)
+            self._read_teeth(cmx, parts_text)
 
             # TODO: objects that aren't in CMX (enemies, weapons, etc.)
 
@@ -623,26 +623,26 @@ class ObjectDatabase:
                 con.executescript(
                     f"""
                     {CmxAccessory.db_schema(ObjectType.ACCESSORY)}
-                    {CmxBodyObject.db_schema(ObjectType.COSTUME)}
                     {CmxBodyObject.db_schema(ObjectType.BASEWEAR)}
-                    {CmxBodyObject.db_schema(ObjectType.OUTERWEAR)}
+                    {CmxBodyPaint.db_schema(ObjectType.BODYPAINT)}
                     {CmxBodyObject.db_schema(ObjectType.CAST_BODY)}
                     {CmxBodyObject.db_schema(ObjectType.CAST_ARMS)}
                     {CmxBodyObject.db_schema(ObjectType.CAST_LEGS)}
-                    {CmxBodyPaint.db_schema(ObjectType.INNERWEAR)}
-                    {CmxBodyPaint.db_schema(ObjectType.BODYPAINT)}
-                    {CmxSticker.db_schema(ObjectType.STICKER)}
-                    {CmxSkinObject.db_schema(ObjectType.SKIN)}
-                    {CmxFaceObject.db_schema(ObjectType.FACE)}
-                    {CmxFacePaint.db_schema(ObjectType.FACE_TEXTURE)}
-                    {CmxFacePaint.db_schema(ObjectType.FACEPAINT)}
+                    {CmxBodyObject.db_schema(ObjectType.COSTUME)}
+                    {CmxEarObject.db_schema(ObjectType.EAR)}
                     {CmxEyeObject.db_schema(ObjectType.EYE)}
                     {CmxEyebrowObject.db_schema(ObjectType.EYEBROW)}
                     {CmxEyebrowObject.db_schema(ObjectType.EYELASH)}
-                    {CmxEarObject.db_schema(ObjectType.EAR)}
-                    {CmxTeethObject.db_schema(ObjectType.TEETH)}
-                    {CmxHornObject.db_schema(ObjectType.HORN)}
+                    {CmxFaceObject.db_schema(ObjectType.FACE)}
+                    {CmxFacePaint.db_schema(ObjectType.FACE_TEXTURE)}
+                    {CmxFacePaint.db_schema(ObjectType.FACEPAINT)}
                     {CmxHairObject.db_schema(ObjectType.HAIR)}
+                    {CmxHornObject.db_schema(ObjectType.HORN)}
+                    {CmxBodyPaint.db_schema(ObjectType.INNERWEAR)}
+                    {CmxBodyObject.db_schema(ObjectType.OUTERWEAR)}
+                    {CmxSkinObject.db_schema(ObjectType.SKIN)}
+                    {CmxSticker.db_schema(ObjectType.STICKER)}
+                    {CmxTeethObject.db_schema(ObjectType.TEETH)}
                     """
                 )
                 con.execute("PRAGMA user_version=1")
@@ -660,6 +660,48 @@ class ObjectDatabase:
                 ObjectType.ACCESSORY,
                 cmx.accessoryDict,
                 cmx.accessoryIdLink,
+                names,
+                item_id,
+            )
+            obj.db_insert(self.con)
+
+    def _read_basewear(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.BASEWEAR)
+        for item_id in cmx.baseWearDict.Keys:
+            obj = _get_body(
+                ObjectType.BASEWEAR,
+                cmx.baseWearDict,
+                cmx.baseWearIdLink,
+                names,
+                item_id,
+            )
+            obj.db_insert(self.con)
+
+    def _read_bodies(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.COSTUME)
+        names.update(_get_item_names(text, CmxCategory.BODY))
+
+        for item_id in cmx.costumeDict.Keys:
+            obj = _get_body(
+                ObjectType.CAST_BODY,
+                cmx.costumeDict,
+                cmx.costumeIdLink,
+                names,
+                item_id,
+            )
+            if item_id < 40000:
+                obj.object_type = ObjectType.COSTUME
+                obj.db_insert(self.con)
+            else:
+                obj.db_insert(self.con)
+
+    def _read_bodypaint(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.BODYPAINT1)
+        for item_id in cmx.bodyPaintDict.Keys:
+            obj = _get_bodypaint(
+                ObjectType.BODYPAINT,
+                cmx.bodyPaintDict,
+                None,
                 names,
                 item_id,
             )
@@ -685,80 +727,32 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_bodies(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.COSTUME)
-        names.update(_get_item_names(text, CmxCategory.BODY))
+    def _read_ears(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.EARS)
+        for item_id in cmx.ngsEarDict.Keys:
+            obj = _get_ear(ObjectType.EAR, cmx.ngsEarDict, None, names, item_id)
+            obj.db_insert(self.con)
 
-        for item_id in cmx.costumeDict.Keys:
-            obj = _get_body(
-                ObjectType.CAST_BODY,
-                cmx.costumeDict,
-                cmx.costumeIdLink,
-                names,
-                item_id,
-            )
-            if item_id < 40000:
-                obj.object_type = ObjectType.COSTUME
-                obj.db_insert(self.con)
-            else:
-                obj.db_insert(self.con)
+    def _read_eyes(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.EYE)
+        for item_id in cmx.eyeDict.Keys:
+            obj = _get_eye(ObjectType.EYE, cmx.eyeDict, None, names, item_id)
+            obj.db_insert(self.con)
 
-    def _read_basewear(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.BASEWEAR)
-        for item_id in cmx.baseWearDict.Keys:
-            obj = _get_body(
-                ObjectType.BASEWEAR,
-                cmx.baseWearDict,
-                cmx.baseWearIdLink,
-                names,
-                item_id,
+    def _read_eyebrows(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.EYEBROWS)
+        for item_id in cmx.eyebrowDict.Keys:
+            obj = _get_eyebrow(
+                ObjectType.EYEBROW, cmx.eyebrowDict, None, names, item_id
             )
             obj.db_insert(self.con)
 
-    def _read_outerwear(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.COSTUME)
-        for item_id in cmx.outerDict.Keys:
-            obj = _get_body(
-                ObjectType.OUTERWEAR, cmx.outerDict, cmx.outerWearIdLink, names, item_id
+    def _read_eyelashes(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.EYELASHES)
+        for item_id in cmx.eyelashDict.Keys:
+            obj = _get_eyebrow(
+                ObjectType.EYELASH, cmx.eyelashDict, None, names, item_id
             )
-            obj.db_insert(self.con)
-
-    def _read_innerwear(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.INNERWEAR)
-        for item_id in cmx.innerWearDict.Keys:
-            obj = _get_bodypaint(
-                ObjectType.INNERWEAR,
-                cmx.innerWearDict,
-                cmx.innerWearIdLink,
-                names,
-                item_id,
-            )
-            obj.db_insert(self.con)
-
-    def _read_bodypaint(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.BODYPAINT1)
-        for item_id in cmx.bodyPaintDict.Keys:
-            obj = _get_bodypaint(
-                ObjectType.BODYPAINT,
-                cmx.bodyPaintDict,
-                None,
-                names,
-                item_id,
-            )
-            obj.db_insert(self.con)
-
-    def _read_stickers(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.BODYPAINT2)
-        for item_id in cmx.stickerDict.Keys:
-            obj = _get_sticker(
-                ObjectType.STICKER, cmx.stickerDict, None, names, item_id
-            )
-            obj.db_insert(self.con)
-
-    def _read_skins(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.SKIN)
-        for item_id in cmx.ngsSkinDict.Keys:
-            obj = _get_skin(ObjectType.SKIN, cmx.ngsSkinDict, None, names, item_id)
             obj.db_insert(self.con)
 
     def _read_faces(self, cmx, text):
@@ -786,50 +780,56 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_eyes(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.EYE)
-        for item_id in cmx.eyeDict.Keys:
-            obj = _get_eye(ObjectType.EYE, cmx.eyeDict, None, names, item_id)
-            obj.db_insert(self.con)
-
-    def _read_eyebrows(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.EYEBROWS)
-        for item_id in cmx.eyebrowDict.Keys:
-            obj = _get_eyebrow(
-                ObjectType.EYEBROW, cmx.eyebrowDict, None, names, item_id
-            )
-            obj.db_insert(self.con)
-
-    def _read_eyelashes(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.EYELASHES)
-        for item_id in cmx.eyelashDict.Keys:
-            obj = _get_eyebrow(
-                ObjectType.EYELASH, cmx.eyelashDict, None, names, item_id
-            )
-            obj.db_insert(self.con)
-
     def _read_hair(self, cmx, text):
         names = _get_item_names(text, CmxCategory.HAIR)
         for item_id in cmx.hairDict.Keys:
             obj = _get_hair(ObjectType.HAIR, cmx.hairDict, None, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_ears(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.EARS)
-        for item_id in cmx.ngsEarDict.Keys:
-            obj = _get_ear(ObjectType.EAR, cmx.ngsEarDict, None, names, item_id)
+    def _read_horns(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.HORN)
+        for item_id in cmx.ngsHornDict.Keys:
+            obj = _get_horn(ObjectType.HORN, cmx.ngsHornDict, None, names, item_id)
+            obj.db_insert(self.con)
+
+    def _read_innerwear(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.INNERWEAR)
+        for item_id in cmx.innerWearDict.Keys:
+            obj = _get_bodypaint(
+                ObjectType.INNERWEAR,
+                cmx.innerWearDict,
+                cmx.innerWearIdLink,
+                names,
+                item_id,
+            )
+            obj.db_insert(self.con)
+
+    def _read_outerwear(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.COSTUME)
+        for item_id in cmx.outerDict.Keys:
+            obj = _get_body(
+                ObjectType.OUTERWEAR, cmx.outerDict, cmx.outerWearIdLink, names, item_id
+            )
+            obj.db_insert(self.con)
+
+    def _read_skins(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.SKIN)
+        for item_id in cmx.ngsSkinDict.Keys:
+            obj = _get_skin(ObjectType.SKIN, cmx.ngsSkinDict, None, names, item_id)
+            obj.db_insert(self.con)
+
+    def _read_stickers(self, cmx, text):
+        names = _get_item_names(text, CmxCategory.BODYPAINT2)
+        for item_id in cmx.stickerDict.Keys:
+            obj = _get_sticker(
+                ObjectType.STICKER, cmx.stickerDict, None, names, item_id
+            )
             obj.db_insert(self.con)
 
     def _read_teeth(self, cmx, text):
         names = _get_item_names(text, CmxCategory.TEETH)
         for item_id in cmx.ngsTeethDict.Keys:
             obj = _get_teeth(ObjectType.TEETH, cmx.ngsTeethDict, None, names, item_id)
-            obj.db_insert(self.con)
-
-    def _read_horns(self, cmx, text):
-        names = _get_item_names(text, CmxCategory.HORN)
-        for item_id in cmx.ngsHornDict.Keys:
-            obj = _get_horn(ObjectType.HORN, cmx.ngsHornDict, None, names, item_id)
             obj.db_insert(self.con)
 
 
