@@ -82,6 +82,29 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
     hair_color_1: color_property(ColorId.HAIR1, "Primary hair color")
     hair_color_2: color_property(ColorId.HAIR2, "Secondary hair color")
 
+    default_skin_t1: bpy.props.EnumProperty(
+        name="Default T1 Skin Texture",
+        items=[
+            ("100000", "Base Body T1", ""),
+            ("100040", "Base Body T1/B", ""),
+            ("100010", "Buff Body", ""),
+            ("100020", "Muscular Body", ""),
+            ("100030", "Scaly Body T1", ""),
+            ("100050", "Tiger Bodysuit T1", ""),
+        ],
+        default="100000",
+    )
+
+    default_skin_t2: bpy.props.EnumProperty(
+        name="Default T2 Skin Texture",
+        items=[
+            ("200000", "Base Body T2", ""),
+            ("200010", "Scaly Body T2", ""),
+            ("200020", "Tiger Bodysuit T2", ""),
+        ],
+        default="200000",
+    )
+
     model_search_categories: bpy.props.EnumProperty(
         name="Model Categories",
         options={"ENUM_FLAG"},
@@ -134,6 +157,9 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         layout: bpy.types.UILayout = self.layout
         layout.prop(self, "pso2_data_path")
         layout.prop(self, "debug")
+
+        layout.prop(self, "default_skin_t1")
+        layout.prop(self, "default_skin_t2")
 
         box = layout.box()
         box.label(text="Import Colors", icon="COLOR")

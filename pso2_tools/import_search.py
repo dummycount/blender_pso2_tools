@@ -1,21 +1,41 @@
 import sys
 from contextlib import closing
-from dataclasses import fields
+from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Iterable, Optional, Type
 
 import bpy
 
-from . import classes, objects
+from . import classes, import_model, objects
 from .colors import COLOR_CHANNELS, ColorId
 from .objects import ObjectType
 from .preferences import get_preferences
+
+
+@dataclass
+class ModelMetadata:
+    has_linked_inner: bool = False
+    has_linked_outer: bool = False
+    leg_length: Optional[float] = None
+
+    @classmethod
+    def from_object(cls, obj: objects.CmxObjectBase, data_path: Path):
+        result = cls()
+
+        if isinstance(obj, objects.CmxBodyObject):
+            result.leg_length = obj.leg_length
+            result.has_linked_inner = obj.linked_inner_file.exists(data_path)
+            result.has_linked_outer = obj.linked_outer_file.exists(data_path)
+
+        return result
 
 
 @classes.register
 class FloatItem(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name="Name")
     value: bpy.props.FloatProperty(name="Value")
+
+    INVALID = float("inf")
 
 
 @classes.register
@@ -126,10 +146,10 @@ class ListItem(bpy.types.PropertyGroup):
             name = field.name
             value = getattr(obj, name)
 
-            if field.type == float:
+            if field.type in (float, Optional[float]):
                 prop: FloatItem = self.float_fields.add()
                 prop.name = name
-                prop.value = value
+                prop.value = FloatItem.INVALID if value is None else value
 
             elif field.type in (int, Optional[int]):
                 prop: IntItem = self.float_fields.add()
@@ -174,7 +194,9 @@ class ListItem(bpy.types.PropertyGroup):
 
         for prop in self.float_fields:
             prop: FloatItem
-            setattr(obj, prop.name, prop.value)
+            setattr(
+                obj, prop.name, None if prop.value == FloatItem.INVALID else prop.value
+            )
 
         for prop in self.int_fields:
             prop: IntItem
@@ -279,6 +301,17 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         row.props_enum(self, "model_file")
 
         if obj := self.get_selected_object():
+            meta = ModelMetadata.from_object(obj, preferences.get_pso2_data_path())
+
+            if meta.has_linked_inner:
+                col.label(text="Has linked innerwear")
+
+            if meta.has_linked_outer:
+                col.label(text="Has linked outerwear")
+
+            if meta.leg_length:
+                col.label(text=f"Leg length: {meta.leg_length:.3f}")
+
             if colors := sorted(obj.get_colors()):
                 col.label(text="Colors", icon="COLOR")
                 for color in colors:
@@ -288,8 +321,12 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         col.operator(PSO2_OT_UpdateModelList.bl_idname, text="Update Model List")
 
     def execute(self, context):
-        # TODO
-        pass
+        if obj := self.get_selected_object():
+            high_quality = self.model_file == "HQ"
+            import_model.import_object(self, context, obj, high_quality=high_quality)
+            return {"FINISHED"}
+
+        return {"CANCELLED"}
 
     def invoke(self, context, event) -> set[str]:
         return context.window_manager.invoke_props_dialog(
