@@ -7,11 +7,22 @@ import AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary
 import bpy
 import System.Numerics
 
+from .colors import ColorMapping
+from .preferences import get_preferences
+
 Vector4 = tuple[float, float, float, float]
 
 
 def to_vec4(v: System.Numerics.Vector4) -> Vector4:
     return (float(v.X), float(v.Y), float(v.Z), float(v.W))
+
+
+@dataclass
+class UVMapping:
+    from_u_min: float = 0
+    from_u_max: float = 1
+    to_u_min: float = 0
+    to_u_max: float = 1
 
 
 @dataclass
@@ -239,8 +250,13 @@ class ModelMaterials:
 
     def create_custom_properties(self, context: bpy.types.Context):
         if self.has_skin_material:
+            preferences = get_preferences(context)
+
             context.scene.world["Hide Innerwear"] = False
-            context.scene.world["Muscularity"] = 0.5
+            context.scene.world["Muscularity"] = preferences.default_muscularity
+
+            context.scene.world.id_properties_ensure()
+            context.scene.world.id_properties_ui("Muscularity").update(min=0, max=1)
 
     def get_textures(self, material: Material):
         result = MaterialTextures()
@@ -294,7 +310,7 @@ class ModelMaterials:
             case "pl_body_base_normal.dds":
                 r.default.normal = find("rbd", "bw", "n")
             case "pl_body_base_mask.dds":
-                r.default.normal = find("rbd", "bw", "m")
+                r.default.mask = find("rbd", "bw", "m")
             case (
                 "pl_body_base_subnormal_01.dds"
                 | "pl_body_base_subnormal_02.dds"
@@ -326,7 +342,7 @@ class ModelMaterials:
             case "pl_body_outer_normal.dds":
                 r.default.normal = find("rbd", "ow", "n")
             case "pl_body_outer_mask.dds":
-                r.default.normal = find("rbd", "ow", "m")
+                r.default.mask = find("rbd", "ow", "m")
             case (
                 "pl_body_outer_subnormal_01.dds"
                 | "pl_body_outer_subnormal_02.dds"
@@ -480,3 +496,11 @@ _CLASSIC_BODY_PARTS = [
     ("tr",),
     ("lg",),
 ]
+
+
+@dataclass
+class ShaderData:
+    material: Material
+    textures: MaterialTextures
+    color_map: Optional[ColorMapping] = field(default_factory=ColorMapping)
+    uv_map: Optional[UVMapping] = None

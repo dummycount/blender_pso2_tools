@@ -82,6 +82,10 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
     hair_color_1: color_property(ColorId.HAIR1, "Primary hair color")
     hair_color_2: color_property(ColorId.HAIR2, "Secondary hair color")
 
+    default_muscularity: bpy.props.FloatProperty(
+        name="Default Muscularity", min=0, max=1, default=0.5
+    )
+
     default_skin_t1: bpy.props.EnumProperty(
         name="Default T1 Skin Texture",
         items=[
@@ -155,13 +159,18 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context: bpy.types.Context):
         layout: bpy.types.UILayout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
         layout.prop(self, "pso2_data_path")
         layout.prop(self, "debug")
 
+        layout.prop(self, "default_muscularity")
         layout.prop(self, "default_skin_t1")
         layout.prop(self, "default_skin_t2")
 
         box = layout.box()
+        box.use_property_split = False
         box.label(text="Import Colors", icon="COLOR")
         grid = box.grid_flow(columns=3)
 

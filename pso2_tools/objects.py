@@ -12,7 +12,7 @@ from AquaModelLibrary.Data.Utility import ReferenceGenerator
 from AquaModelLibrary.Helpers import HashHelpers
 
 from . import preferences
-from .colors import ColorId
+from .colors import ColorId, ColorMapping
 from .paths import get_data_path
 from .util import dict_get
 
@@ -118,12 +118,7 @@ class CmxPartType(Enum):
 
 
 @dataclass
-class CmxColorMapping:
-    red: ColorId = ColorId.UNUSED
-    green: ColorId = ColorId.UNUSED
-    blue: ColorId = ColorId.UNUSED
-    alpha: ColorId = ColorId.UNUSED
-
+class CmxColorMapping(ColorMapping):
     def __conform__(self, protocol):
         if protocol is sqlite3.PrepareProtocol:
             return f"{self.red};{self.green};{self.blue};{self.alpha}"

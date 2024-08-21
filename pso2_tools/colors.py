@@ -39,6 +39,14 @@ class ColorId(IntEnum):
 
 
 @dataclass
+class ColorMapping:
+    red: ColorId = ColorId.UNUSED
+    green: ColorId = ColorId.UNUSED
+    blue: ColorId = ColorId.UNUSED
+    alpha: ColorId = ColorId.UNUSED
+
+
+@dataclass
 class ColorChannel:
     group: str
     prop: str
