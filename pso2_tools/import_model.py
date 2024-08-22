@@ -35,7 +35,7 @@ def import_object(
 
     if isinstance(obj, objects.CmxBodyObject):
         color_map = obj.color_mapping
-        uv_map = None
+        uv_map = _get_uv_map(obj)
     else:
         color_map = None
         uv_map = None
@@ -136,6 +136,15 @@ def import_ice_files(
         if not model_materials.has_linked_inner_textures:
             model_materials.extra_textures.extend(material.find_textures("rbd", "iw"))
 
+    if model_materials.has_eye_material:
+        model_materials.extra_textures.extend(material.find_textures("rey"))
+
+    if model_materials.has_eyebrow_material:
+        model_materials.extra_textures.extend(material.find_textures("reb"))
+
+    if model_materials.has_eyelash_material:
+        model_materials.extra_textures.extend(material.find_textures("res"))
+
     if model_materials.has_classic_default_material:
         model_materials.extra_textures.extend(material.find_textures("bd", "iw"))
 
@@ -144,7 +153,7 @@ def import_ice_files(
     delete_empty_images()
 
     pprint(model_materials.materials)
-    print(model_materials.textures)
+    print(model_materials.extra_textures)
 
     for key, mat in model_materials.materials.items():
         data = material.ShaderData(
@@ -291,6 +300,18 @@ def _import_skin_textures(
     skin_textures = collect_ice_contents(ice_paths).texture_files
 
     return [import_ice_image(tex) for tex in skin_textures]
+
+
+def _get_uv_map(obj: objects.CmxBodyObject):
+    match obj.object_type:
+        case objects.ObjectType.CAST_ARMS:
+            return material.CAST_ARMS_UV_MAPPING
+        case objects.ObjectType.CAST_BODY:
+            return material.CAST_BODY_UV_MAPPING
+        case objects.ObjectType.CAST_LEGS:
+            return material.CAST_LEGS_UV_MAPPING
+        case _:
+            return None
 
 
 def build_material(

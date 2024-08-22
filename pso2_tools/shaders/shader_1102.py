@@ -43,11 +43,11 @@ class Shader1102(builder.ShaderBuilder):
         # Diffuse
         diffuse_0 = skin.add_node("ShaderNodeTexImage", (0, 18))
         diffuse_0.label = "Diffuse"
-        diffuse_0.image = self.textures.skin_0.diffuse
+        diffuse_0.image = self.textures.skin_0.diffuse or self.textures.default.diffuse
 
         diffuse_1 = skin.add_node("ShaderNodeTexImage", (6, 18))
         diffuse_1.label = "Diffuse Muscle"
-        diffuse_1.image = self.textures.skin_1.diffuse
+        diffuse_1.image = self.textures.skin_1.diffuse or self.textures.default.diffuse
 
         muscularity = skin.add_node("ShaderNodeAttribute", (12, 9))
         muscularity.label = "Muscularity"
@@ -70,11 +70,11 @@ class Shader1102(builder.ShaderBuilder):
         # Color Mask
         mask_0 = skin.add_node("ShaderNodeTexImage", (0, 12))
         mask_0.label = "Color Mask"
-        mask_0.image = self.textures.skin_0.mask
+        mask_0.image = self.textures.skin_0.mask or self.textures.default.mask
 
         mask_1 = skin.add_node("ShaderNodeTexImage", (6, 12))
         mask_1.label = "Color Mask Muscle"
-        mask_1.image = self.textures.skin_1.mask
+        mask_1.image = self.textures.skin_1.mask or self.textures.default.mask
 
         mask_mix: ShaderNodePso2MixTexture = skin.add_node(
             "ShaderNodePso2MixTexture", (18, 12)
@@ -105,11 +105,11 @@ class Shader1102(builder.ShaderBuilder):
         # Multi Map
         multi_0 = skin.add_node("ShaderNodeTexImage", (0, 6))
         multi_0.label = "Multi Map"
-        multi_0.image = self.textures.skin_0.multi
+        multi_0.image = self.textures.skin_0.multi or self.textures.default.multi
 
         multi_1 = skin.add_node("ShaderNodeTexImage", (6, 6))
         multi_1.label = "Multi Map Muscle"
-        multi_1.image = self.textures.skin_1.multi
+        multi_1.image = self.textures.skin_1.multi or self.textures.default.multi
 
         multi_mix: ShaderNodePso2MixTexture = skin.add_node(
             "ShaderNodePso2MixTexture", (18, 6)
@@ -128,11 +128,11 @@ class Shader1102(builder.ShaderBuilder):
         # Normal Map
         normal_0 = skin.add_node("ShaderNodeTexImage", (0, 0))
         normal_0.label = "Normal Map"
-        normal_0.image = self.textures.skin_0.normal
+        normal_0.image = self.textures.skin_0.normal or self.textures.default.normal
 
         normal_1 = skin.add_node("ShaderNodeTexImage", (6, 0))
         normal_1.label = "Normal Map Muscle"
-        normal_1.image = self.textures.skin_1.normal
+        normal_1.image = self.textures.skin_1.normal or self.textures.default.normal
 
         normal_mix: ShaderNodePso2MixTexture = skin.add_node(
             "ShaderNodePso2MixTexture", (18, 0)

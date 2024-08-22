@@ -25,6 +25,11 @@ class UVMapping:
     to_u_max: float = 1
 
 
+CAST_ARMS_UV_MAPPING = UVMapping(from_u_max=1 / 3, to_u_max=2 / 3)
+CAST_BODY_UV_MAPPING = UVMapping(from_u_min=1 / 3, from_u_max=2 / 3, to_u_max=2 / 3)
+CAST_LEGS_UV_MAPPING = UVMapping(from_u_min=2 / 3, to_u_max=2 / 3)
+
+
 @dataclass
 class Material:
     textures: list[str] = field(default_factory=list)
@@ -76,10 +81,6 @@ class Material:
             unknown_int_0=int(mat.unkInt0),
             unknown_int_1=int(mat.unkInt1),
         )
-
-    @property
-    def is_skin_material(self):
-        return self.shaders == ["1102p", "1102"]
 
 
 @dataclass
@@ -238,15 +239,32 @@ class ModelMaterials:
 
     @property
     def has_skin_material(self):
-        return any(m.is_skin_material for m in self.materials.values())
+        return self.has_material_shader(1102)
+
+    @property
+    def has_eye_material(self):
+        return self.has_material_shader(1104) or self.has_material_shader(1105)
+
+    @property
+    def has_eyelash_material(self):
+        return self.has_material_shader(1107)
+
+    @property
+    def has_eyebrow_material(self):
+        return self.has_material_shader(1108)
 
     @property
     def has_classic_default_material(self):
-        return any(m.shaders == ["0100p", "0100"] for m in self.materials.values())
+        return self.has_material_shader(100)
 
     @property
     def has_linked_inner_textures(self):
         return bool(find_textures("rba", images=self.textures))
+
+    def has_material_shader(self, shader_id):
+        pixel = f"{shader_id:04d}p"
+        vertex = f"{shader_id:04d}"
+        return any(m.shaders == [pixel, vertex] for m in self.materials.values())
 
     def create_custom_properties(self, context: bpy.types.Context):
         if self.has_skin_material:
@@ -304,13 +322,15 @@ class ModelMaterials:
         match name:
             # NGS basewear/cast part
             case "pl_body_base_diffuse.dds":
-                r.default.diffuse = find("rbd", "bw", "d")
+                r.default.diffuse = find_alt(_NGS_BODY_PARTS, "d")
             case "pl_body_base_multi.dds":
-                r.default.multi = find("rbd", "bw", "s")
+                r.default.multi = find_alt(_NGS_BODY_PARTS, "s")
             case "pl_body_base_normal.dds":
-                r.default.normal = find("rbd", "bw", "n")
+                r.default.normal = find_alt(_NGS_BODY_PARTS, "n")
             case "pl_body_base_mask.dds":
-                r.default.mask = find("rbd", "bw", "m")
+                r.default.mask = find("rbd", "bw", "m") or find_alt(
+                    _NGS_BODY_PARTS, "l"
+                )
             case (
                 "pl_body_base_subnormal_01.dds"
                 | "pl_body_base_subnormal_02.dds"
@@ -398,32 +418,33 @@ class ModelMaterials:
 
             # NGS eye
             case "pl_leye_diffuse.dds" | "pl_reye_diffuse.dds":
-                r.default.diffuse = find("rey", "d")
+                r.default.diffuse = find_extra("rey", "d")
+                r.default.mask = find_extra("rey", "m")
             case "pl_leye_multi.dds" | "pl_reye_multi.dds":
-                r.default.multi = find("rey", "s")
+                r.default.multi = find_extra("rey", "s")
             case "pl_leye_normal.dds" | "pl_reye_normal.dds":
-                r.default.normal = find("rey", "n")
+                r.default.normal = find_extra("rey", "n")
             case "pl_leye_env.dds" | "pl_reye_env.dds":
-                r.default.env = find("rey", "v")
+                r.default.env = find_extra("rey", "v")
 
             # Classic eye
             case "pl_eye_diffuse.dds":
-                r.default.diffuse = find("ey", "d")
-                r.default.mask = find("ey", "m")
+                r.default.diffuse = find_extra("ey", "d")
+                r.default.mask = find_extra("ey", "m")
             case "pl_eye_multi.dds":
-                r.default.multi = find("ey", "s")
+                r.default.multi = find_extra("ey", "s")
             case "pl_eye_env.dds":
-                r.default.env = find("ey", "e")  # TODO: is this correct?
+                r.default.env = find_extra("ey", "e")  # TODO: is this correct?
 
             # NGS eyelash
             case "pl_eyelash_diffuse.dds":
-                r.default.diffuse = find("res", "d")
+                r.default.diffuse = find_extra("res", "d")
             case "pl_eyelash_multi.dds":
-                r.default.multi = find("res", "s")
+                r.default.multi = find_extra("res", "s")
             case "pl_eyelash_normal.dds":
-                r.default.normal = find("res", "n")
+                r.default.normal = find_extra("res", "n")
             case "pl_eyelash_mask.dds":
-                r.default.mask = find("res", "m")
+                r.default.mask = find_extra("res", "m")
 
             # NGS eyebrow
             case "pl_eyebrow_diffuse.dds":
@@ -440,8 +461,8 @@ class ModelMaterials:
                 r.default.alpha = find("rhr", "a")
             case "pl_hair_diffuse.dds":
                 r.default.diffuse = find("rhr", "d") or find("hr", "d")
+                r.default.mask = find("rhr", "m") or find("hr", "m")
                 if not is_ngs:
-                    r.default.mask = find("hr", "m")
                     r.default.texture_k = find("hr", "k")
             case "pl_hair_multi.dds" | "pl_hair_specular.dds":
                 r.default.multi = find("rhr", "s") or find("hr", "s")
@@ -490,11 +511,22 @@ class ModelMaterials:
         return r
 
 
+_NGS_CAST_PARTS = [
+    ("rbd", "rm"),  # Cast arms
+    ("rbd", "bd"),  # Cast body
+    ("rbd", "lg"),  # Cast legs
+]
+
+_NGS_BODY_PARTS = [
+    ("rbd", "bw"),  # Basewear
+    *_NGS_CAST_PARTS,
+]
+
 _CLASSIC_BODY_PARTS = [
-    ("bd", "bw"),
-    ("rm",),
-    ("tr",),
-    ("lg",),
+    ("bd", "bw"),  # Basewear
+    ("rm",),  # Cast arms
+    ("tr",),  # Cast body
+    ("lg",),  # Cast legs
 ]
 
 
