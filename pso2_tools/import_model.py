@@ -15,7 +15,7 @@ from System.Numerics import Matrix4x4
 
 from . import ice, material, objects
 from .preferences import get_preferences
-from .shaders import shader_1100, shader_1102
+from .shaders import shader_1100, shader_1102, shader_1103
 
 
 def import_object(
@@ -33,12 +33,11 @@ def import_object(
     files = obj.get_files()
     ice_paths = [p for f in files if (p := _get_ice_path(f, data_path, high_quality))]
 
+    color_map = obj.get_color_map()
+    uv_map = None
+
     if isinstance(obj, objects.CmxBodyObject):
-        color_map = obj.color_mapping
         uv_map = _get_uv_map(obj)
-    else:
-        color_map = None
-        uv_map = None
 
     import_ice_files(
         operator,
@@ -357,6 +356,9 @@ def _get_builder(mat: bpy.types.Material, data: material.ShaderData):
 
         case ["1102p", "1102"]:
             return shader_1102.Shader1102(mat, data)
+
+        case ["1103p", "1103"]:
+            return shader_1103.Shader1103(mat, data)
 
         case _:
             return shader_1100.Shader1100(mat, data)

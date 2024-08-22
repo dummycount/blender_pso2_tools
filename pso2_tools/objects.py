@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Generator, Iterable, Optional, Type, TypeVar
 
 import bpy
+import System
 from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text
 from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
 from AquaModelLibrary.Data.Utility import ReferenceGenerator
@@ -124,13 +125,6 @@ class CmxColorMapping(ColorMapping):
             return f"{self.red};{self.green};{self.blue};{self.alpha}"
         raise NotImplementedError()
 
-    def get_colors(self) -> set[ColorId]:
-        return {
-            c
-            for c in (self.red, self.green, self.blue, self.alpha)
-            if c != ColorId.UNUSED
-        }
-
     @classmethod
     def from_body_obj(cls, obj):
         return cls(
@@ -139,6 +133,24 @@ class CmxColorMapping(ColorMapping):
             blue=ColorId(int(obj.blueIndex)),
             alpha=ColorId(int(obj.alphaIndex)),
         )
+
+    @classmethod
+    def from_hair_obj(cls, hair):
+        red, green = split_int32(hair.unkInt16)
+        blue, alpha = split_int32(hair.unkInt17)
+        return cls(
+            red=ColorId(red),
+            green=ColorId(green),
+            blue=ColorId(blue),
+            alpha=ColorId(alpha),
+        )
+
+
+def split_int32(value: System.Int32):
+    uvalue = System.UInt32(value)
+    lo = int(uvalue) & 0x0000FFFF
+    hi = int(uvalue) >> 16
+    return lo, hi
 
 
 def convert_color_map(data: bytes):
@@ -225,6 +237,8 @@ def _db_type(cls: Type):
     if cls == int:
         return "INTEGER NOT NULL"
 
+    if cls == Optional[float]:
+        return "REAL"
     if cls == float:
         return "REAL NOT NULL"
 
@@ -278,7 +292,10 @@ class CmxObjectBase:
         )
 
     def get_colors(self) -> set[ColorId]:
-        return set()
+        return self.get_color_map().get_used_colors()
+
+    def get_color_map(self) -> ColorMapping:
+        return ColorMapping()
 
     def get_files(self) -> list[CmxFileName]:
         return [f for f in self._get_files() if f]
@@ -428,8 +445,11 @@ class CmxBodyObject(CmxObjectBase):
         # TODO: currently just assuming every body part uses skin colors.
         # Is there a way to check without inspecting the .aqp file's materials?
         colors = {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
-        colors |= self.color_mapping.get_colors()
+        colors |= self.color_mapping.get_used_colors()
         return colors
+
+    def get_color_map(self) -> ColorMapping:
+        return self.color_mapping
 
     def _get_files(self) -> Iterable[CmxFileName]:
         # Ignoring sound files, as those aren't needed for import.
@@ -448,8 +468,8 @@ class CmxFaceObject(CmxObjectWithFile):
     tex_5: str = ""
     tex_6: str = ""
 
-    def get_colors(self) -> set[ColorId]:
-        return {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
+    def get_color_map(self) -> ColorMapping:
+        return ColorMapping(red=ColorId.MAIN_SKIN, green=ColorId.SUB_SKIN)
 
     def _get_textures(self) -> Iterable[str]:
         return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5, self.tex_6]
@@ -488,10 +508,10 @@ class CmxEyebrowObject(CmxObjectWithFile):
     tex_3: str = ""
     tex_4: str = ""
 
-    def get_colors(self) -> set[ColorId]:
+    def get_color_map(self) -> ColorMapping:
         if self.object_type == ObjectType.EYEBROW:
-            return {ColorId.EYEBROW}
-        return {ColorId.EYELASH}
+            return ColorMapping(red=ColorId.EYEBROW)
+        return ColorMapping(red=ColorId.EYELASH)
 
     def _get_textures(self) -> Iterable[str]:
         return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
@@ -507,8 +527,10 @@ class CmxHairObject(CmxObjectWithFile):
     tex_6: str = ""
     tex_7: str = ""
 
-    def get_colors(self) -> set[ColorId]:
-        return {ColorId.HAIR1, ColorId.HAIR2}
+    color_mapping: CmxColorMapping = field(default_factory=CmxColorMapping)
+
+    def get_color_map(self) -> ColorMapping:
+        return self.color_mapping
 
     def _get_textures(self) -> Iterable[str]:
         return [
@@ -554,6 +576,8 @@ class CmxHornObject(CmxObjectWithFile):
 
 
 class ObjectDatabase:
+    CURRENT_VERSION = 2
+
     def __init__(self, context: bpy.types.Context):
         self.context = context
         self.con = self._open_db()
@@ -703,34 +727,47 @@ class ObjectDatabase:
 
         with con:
             version = con.execute("PRAGMA user_version").fetchone()[0]
+            if version == ObjectDatabase.CURRENT_VERSION:
+                return con
 
-            if version < 1:
+            if version != 0:
+                print("Database version changed. Resetting.")
                 con.executescript(
-                    f"""
-                    {CmxAccessory.db_schema(ObjectType.ACCESSORY)}
-                    {CmxBodyObject.db_schema(ObjectType.BASEWEAR)}
-                    {CmxBodyPaint.db_schema(ObjectType.BODYPAINT)}
-                    {CmxBodyObject.db_schema(ObjectType.CAST_BODY)}
-                    {CmxBodyObject.db_schema(ObjectType.CAST_ARMS)}
-                    {CmxBodyObject.db_schema(ObjectType.CAST_LEGS)}
-                    {CmxBodyObject.db_schema(ObjectType.COSTUME)}
-                    {CmxEarObject.db_schema(ObjectType.EAR)}
-                    {CmxEyeObject.db_schema(ObjectType.EYE)}
-                    {CmxEyebrowObject.db_schema(ObjectType.EYEBROW)}
-                    {CmxEyebrowObject.db_schema(ObjectType.EYELASH)}
-                    {CmxFaceObject.db_schema(ObjectType.FACE)}
-                    {CmxFacePaint.db_schema(ObjectType.FACE_TEXTURE)}
-                    {CmxFacePaint.db_schema(ObjectType.FACEPAINT)}
-                    {CmxHairObject.db_schema(ObjectType.HAIR)}
-                    {CmxHornObject.db_schema(ObjectType.HORN)}
-                    {CmxBodyPaint.db_schema(ObjectType.INNERWEAR)}
-                    {CmxBodyObject.db_schema(ObjectType.OUTERWEAR)}
-                    {CmxSkinObject.db_schema(ObjectType.SKIN)}
-                    {CmxSticker.db_schema(ObjectType.STICKER)}
-                    {CmxTeethObject.db_schema(ObjectType.TEETH)}
+                    """
+                    PRAGMA writable_schema = 1;
+                    DELETE FROM sqlite_master where type in ('table', 'index', 'trigger');
+                    PRAGMA writable_schema = 0;
+                    VACUUM;
+                    PRAGMA INTEGRITY_CHECK;
                     """
                 )
-                con.execute("PRAGMA user_version=1")
+
+            con.executescript(
+                f"""
+                {CmxAccessory.db_schema(ObjectType.ACCESSORY)}
+                {CmxBodyObject.db_schema(ObjectType.BASEWEAR)}
+                {CmxBodyPaint.db_schema(ObjectType.BODYPAINT)}
+                {CmxBodyObject.db_schema(ObjectType.CAST_BODY)}
+                {CmxBodyObject.db_schema(ObjectType.CAST_ARMS)}
+                {CmxBodyObject.db_schema(ObjectType.CAST_LEGS)}
+                {CmxBodyObject.db_schema(ObjectType.COSTUME)}
+                {CmxEarObject.db_schema(ObjectType.EAR)}
+                {CmxEyeObject.db_schema(ObjectType.EYE)}
+                {CmxEyebrowObject.db_schema(ObjectType.EYEBROW)}
+                {CmxEyebrowObject.db_schema(ObjectType.EYELASH)}
+                {CmxFaceObject.db_schema(ObjectType.FACE)}
+                {CmxFacePaint.db_schema(ObjectType.FACE_TEXTURE)}
+                {CmxFacePaint.db_schema(ObjectType.FACEPAINT)}
+                {CmxHairObject.db_schema(ObjectType.HAIR)}
+                {CmxHornObject.db_schema(ObjectType.HORN)}
+                {CmxBodyPaint.db_schema(ObjectType.INNERWEAR)}
+                {CmxBodyObject.db_schema(ObjectType.OUTERWEAR)}
+                {CmxSkinObject.db_schema(ObjectType.SKIN)}
+                {CmxSticker.db_schema(ObjectType.STICKER)}
+                {CmxTeethObject.db_schema(ObjectType.TEETH)}
+                """
+            )
+            con.execute(f"PRAGMA user_version={ObjectDatabase.CURRENT_VERSION}")
 
         return con
 
@@ -1244,6 +1281,9 @@ def _get_hair(
         data.tex_5 = item.texString5 or ""
         data.tex_6 = item.texString6 or ""
         data.tex_7 = item.texString7 or ""
+
+        if data.is_ngs:
+            data.color_mapping = CmxColorMapping.from_hair_obj(item.hair)
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"

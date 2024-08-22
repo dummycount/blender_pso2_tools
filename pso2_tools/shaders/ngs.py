@@ -5,7 +5,6 @@ from . import builder
 
 
 class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
-
     def init(self, context):
         if tree := bpy.data.node_groups.get(self.name, None):
             self.node_tree = tree

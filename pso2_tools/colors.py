@@ -45,6 +45,13 @@ class ColorMapping:
     blue: ColorId = ColorId.UNUSED
     alpha: ColorId = ColorId.UNUSED
 
+    def get_used_colors(self) -> set[ColorId]:
+        return {
+            c
+            for c in (self.red, self.green, self.blue, self.alpha)
+            if c != ColorId.UNUSED
+        }
+
 
 @dataclass
 class ColorChannel:
