@@ -1,4 +1,5 @@
 import sys
+import time
 from contextlib import closing
 from dataclasses import dataclass, fields
 from pathlib import Path
@@ -356,12 +357,17 @@ def _get_file_items(items: Iterable[FileNameItem], data_path: Path):
 
 
 def _populate_model_list(collection, context: bpy.types.Context):
+    start = time.monotonic()
+
     collection.clear()
 
     with closing(objects.ObjectDatabase(context)) as db:
         for obj in db.get_all():
             item: ListItem = collection.add()
             item.populate(obj)
+
+    end = time.monotonic()
+    print(f"PSO2 items loaded in {end - start:0.1f}s")
 
 
 @classes.register

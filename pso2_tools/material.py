@@ -482,6 +482,7 @@ class ModelMaterials:
             # NGS ears
             case "pl_ears_diffuse.dds":
                 r.default.diffuse = find("rea", "d")
+                r.default.mask = find("rea", "m")
             case "pl_ears_multi.dds":
                 r.default.multi = find("rea", "s")
             case "pl_ears_normal.dds":

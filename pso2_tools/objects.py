@@ -135,9 +135,18 @@ class CmxColorMapping(ColorMapping):
         )
 
     @classmethod
-    def from_hair_obj(cls, hair):
-        red, green = split_int32(hair.unkInt16)
-        blue, alpha = split_int32(hair.unkInt17)
+    def from_ear_obj(cls, obj):
+        return cls(
+            red=ColorId(int(obj.ngsEar.unkInt1)),
+            green=ColorId(int(obj.ngsEar.unkInt2)),
+            blue=ColorId(int(obj.ngsEar.unkInt3)),
+            alpha=ColorId(int(obj.ngsEar.unkInt4)),
+        )
+
+    @classmethod
+    def from_hair_obj(cls, obj):
+        red, green = split_int32(obj.hair.unkInt16)
+        blue, alpha = split_int32(obj.hair.unkInt17)
         return cls(
             red=ColorId(red),
             green=ColorId(green),
@@ -347,73 +356,77 @@ class CmxObjectWithFile(CmxObjectBase):
 
 @dataclass
 class CmxAccessory(CmxObjectWithFile):
-    node_attach_1: str = ""
-    node_attach_2: str = ""
-    node_attach_3: str = ""
-    node_attach_4: str = ""
-    node_attach_5: str = ""
-    node_attach_6: str = ""
-    node_attach_7: str = ""
-    node_attach_8: str = ""
-    node_attach_9: str = ""
-    node_attach_10: str = ""
-    node_attach_11: str = ""
-    node_attach_12: str = ""
-    node_attach_13: str = ""
-    node_attach_14: str = ""
-    node_attach_15: str = ""
-    node_attach_16: str = ""
-    node_attach_17: str = ""
-    node_attach_18: str = ""
-    effect_name: str = ""
+    pass
+    # node_attach_1: str = ""
+    # node_attach_2: str = ""
+    # node_attach_3: str = ""
+    # node_attach_4: str = ""
+    # node_attach_5: str = ""
+    # node_attach_6: str = ""
+    # node_attach_7: str = ""
+    # node_attach_8: str = ""
+    # node_attach_9: str = ""
+    # node_attach_10: str = ""
+    # node_attach_11: str = ""
+    # node_attach_12: str = ""
+    # node_attach_13: str = ""
+    # node_attach_14: str = ""
+    # node_attach_15: str = ""
+    # node_attach_16: str = ""
+    # node_attach_17: str = ""
+    # node_attach_18: str = ""
+    # effect_name: str = ""
 
 
 @dataclass
 class CmxBodyPaint(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
+    pass
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5]
 
 
 @dataclass
 class CmxSticker(CmxObjectWithFile):
-    tex: str = ""
+    pass
+    # tex: str = ""
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex]
 
 
 @dataclass
 class CmxSkinObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
-    tex_6: str = ""
-    tex_7: str = ""
-    tex_8: str = ""
-    tex_9: str = ""
-    tex_10: str = ""
+    pass
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
+    # tex_6: str = ""
+    # tex_7: str = ""
+    # tex_8: str = ""
+    # tex_9: str = ""
+    # tex_10: str = ""
 
-    def _get_textures(self) -> Iterable[str]:
-        return [
-            self.tex_1,
-            self.tex_2,
-            self.tex_3,
-            self.tex_4,
-            self.tex_5,
-            self.tex_6,
-            self.tex_7,
-            self.tex_8,
-            self.tex_9,
-            self.tex_10,
-        ]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [
+    #         self.tex_1,
+    #         self.tex_2,
+    #         self.tex_3,
+    #         self.tex_4,
+    #         self.tex_5,
+    #         self.tex_6,
+    #         self.tex_7,
+    #         self.tex_8,
+    #         self.tex_9,
+    #         self.tex_10,
+    #     ]
 
 
 @dataclass
@@ -432,12 +445,12 @@ class CmxBodyObject(CmxObjectBase):
     sound_file: CmxFileName = field(default_factory=CmxFileName)
     cast_sound_file: CmxFileName = field(default_factory=CmxFileName)
 
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
-    tex_6: str = ""
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
+    # tex_6: str = ""
     leg_length: Optional[float] = None
     color_mapping: CmxColorMapping = field(default_factory=CmxColorMapping)
 
@@ -455,119 +468,123 @@ class CmxBodyObject(CmxObjectBase):
         # Ignoring sound files, as those aren't needed for import.
         return [self.file, self.linked_inner_file, self.linked_outer_file]
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5, self.tex_6]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5, self.tex_6]
 
 
 @dataclass
 class CmxFaceObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
-    tex_6: str = ""
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
+    # tex_6: str = ""
 
     def get_color_map(self) -> ColorMapping:
         return ColorMapping(red=ColorId.MAIN_SKIN, green=ColorId.SUB_SKIN)
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5, self.tex_6]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5, self.tex_6]
 
 
 @dataclass
 class CmxFacePaint(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
+    pass
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
 
 
 @dataclass
 class CmxEyeObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
 
     def get_colors(self) -> set[ColorId]:
         return {ColorId.LEFT_EYE, ColorId.RIGHT_EYE}
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5]
 
 
 @dataclass
 class CmxEyebrowObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
 
     def get_color_map(self) -> ColorMapping:
         if self.object_type == ObjectType.EYEBROW:
             return ColorMapping(red=ColorId.EYEBROW)
         return ColorMapping(red=ColorId.EYELASH)
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
 
 
 @dataclass
 class CmxHairObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
-    tex_6: str = ""
-    tex_7: str = ""
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
+    # tex_6: str = ""
+    # tex_7: str = ""
 
     color_mapping: CmxColorMapping = field(default_factory=CmxColorMapping)
 
     def get_color_map(self) -> ColorMapping:
         return self.color_mapping
 
-    def _get_textures(self) -> Iterable[str]:
-        return [
-            self.tex_1,
-            self.tex_2,
-            self.tex_3,
-            self.tex_4,
-            self.tex_5,
-            self.tex_6,
-            self.tex_7,
-        ]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [
+    #         self.tex_1,
+    #         self.tex_2,
+    #         self.tex_3,
+    #         self.tex_4,
+    #         self.tex_5,
+    #         self.tex_6,
+    #         self.tex_7,
+    #     ]
 
 
 @dataclass
 class CmxEarObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
-    tex_5: str = ""
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
+    # tex_5: str = ""
 
-    def get_colors(self) -> set[ColorId]:
-        return {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
+    color_mapping: CmxColorMapping = field(default_factory=CmxColorMapping)
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5]
+    def get_color_map(self) -> ColorMapping:
+        return self.color_mapping
+
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4, self.tex_5]
 
 
 @dataclass
 class CmxTeethObject(CmxObjectWithFile):
-    tex_1: str = ""
-    tex_2: str = ""
-    tex_3: str = ""
-    tex_4: str = ""
+    pass
+    # tex_1: str = ""
+    # tex_2: str = ""
+    # tex_3: str = ""
+    # tex_4: str = ""
 
-    def _get_textures(self) -> Iterable[str]:
-        return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
+    # def _get_textures(self) -> Iterable[str]:
+    #     return [self.tex_1, self.tex_2, self.tex_3, self.tex_4]
 
 
 @dataclass
@@ -576,7 +593,7 @@ class CmxHornObject(CmxObjectWithFile):
 
 
 class ObjectDatabase:
-    CURRENT_VERSION = 2
+    VERSION = 3
 
     def __init__(self, context: bpy.types.Context):
         self.context = context
@@ -727,7 +744,7 @@ class ObjectDatabase:
 
         with con:
             version = con.execute("PRAGMA user_version").fetchone()[0]
-            if version == ObjectDatabase.CURRENT_VERSION:
+            if version == ObjectDatabase.VERSION:
                 return con
 
             if version != 0:
@@ -767,7 +784,7 @@ class ObjectDatabase:
                 {CmxTeethObject.db_schema(ObjectType.TEETH)}
                 """
             )
-            con.execute(f"PRAGMA user_version={ObjectDatabase.CURRENT_VERSION}")
+            con.execute(f"PRAGMA user_version={ObjectDatabase.VERSION}")
 
         return con
 
@@ -1074,12 +1091,12 @@ def _get_body(
         data.linked_inner_id = _optional_number(item.body2.linkedInnerId)
         data.linked_outer_id = _optional_number(item.body2.int_3C)
 
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
-        data.tex_6 = item.texString6 or ""
+        # data.tex_1 = item.texString1 or ""
+        # data.tex_2 = item.texString2 or ""
+        # data.tex_3 = item.texString3 or ""
+        # data.tex_4 = item.texString4 or ""
+        # data.tex_5 = item.texString5 or ""
+        # data.tex_6 = item.texString6 or ""
         data.leg_length = _optional_number(item.body2.legLength)
         data.color_mapping = CmxColorMapping.from_body_obj(item.bodyMaskColorMapping)
 
@@ -1110,12 +1127,12 @@ def _get_bodypaint(
     tag = _get_file_tag(object_type)
     data = CmxBodyPaint(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
+    #     data.tex_5 = item.texString5 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1133,8 +1150,8 @@ def _get_sticker(
     tag = _get_file_tag(object_type)
     data = CmxSticker(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
-    if item := dict_get(object_dict, item_id):
-        data.tex = item.texString or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex = item.texString or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1152,17 +1169,17 @@ def _get_skin(
     tag = _get_file_tag(object_type)
     data = CmxSkinObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
-        data.tex_6 = item.texString6 or ""
-        data.tex_7 = item.texString7 or ""
-        data.tex_8 = item.texString8 or ""
-        data.tex_9 = item.texString9 or ""
-        data.tex_10 = item.texString10 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
+    #     data.tex_5 = item.texString5 or ""
+    #     data.tex_6 = item.texString6 or ""
+    #     data.tex_7 = item.texString7 or ""
+    #     data.tex_8 = item.texString8 or ""
+    #     data.tex_9 = item.texString9 or ""
+    #     data.tex_10 = item.texString10 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1180,13 +1197,13 @@ def _get_face(
     tag = _get_file_tag(object_type)
     data = CmxFaceObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
-        data.tex_6 = item.texString6 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
+    #     data.tex_5 = item.texString5 or ""
+    #     data.tex_6 = item.texString6 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1204,11 +1221,11 @@ def _get_facepaint(
     tag = _get_file_tag(object_type)
     data = CmxFacePaint(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1226,12 +1243,12 @@ def _get_eye(
     tag = _get_file_tag(object_type)
     data = CmxEyeObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
+    #     data.tex_5 = item.texString5 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1251,11 +1268,11 @@ def _get_eyebrow(
         **_common_props(object_type, item_id, name_dict, link_id_dict)
     )
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1274,16 +1291,16 @@ def _get_hair(
     data = CmxHairObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
-        data.tex_6 = item.texString6 or ""
-        data.tex_7 = item.texString7 or ""
+        # data.tex_1 = item.texString1 or ""
+        # data.tex_2 = item.texString2 or ""
+        # data.tex_3 = item.texString3 or ""
+        # data.tex_4 = item.texString4 or ""
+        # data.tex_5 = item.texString5 or ""
+        # data.tex_6 = item.texString6 or ""
+        # data.tex_7 = item.texString7 or ""
 
         if data.is_ngs:
-            data.color_mapping = CmxColorMapping.from_hair_obj(item.hair)
+            data.color_mapping = CmxColorMapping.from_hair_obj(item)
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1307,6 +1324,8 @@ def _get_ear(
         data.tex_3 = item.texString3 or ""
         data.tex_4 = item.texString4 or ""
         data.tex_5 = item.texString5 or ""
+
+        data.color_mapping = CmxColorMapping.from_ear_obj(item)
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
