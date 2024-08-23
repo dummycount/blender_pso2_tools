@@ -79,6 +79,21 @@ class ColorMapItem(bpy.types.PropertyGroup):
         )
 
 
+_GENDERED_OBJECT_TYPES = [
+    str(ObjectType.BASEWEAR),
+    str(ObjectType.BODYPAINT),
+    str(ObjectType.CAST_ARMS),
+    str(ObjectType.CAST_BODY),
+    str(ObjectType.CAST_LEGS),
+    str(ObjectType.COSTUME),
+    str(ObjectType.FACE),
+    str(ObjectType.FACE_TEXTURE),
+    str(ObjectType.INNERWEAR),
+    str(ObjectType.OUTERWEAR),
+    str(ObjectType.SKIN),
+]
+
+
 @classes.register
 class ListItem(bpy.types.PropertyGroup):
     object_type: bpy.props.EnumProperty(
@@ -107,7 +122,6 @@ class ListItem(bpy.types.PropertyGroup):
             (str(ObjectType.TEETH), "Teeth", "Teeth"),
         ],
     )
-    name: bpy.props.StringProperty(name="Name")
     name_en: bpy.props.StringProperty(name="English Name")
     name_jp: bpy.props.StringProperty(name="Japanese Name")
     object_id: bpy.props.IntProperty(name="ID")
@@ -120,14 +134,14 @@ class ListItem(bpy.types.PropertyGroup):
     color_map_fields: bpy.props.CollectionProperty(type=ColorMapItem)
 
     @property
-    def is_ngs(self):
-        return objects.is_ngs(self.object_id)
+    def item_name(self) -> str:
+        return self.name_en or self.name_jp or f"Unnamed {self.object_id}"
 
     @property
     def description(self):
         enum_items = self.bl_rna.properties["object_type"].enum_items
         desc = enum_items.get(self.object_type).description
-        if self.is_ngs:
+        if _is_ngs(self):
             desc += " (NGS)"
 
         return desc
@@ -136,7 +150,6 @@ class ListItem(bpy.types.PropertyGroup):
         self.object_type = str(obj.object_type)
         self.object_id = obj.id
         self.adjusted_id = obj.adjusted_id
-        self.name = obj.name
         self.name_en = obj.name_en
         self.name_jp = obj.name_jp
 
@@ -386,6 +399,30 @@ class PSO2_OT_UpdateModelList(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def _false(item):
+    return False
+
+
+def _is_ngs(item: ListItem):
+    return objects.is_ngs(item.object_id)
+
+
+def _is_classic(item: ListItem):
+    return not objects.is_ngs(item.object_id)
+
+
+def _is_t1(item: ListItem):
+    return objects.is_t1(item.object_id)
+
+
+def _is_t2(item: ListItem):
+    return objects.is_t2(item.object_id)
+
+
+def _is_genderless(item: ListItem):
+    return objects.is_genderless(item.object_id)
+
+
 @classes.register
 class PSO2_UL_ModelList(bpy.types.UIList):
     """PSO2 model list"""
@@ -398,23 +435,53 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         preferences = get_preferences(context)
         items: Iterable[ListItem] = getattr(data, prop)
 
-        if not items:
-            return [], []
-
         if self.filter_name:
             flt_flags = bpy.types.UI_UL_list.filter_items_by_name(
-                self.filter_name, self.bitflag_filter_item, items, propname="name"
+                self.filter_name, self.bitflag_filter_item, items, propname="item_name"
             )
         else:
             flt_flags = [self.bitflag_filter_item] * len(items)
 
+        def hide_item(idx):
+            flt_flags[idx] &= ~self.bitflag_filter_item
+
         if preferences.model_search_versions:
-            show_ngs = "NGS" in preferences.model_search_versions
-            show_cls = "CLASSIC" in preferences.model_search_versions
+            should_hide_ngs = (
+                _is_ngs if "NGS" not in preferences.model_search_versions else _false
+            )
+            should_hide_classic = (
+                _is_classic
+                if "CLASSIC" not in preferences.model_search_versions
+                else _false
+            )
 
             for idx, item in enumerate(items):
-                if (not show_ngs and item.is_ngs) or (not show_cls and not item.is_ngs):
-                    flt_flags[idx] &= ~self.bitflag_filter_item
+                if should_hide_ngs(item) or should_hide_classic(item):
+                    hide_item(idx)
+
+        if preferences.model_search_body_types:
+            should_hide_t1 = (
+                _is_t1 if "T1" not in preferences.model_search_body_types else _false
+            )
+            should_hide_t2 = (
+                _is_t2 if "T2" not in preferences.model_search_body_types else _false
+            )
+            should_hide_genderless = (
+                _is_genderless
+                if "NONE" not in preferences.model_search_body_types
+                else _false
+            )
+
+            for idx, item in enumerate(items):
+                if item.object_type not in _GENDERED_OBJECT_TYPES:
+                    continue
+
+                if (
+                    should_hide_t1(item)
+                    or should_hide_t2(item)
+                    or should_hide_genderless(item)
+                ):
+                    hide_item(idx)
 
         if preferences.model_search_categories:
             show_types = {
@@ -424,9 +491,13 @@ class PSO2_UL_ModelList(bpy.types.UIList):
             }
             for idx, item in enumerate(items):
                 if str(item.object_type) not in show_types:
-                    flt_flags[idx] &= ~self.bitflag_filter_item
+                    hide_item(idx)
 
-        flt_neworder = bpy.types.UI_UL_list.sort_items_by_name(items, "name")
+        if preferences.model_search_sort_alpha:
+            flt_neworder = bpy.types.UI_UL_list.sort_items_by_name(items, "item_name")
+        else:
+            _sort = [(idx, item.object_id) for idx, item in enumerate(items)]
+            flt_neworder = bpy.types.UI_UL_list.sort_items_helper(_sort, lambda e: e[1])
 
         return flt_flags, flt_neworder
 
@@ -436,13 +507,17 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         row = layout.row(align=True)
         row.activate_init = True
         row.prop(self, "filter_name", text="", icon="VIEWZOOM")
+        row.prop(preferences, "model_search_sort_alpha", text="", icon="SORTALPHA")
 
         row = layout.row(align=True)
         row.label(text="Filters")
 
-        flow = layout.column_flow(columns=2)
+        flow = layout.column_flow(columns=3)
         subrow = flow.row(align=True)
         subrow.prop(preferences, "model_search_versions", expand=True)
+
+        subrow = flow.row(align=True)
+        subrow.prop(preferences, "model_search_body_types", expand=True)
         flow.operator(PSO2_OT_SelectAllCategories.bl_idname)
 
         flow = layout.grid_flow(columns=4, align=True)
@@ -465,11 +540,12 @@ class PSO2_UL_ModelList(bpy.types.UIList):
 
         if self.layout_type in {"DEFAULT", "COMPACT"}:
             icon = _get_icon(ObjectType(item.object_type))
-            layout.label(text=item.name, icon=icon)
-            layout.label(text=item.description)
 
-            if get_preferences(context).debug:
-                layout.label(text=str(item.object_id))
+            row = layout.split(factor=0.5)
+
+            row.label(text=item.item_name, icon=icon)
+            row.label(text=item.description)
+            row.label(text=str(item.object_id))
 
         elif self.layout_type == "GRID":
             pass
@@ -521,6 +597,10 @@ class PSO2_OT_SelectAllCategories(bpy.types.Operator):
 
         preferences.model_search_categories = _get_all_enum_items(
             preferences, "model_search_categories"
+        )
+
+        preferences.model_search_body_types = _get_all_enum_items(
+            preferences, "model_search_body_types"
         )
 
         return {"FINISHED"}

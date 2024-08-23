@@ -1,7 +1,7 @@
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass, field, fields
-from enum import Enum, StrEnum, auto
+from enum import StrEnum
 from pathlib import Path
 from typing import Generator, Iterable, Optional, Type, TypeVar
 
@@ -19,10 +19,6 @@ from .util import dict_get
 
 T = TypeVar("T")
 NameDict = dict[int, list[str]]
-
-
-def is_ngs(object_id: int):
-    return object_id >= 100000
 
 
 class ObjectType(StrEnum):
@@ -78,44 +74,49 @@ class CmxCategory(StrEnum):
     ACCESSORY = "decoy"
 
 
-class CmxPartType(Enum):
-    UNKNOWN = auto()
-    CLASSIC_GENDERLESS = auto()
-    CLASSIC_MALE = auto()
-    CLASSIC_FEMALE = auto()
-    CLASSIC_CAST = auto()
-    CLASSIC_CASEAL = auto()
-    NGS_MALE = auto()
-    NGS_FEMALE = auto()
-    NGS_CAST = auto()
-    NGS_CASEAL = auto()
-    NGS_GENDERLESS = auto()
+CLASSIC_START = 0
+CLASSIC_GENDERLESS_START = 0
+CLASSIC_MALE_START = 20000
+CLASSIC_FEMALE_START = 30000
+CLASSIC_CAST_START = 40000
+CLASSIC_CASEAL_START = 50000
+CLASSIC_UNKNOWN_START = 60000
+NGS_START = 100000
+NGS_T1_START = 100000
+NGS_T2_START = 200000
+NGS_CAST_START = 300000
+NGS_CASEAL_START = 400000
+NGS_GENDERLESS_START = 500000
+NGS_UNKNOWN_START = 600000
 
-    @staticmethod
-    def from_id(part_id: int):
-        if part_id < 20000:
-            return CmxPartType.CLASSIC_GENDERLESS
-        if part_id < 30000:
-            return CmxPartType.CLASSIC_MALE
-        if part_id < 40000:
-            return CmxPartType.CLASSIC_FEMALE
-        if part_id < 50000:
-            return CmxPartType.CLASSIC_CAST
-        if part_id < 60000:
-            return CmxPartType.CLASSIC_CASEAL
-        if part_id < 100000:
-            return CmxPartType.UNKNOWN
-        if part_id < 200000:
-            return CmxPartType.NGS_MALE
-        if part_id < 300000:
-            return CmxPartType.NGS_FEMALE
-        if part_id < 400000:
-            return CmxPartType.NGS_CAST
-        if part_id < 500000:
-            return CmxPartType.NGS_CASEAL
-        if part_id < 600000:
-            return CmxPartType.NGS_GENDERLESS
-        return CmxPartType.UNKNOWN
+
+def is_ngs(object_id: int):
+    return object_id >= NGS_START
+
+
+def is_t1(object_id: int):
+    return (
+        CLASSIC_MALE_START <= object_id < CLASSIC_FEMALE_START
+        or CLASSIC_CAST_START <= object_id < CLASSIC_CASEAL_START
+        or NGS_T1_START <= object_id < NGS_T2_START
+        or NGS_CAST_START <= object_id < NGS_CASEAL_START
+    )
+
+
+def is_t2(object_id: int):
+    return (
+        CLASSIC_FEMALE_START <= object_id < CLASSIC_CAST_START
+        or CLASSIC_CASEAL_START <= object_id < CLASSIC_UNKNOWN_START
+        or NGS_T2_START <= object_id < NGS_CAST_START
+        or NGS_CASEAL_START <= object_id < NGS_GENDERLESS_START
+    )
+
+
+def is_genderless(object_id: int):
+    return (
+        CLASSIC_GENDERLESS_START <= object_id < CLASSIC_MALE_START
+        or NGS_GENDERLESS_START <= object_id < NGS_UNKNOWN_START
+    )
 
 
 @dataclass
@@ -268,15 +269,11 @@ class CmxObjectBase:
     name_en: str = ""
     name_jp: str = ""
 
-    _NO_COLUMN = "object_type"
+    _NO_COLUMN = ["object_type"]
 
     @property
     def name(self):
         return self.name_en or self.name_jp or f"Unnamed {self.id}"
-
-    @property
-    def type(self):
-        return CmxPartType.from_id(self.id)
 
     @property
     def is_ngs(self):
@@ -284,21 +281,15 @@ class CmxObjectBase:
 
     @property
     def is_t1(self):
-        return self.type in (
-            CmxPartType.CLASSIC_CAST,
-            CmxPartType.CLASSIC_MALE,
-            CmxPartType.NGS_CAST,
-            CmxPartType.NGS_MALE,
-        )
+        return is_t1(self.id)
 
     @property
     def is_t2(self):
-        return self.type in (
-            CmxPartType.CLASSIC_CASEAL,
-            CmxPartType.CLASSIC_FEMALE,
-            CmxPartType.NGS_CASEAL,
-            CmxPartType.NGS_FEMALE,
-        )
+        return is_t2(self.id)
+
+    @property
+    def is_genderless(self):
+        return is_genderless(self.id)
 
     def get_colors(self) -> set[ColorId]:
         return self.get_color_map().get_used_colors()
@@ -616,6 +607,7 @@ class ObjectDatabase:
         yield from self.get_skins()
         yield from self.get_faces()
         yield from self.get_face_textures()
+        yield from self.get_facepaint()
         yield from self.get_eyes()
         yield from self.get_eyebrows()
         yield from self.get_eyelashes()
@@ -1319,11 +1311,11 @@ def _get_ear(
     data = CmxEarObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
 
     if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
-        data.tex_5 = item.texString5 or ""
+        # data.tex_1 = item.texString1 or ""
+        # data.tex_2 = item.texString2 or ""
+        # data.tex_3 = item.texString3 or ""
+        # data.tex_4 = item.texString4 or ""
+        # data.tex_5 = item.texString5 or ""
 
         data.color_mapping = CmxColorMapping.from_ear_obj(item)
 
@@ -1345,11 +1337,11 @@ def _get_teeth(
         **_common_props(object_type, item_id, name_dict, link_id_dict)
     )
 
-    if item := dict_get(object_dict, item_id):
-        data.tex_1 = item.texString1 or ""
-        data.tex_2 = item.texString2 or ""
-        data.tex_3 = item.texString3 or ""
-        data.tex_4 = item.texString4 or ""
+    # if item := dict_get(object_dict, item_id):
+    #     data.tex_1 = item.texString1 or ""
+    #     data.tex_2 = item.texString2 or ""
+    #     data.tex_3 = item.texString3 or ""
+    #     data.tex_4 = item.texString4 or ""
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"

@@ -109,36 +109,44 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         default="200000",
     )
 
+    model_search_sort_alpha: bpy.props.BoolProperty(
+        name="Sort alphabetical", default=True
+    )
+
     model_search_categories: bpy.props.EnumProperty(
         name="Model Categories",
         options={"ENUM_FLAG"},
         items=[
-            # Strings must match ObjectType enum
-            ("costume", "Costumes", "Costumes", "MATCLOTH", 1 << 0),
-            ("basewear", "Basewear", "Basewear", "MATCLOTH", 1 << 1),
-            ("outerwear", "Outerwear", "Outerwear", "MATCLOTH", 1 << 2),
-            ("innerwear", "Innerwear", "Innerwear", "TEXTURE", 1 << 3),
-            ("bodypaint", "Bodypaint", "Bodypaint", "TEXTURE", 1 << 8),
+            # ID strings must match ObjectType enum
+            (
+                "basewear | costume",
+                "Basewear/Setwear",
+                "Basewear and setwear",
+                "MATCLOTH",
+                1 << 0,
+            ),
+            ("outerwear", "Outerwear", "Outerwear", "MATCLOTH", 1 << 1),
+            ("innerwear", "Innerwear", "Innerwear", "TEXTURE", 1 << 2),
+            ("bodypaint", "Bodypaint", "Bodypaint", "TEXTURE", 1 << 3),
+            ("skin", "Skin", "Skin", "TEXTURE", 1 << 7),
             ("cast_arms", "Cast Arms", "Cast Arms", "MATCLOTH", 1 << 4),
             ("cast_body", "Cast Body", "Cast Body", "MATCLOTH", 1 << 5),
             ("cast_legs", "Cast Legs", "Cast Legs", "MATCLOTH", 1 << 6),
-            ("skin", "Skin", "Skin", "TEXTURE", 1 << 7),
-            ("hair", "Hair", "Hair", "USER", 1 << 10),
-            ("face | face_texture", "Face", "Face", "USER", 1 << 11),
-            ("facepaint", "Facepaint", "Facepaint", "USER", 1 << 13),
-            ("ear", "Ears", "Ears", "USER", 1 << 14),
-            ("horn", "Horns", "Horns", "USER", 1 << 15),
-            ("teeth", "Teeth", "Teeth", "USER", 1 << 16),
-            ("eye", "Eyes", "Eyes", "HIDE_OFF", 1 << 17),
-            ("eyebrow", "Eyebrows", "Eyebrows", "HIDE_OFF", 1 << 18),
-            ("eyelash", "Eyelashes", "Eyelashes", "HIDE_OFF", 1 << 19),
-            ("sticker", "Stickers", "Stickers", "TEXTURE", 1 << 9),
-            ("accessory", "Accessories", "Accessories", "MESH_TORUS", 1 << 20),
+            ("face | face_texture", "Face", "Face", "USER", 1 << 9),
+            ("facepaint", "Facepaint", "Facepaint", "USER", 1 << 10),
+            ("hair", "Hair", "Hair", "USER", 1 << 8),
+            ("ear", "Ears", "Ears", "USER", 1 << 11),
+            ("horn", "Horns", "Horns", "USER", 1 << 12),
+            ("teeth", "Teeth", "Teeth", "USER", 1 << 13),
+            ("sticker", "Stickers", "Stickers", "TEXTURE", 1 << 17),
+            ("eye", "Eyes", "Eyes", "HIDE_OFF", 1 << 14),
+            ("eyebrow", "Eyebrows", "Eyebrows", "HIDE_OFF", 1 << 15),
+            ("eyelash", "Eyelashes", "Eyelashes", "HIDE_OFF", 1 << 16),
+            ("accessory", "Accessories", "Accessories", "MESH_TORUS", 1 << 18),
         ],
         description="Filter by object category",
         default={
-            "costume",
-            "basewear",
+            "basewear | costume",
             "outerwear",
             "cast_arms",
             "cast_body",
@@ -155,6 +163,17 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         ],
         description="Filter by game version",
         default={"NGS"},
+    )
+
+    model_search_body_types: bpy.props.EnumProperty(
+        name="Body Types",
+        options={"ENUM_FLAG"},
+        items=[
+            ("T1", "T1", "T1 (male)", "", 1 << 0),
+            ("T2", "T2", "T2 (female)", "", 1 << 1),
+            ("NONE", "None", "Genderless", "", 1 << 2),
+        ],
+        default={"T1", "T2"},
     )
 
     def draw(self, context: bpy.types.Context):
