@@ -1,8 +1,7 @@
 import bpy
 
-from .. import material
 from ..colors import ColorId
-from . import builder, color_channels
+from . import builder, color_channels, types
 from .colorize import ShaderNodePso2Colorize
 from .ngs import ShaderNodePso2Ngs
 
@@ -13,7 +12,7 @@ class Shader1100(builder.ShaderBuilder):
     def __init__(
         self,
         mat: bpy.types.Material,
-        data: material.ShaderData,
+        data: types.ShaderData,
     ):
         super().__init__(mat)
         self.data = data
@@ -44,7 +43,7 @@ class Shader1100(builder.ShaderBuilder):
         # Color Mask
         mask = tree.add_node("ShaderNodeTexImage", (0, 12))
         mask.label = "Color Mask"
-        mask.image = self.textures.default.mask  # TODO: cast parts use l texture?
+        mask.image = self.textures.default.mask
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (12, 14)

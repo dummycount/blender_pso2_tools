@@ -1,8 +1,7 @@
 import bpy
 
-from .. import material
 from ..colors import ColorId
-from . import builder, color_channels
+from . import builder, color_channels, types
 from .colorize import ShaderNodePso2Colorize
 from .mix import ShaderNodePso2MixTexture
 from .ngs import ShaderNodePso2Ngs, ShaderNodePso2NgsSkin
@@ -14,7 +13,7 @@ class Shader1102(builder.ShaderBuilder):
     def __init__(
         self,
         mat: bpy.types.Material,
-        data: material.ShaderData,
+        data: types.ShaderData,
     ):
         super().__init__(mat)
         self.data = data
@@ -193,6 +192,8 @@ class Shader1102(builder.ShaderBuilder):
         in_normal.image = self.textures.inner.normal
 
         tree.add_link(in_normal.outputs["Color"], in_group.inputs["Normal"])
+
+        # TODO: add a bodypaint layer?
 
         # ========== Mix ==========
 

@@ -13,9 +13,8 @@ from io_scene_fbx import import_fbx
 from System.Collections.Generic import List
 from System.Numerics import Matrix4x4
 
-from . import ice, material, objects
+from . import colors, ice, material, objects, shaders
 from .preferences import get_preferences
-from .shaders import shader_1100, shader_1102, shader_1103
 
 
 def import_object(
@@ -84,7 +83,7 @@ def import_ice_files(
     automatic_bone_orientation=False,
     high_quality=True,
     use_t2_skin=False,
-    color_map: Optional[material.ColorMapping] = None,
+    color_map: Optional[colors.ColorMapping] = None,
     uv_map: Optional[material.UVMapping] = None,
 ):
 
@@ -155,13 +154,13 @@ def import_ice_files(
     print(model_materials.extra_textures)
 
     for key, mat in model_materials.materials.items():
-        data = material.ShaderData(
+        data = shaders.types.ShaderData(
             material=mat,
             textures=model_materials.get_textures(mat),
-            color_map=color_map or material.ColorMapping(),
+            color_map=color_map or colors.ColorMapping(),
             uv_map=uv_map,
         )
-        build_material(context, bpy.data.materials[key], data)
+        shaders.build_material(context, bpy.data.materials[key], data)
 
 
 def _get_ice_path(filename: objects.CmxFileName, data_path: Path, high_quality: bool):
@@ -311,54 +310,3 @@ def _get_uv_map(obj: objects.CmxBodyObject):
             return material.CAST_LEGS_UV_MAPPING
         case _:
             return None
-
-
-def build_material(
-    context: bpy.types.Context,
-    mat: bpy.types.Material,
-    data: material.ShaderData,
-):
-    if builder := _get_builder(mat, data):
-        builder.build(context)
-
-    _update_material_settings(mat, data)
-
-
-def _update_material_settings(mat: bpy.types.Material, data: material.ShaderData):
-    if data.material.blend_type in ("add", "blendalpha", "hollow"):
-        if data.material.alpha_cutoff > 0:
-            mat.blend_method = "CLIP"
-            mat.alpha_threshold = data.material.alpha_cutoff / 256
-        else:
-            mat.blend_method = "BLEND"  # TODO: HASHED looks better on hair?
-            mat.show_transparent_back = False
-    else:
-        mat.blend_method = "OPAQUE"
-
-    match data.material.two_sided:
-        case 0:
-            mat.use_backface_culling = True
-
-        case 1:
-            mat.use_backface_culling = False
-
-        case 2:
-            # Not sure about this. Turning on backface culling fixes Z fighting
-            # on some opaque models but makes some features of transparent
-            # models disappear, so just enable it if not using alpha.
-            mat.use_backface_culling = mat.blend_method != "blendalpha"
-
-
-def _get_builder(mat: bpy.types.Material, data: material.ShaderData):
-    match data.material.shaders:
-        case ["1100p", "1100"]:
-            return shader_1100.Shader1100(mat, data)
-
-        case ["1102p", "1102"]:
-            return shader_1102.Shader1102(mat, data)
-
-        case ["1103p", "1103"]:
-            return shader_1103.Shader1103(mat, data)
-
-        case _:
-            return shader_1100.Shader1100(mat, data)

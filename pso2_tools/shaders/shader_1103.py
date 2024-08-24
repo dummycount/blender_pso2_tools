@@ -1,8 +1,8 @@
 import bpy
 
-from .. import classes, material
+from .. import classes
 from ..colors import ColorId
-from . import builder, color_channels
+from . import builder, color_channels, types
 from .colorize import ShaderNodePso2Colorize
 
 
@@ -12,7 +12,7 @@ class Shader1103(builder.ShaderBuilder):
     def __init__(
         self,
         mat: bpy.types.Material,
-        data: material.ShaderData,
+        data: types.ShaderData,
     ):
         super().__init__(mat)
         self.data = data
@@ -50,7 +50,7 @@ class Shader1103(builder.ShaderBuilder):
         # Color Mask
         mask = tree.add_node("ShaderNodeTexImage", (0, 12))
         mask.label = "Color Mask"
-        mask.image = self.textures.default.mask  # TODO: cast parts use l texture?
+        mask.image = self.textures.default.mask
 
         tree.add_link(uv.outputs[0], mask.inputs["Vector"])
 

@@ -7,7 +7,7 @@ import AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary
 import bpy
 import System.Numerics
 
-from .colors import ColorMapping
+from . import util
 from .preferences import get_preferences
 
 Vector4 = tuple[float, float, float, float]
@@ -288,7 +288,10 @@ class ModelMaterials:
         candidates = itertools.chain(
             self.textures, self.skin_textures, self.extra_textures
         )
-        return next((img for img in candidates if img.name == name), None)
+        return next(
+            (img for img in candidates if util.remove_blender_suffix(img.name) == name),
+            None,
+        )
 
     def _get_texture_set(self, name: str):
         def find(*parts: str, images=None):
@@ -529,11 +532,3 @@ _CLASSIC_BODY_PARTS = [
     ("tr",),  # Cast body
     ("lg",),  # Cast legs
 ]
-
-
-@dataclass
-class ShaderData:
-    material: Material
-    textures: MaterialTextures
-    color_map: Optional[ColorMapping] = field(default_factory=ColorMapping)
-    uv_map: Optional[UVMapping] = None
