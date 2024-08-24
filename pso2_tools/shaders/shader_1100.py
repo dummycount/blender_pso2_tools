@@ -1,6 +1,7 @@
 import bpy
 
-from ..colors import ColorId
+from ..colors import ColorId, ColorMapping
+from ..material import MaterialTextures, UVMapping
 from . import builder, color_channels, types
 from .colorize import ShaderNodePso2Colorize
 from .ngs import ShaderNodePso2Ngs
@@ -18,12 +19,16 @@ class Shader1100(builder.ShaderBuilder):
         self.data = data
 
     @property
-    def textures(self):
+    def textures(self) -> MaterialTextures:
         return self.data.textures
 
     @property
-    def colors(self):
+    def colors(self) -> ColorMapping:
         return self.data.color_map
+
+    @property
+    def uv_map(self) -> UVMapping:
+        return self.data.uv_map
 
     def build(self, context):
         tree = self.init_tree()
@@ -81,7 +86,7 @@ class Shader1100(builder.ShaderBuilder):
         tree.add_link(normal.outputs["Color"], shader_group.inputs["Normal"])
 
         # Cast part UV adjustment
-        if self.data.uv_map:
+        if self.uv_map:
             uv = tree.add_node("ShaderNodeUVMap", (-12, 6))
             uv.uv_map = "UVChannel_1"
 

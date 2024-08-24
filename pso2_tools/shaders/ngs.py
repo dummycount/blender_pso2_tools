@@ -13,6 +13,7 @@ class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
 
         self.inputs["Diffuse"].default_value = (1, 0, 1, 1)
         self.inputs["Alpha"].default_value = 1
+        self.inputs["Multi RGB"].default_value = (0, 1, 1, 1)
 
     def free(self):
         if self.node_tree.users == 1:

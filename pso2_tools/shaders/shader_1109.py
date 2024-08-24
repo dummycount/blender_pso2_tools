@@ -1,12 +1,13 @@
 import bpy
 
-from ..colors import ColorId
+from ..colors import ColorId, ColorMapping
+from ..material import MaterialTextures
 from . import builder, color_channels, types
 from .colorize import ShaderNodePso2Colorize
 from .ngs import ShaderNodePso2NgsSkin
 
 
-class Shader1105(builder.ShaderBuilder):
+class Shader1109(builder.ShaderBuilder):
     """NGS ear shader"""
 
     def __init__(
@@ -18,11 +19,11 @@ class Shader1105(builder.ShaderBuilder):
         self.data = data
 
     @property
-    def textures(self):
+    def textures(self) -> MaterialTextures:
         return self.data.textures
 
     @property
-    def colors(self):
+    def colors(self) -> ColorMapping:
         return self.data.color_map
 
     def build(self, context):
@@ -30,6 +31,8 @@ class Shader1105(builder.ShaderBuilder):
 
         output = tree.add_node("ShaderNodeOutputMaterial", (24, 6))
 
+        # TODO: is skin shader accurate here? There are some pieces like
+        # machine kitten ears that use 1109 for parts that aren't skin.
         shader_group: ShaderNodePso2NgsSkin = tree.add_node(
             "ShaderNodePso2NgsSkin", (18, 6)
         )
@@ -55,13 +58,17 @@ class Shader1105(builder.ShaderBuilder):
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
 
         tree.add_link(mask.outputs["Color"], colorize.inputs["Mask RGB"])
+        if self.colors.alpha != ColorId.UNUSED:
+            tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
         channels = tree.add_node("ShaderNodeGroup", (7, 10))
         channels.label = "Colors"
         channels.node_tree = color_channels.get_color_channels_node(context)
 
-        tree.add_color_link(ColorId.MAIN_SKIN, channels, colorize.inputs["Color 1"])
-        tree.add_color_link(ColorId.SUB_SKIN, channels, colorize.inputs["Color 2"])
+        tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
+        tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
+        tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
+        tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
 
         # Multi Map
         multi = tree.add_node("ShaderNodeTexImage", (0, 6))

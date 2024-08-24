@@ -9,7 +9,9 @@ from . import (
     shader_1102,
     shader_1103,
     shader_1104,
-    shader_1105,
+    shader_1107,
+    shader_1108,
+    shader_1109,
     types,
 )
 
@@ -19,6 +21,8 @@ def build_material(
     material: bpy.types.Material,
     data: types.ShaderData,
 ):
+    print(data.material.shaders, data.material.textures, data.textures)
+
     if cls := _get_builder(data):
         bld = cls(material, data)
         bld.build(context)
@@ -80,9 +84,21 @@ def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]
         #     # NGS eye tear
         #     return shader_1105.Shader1105
 
-        case 1105:
-            # NGS ear
-            return shader_1105.Shader1105
+        # case 1106:
+        #     # NGS fur?
+        #     return shader_1106.Shader1106
+
+        case 1107:
+            # NGS eyelash
+            return shader_1107.Shader1107
+
+        case 1108:
+            # NGS eyebrow
+            return shader_1108.Shader1108
+
+        case 1109:
+            # NGS ear?
+            return shader_1109.Shader1109
 
         case _:
             return shader_1100.Shader1100

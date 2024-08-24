@@ -451,13 +451,13 @@ class ModelMaterials:
 
             # NGS eyebrow
             case "pl_eyebrow_diffuse.dds":
-                r.default.diffuse = find("reb", "d")
+                r.default.diffuse = find_extra("reb", "d")
             case "pl_eyebrow_multi.dds":
-                r.default.multi = find("reb", "s")
+                r.default.multi = find_extra("reb", "s")
             case "pl_eyebrow_normal.dds":
-                r.default.normal = find("reb", "n")
+                r.default.normal = find_extra("reb", "n")
             case "pl_eyebrow_mask.dds":
-                r.default.mask = find("reb", "m")
+                r.default.mask = find_extra("reb", "m")
 
             # NGS/classic hair
             case "pl_hair_alpha.dds":
