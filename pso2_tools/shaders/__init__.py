@@ -1,6 +1,16 @@
+from typing import Optional, Type
+
 import bpy
 
-from . import shader_1100, shader_1101, shader_1102, shader_1103, types
+from . import (
+    builder,
+    shader_1100,
+    shader_1101,
+    shader_1102,
+    shader_1103,
+    shader_1104,
+    types,
+)
 
 
 def build_material(
@@ -8,8 +18,9 @@ def build_material(
     material: bpy.types.Material,
     data: types.ShaderData,
 ):
-    if builder := _get_builder(material, data):
-        builder.build(context)
+    if cls := _get_builder(data):
+        bld = cls(material, data)
+        bld.build(context)
 
     _update_material_settings(material, data)
 
@@ -39,26 +50,30 @@ def _update_material_settings(material: bpy.types.Material, data: types.ShaderDa
             material.use_backface_culling = material.blend_method != "blendalpha"
 
 
-def _get_builder(material: bpy.types.Material, data: types.ShaderData):
+def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]]:
     _, vertex = data.material.shaders
     shader_id = int(vertex)
 
     match shader_id:
         case 1100:
             # NGS default
-            return shader_1100.Shader1100(material, data)
+            return shader_1100.Shader1100
 
         case 1101:
             # NGS horn/teeth
-            return shader_1101.Shader1101(material, data)
+            return shader_1101.Shader1101
 
         case 1102:
             # NGS skin
-            return shader_1102.Shader1102(material, data)
+            return shader_1102.Shader1102
 
         case 1103:
             # NGS hair
-            return shader_1103.Shader1103(material, data)
+            return shader_1103.Shader1103
+
+        case 1104:
+            # NGS eye
+            return shader_1104.Shader1104
 
         case _:
-            return shader_1100.Shader1100(material, data)
+            return shader_1100.Shader1100
