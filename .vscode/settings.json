@@ -1,5 +1,6 @@
 {
   "editor.formatOnSave": true,
+  "isort.args": ["--settings-file", "${workspaceFolder}"],
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.organizeImports": "explicit"

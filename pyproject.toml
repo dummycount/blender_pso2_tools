@@ -1,3 +1,6 @@
+[tool.isort]
+profile = "black"
+
 [tool.pyright]
 reportInvalidTypeForm = false
 reportMissingImports = false
