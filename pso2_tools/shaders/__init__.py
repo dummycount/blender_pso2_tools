@@ -9,6 +9,7 @@ from . import (
     shader_1102,
     shader_1103,
     shader_1104,
+    shader_1105,
     shader_1107,
     shader_1108,
     shader_1109,
@@ -80,9 +81,9 @@ def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]
             # NGS eye
             return shader_1104.Shader1104
 
-        # case 1105:
-        #     # NGS eye tear
-        #     return shader_1105.Shader1105
+        case 1105:
+            # NGS eye tear
+            return shader_1105.Shader1105
 
         # case 1106:
         #     # NGS fur?

@@ -5,7 +5,6 @@ PSO2 Tools Blender addon
 # pylint: disable=wrong-import-position
 # pylint: disable=wrong-import-order
 import sys
-import traceback
 
 from .paths import BIN_PATH
 
