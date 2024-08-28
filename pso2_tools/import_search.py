@@ -93,6 +93,10 @@ _GENDERED_OBJECT_TYPES = [
     str(ObjectType.SKIN),
 ]
 
+_VERSIONLESS_OBJECT_TYPES = [
+    str(ObjectType.STICKER),
+]
+
 
 @classes.register
 class ListItem(bpy.types.PropertyGroup):
@@ -404,10 +408,16 @@ def _false(item):
 
 
 def _is_ngs(item: ListItem):
+    if item.object_type in _VERSIONLESS_OBJECT_TYPES:
+        return False
+
     return objects.is_ngs(item.object_id)
 
 
 def _is_classic(item: ListItem):
+    if item.object_type in _VERSIONLESS_OBJECT_TYPES:
+        return False
+
     return not objects.is_ngs(item.object_id)
 
 
