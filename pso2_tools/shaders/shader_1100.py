@@ -92,6 +92,7 @@ class Shader1100(builder.ShaderBuilder):
 
             map_range = tree.add_node("ShaderNodeMapRange", (-6, 6))
             map_range.data_type = "FLOAT_VECTOR"
+            map_range.clamp = False
             map_range.inputs[7].default_value[0] = self.data.uv_map.from_u_min
             map_range.inputs[8].default_value[0] = self.data.uv_map.from_u_max
             map_range.inputs[9].default_value[0] = self.data.uv_map.to_u_min
