@@ -146,6 +146,9 @@ def import_ice_files(
     if model_materials.has_classic_default_material:
         model_materials.extra_textures.extend(material.find_textures("bd", "iw"))
 
+    if model_materials.has_decal_texture:
+        model_materials.extra_textures.extend(material.find_textures("bp"))
+
     # TODO: update new_mats with PSO2 shader materials.
 
     delete_empty_images()

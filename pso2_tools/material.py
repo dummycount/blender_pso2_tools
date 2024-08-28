@@ -149,6 +149,7 @@ class MaterialTextures:
     inner: TextureSet = field(default_factory=TextureSet)
     skin_0: TextureSet = field(default_factory=TextureSet)
     skin_1: TextureSet = field(default_factory=TextureSet)
+    decal: TextureSet = field(default_factory=TextureSet)
 
     def __or__(self, other: "MaterialTextures"):
         return MaterialTextures(
@@ -156,6 +157,7 @@ class MaterialTextures:
             inner=self.inner | other.inner,
             skin_0=self.skin_0 | other.skin_0,
             skin_1=self.skin_1 | other.skin_1,
+            decal=self.decal | other.decal,
         )
 
 
@@ -258,10 +260,17 @@ class ModelMaterials:
         return self.has_material_shader(100)
 
     @property
+    def has_decal_texture(self):
+        return self.has_material_texture("pl_body_decal.dds")
+
+    @property
     def has_linked_inner_textures(self):
         return bool(find_textures("rba", images=self.textures))
 
-    def has_material_shader(self, shader_id):
+    def has_material_texture(self, texture_name: str):
+        return any(texture_name in m.textures for m in self.materials.values())
+
+    def has_material_shader(self, shader_id: int):
         pixel = f"{shader_id:04d}p"
         vertex = f"{shader_id:04d}"
         return any(m.shaders == [pixel, vertex] for m in self.materials.values())
@@ -355,7 +364,7 @@ class ModelMaterials:
                 r.default.normal = find_alt(_CLASSIC_BODY_PARTS, "n")
                 r.inner.normal = find_extra("bd", "iw", "n")
             case "pl_body_decal.dds":
-                pass
+                r.decal.diffuse = find_extra("bp", "d")
 
             # NGS outerwear
             case "pl_body_outer_diffuse.dds":

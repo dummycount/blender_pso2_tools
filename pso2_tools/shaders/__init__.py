@@ -13,6 +13,8 @@ from . import (
     shader_1107,
     shader_1108,
     shader_1109,
+    shader_1110,
+    shader_1117,
     types,
 )
 
@@ -100,6 +102,14 @@ def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]
         case 1109:
             # NGS ear?
             return shader_1109.Shader1109
+
+        case 1110:
+            # NGS default with decal
+            return shader_1110.Shader1110
+
+        case 1117:
+            # NGS skin with decal
+            return shader_1117.Shader1117
 
         case _:
             return shader_1100.Shader1100
