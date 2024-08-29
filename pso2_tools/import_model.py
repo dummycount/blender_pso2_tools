@@ -304,12 +304,20 @@ def _import_skin_textures(
 
 
 def _get_uv_map(obj: objects.CmxBodyObject):
-    match obj.object_type:
-        case objects.ObjectType.CAST_ARMS:
-            return material.CAST_ARMS_UV_MAPPING
-        case objects.ObjectType.CAST_BODY:
-            return material.CAST_BODY_UV_MAPPING
-        case objects.ObjectType.CAST_LEGS:
-            return material.CAST_LEGS_UV_MAPPING
+    match (obj.is_ngs, obj.object_type):
+        case True, objects.ObjectType.CAST_ARMS:
+            return material.NGS_CAST_ARMS_UV
+        case True, objects.ObjectType.CAST_BODY:
+            return material.NGS_CAST_BODY_UV
+        case True, objects.ObjectType.CAST_LEGS:
+            return material.NGS_CAST_LEGS_UV
+
+        case False, objects.ObjectType.CAST_ARMS:
+            return material.CLASSIC_CAST_ARMS_UV
+        case False, objects.ObjectType.CAST_BODY:
+            return material.CLASSIC_CAST_BODY_UV
+        case False, objects.ObjectType.CAST_LEGS:
+            return material.CLASSIC_CAST_LEGS_UV
+
         case _:
             return None

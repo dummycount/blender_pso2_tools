@@ -4,6 +4,7 @@ import bpy
 
 from . import (
     builder,
+    shader_0100,
     shader_1100,
     shader_1101,
     shader_1102,
@@ -63,6 +64,10 @@ def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]
     shader_id = int(vertex)
 
     match shader_id:
+        case 100:
+            # Classic default
+            return shader_0100.Shader0100
+
         case 1100:
             # NGS default
             return shader_1100.Shader1100
@@ -110,6 +115,17 @@ def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]
         case 1117:
             # NGS skin with decal
             return shader_1117.Shader1117
+
+        # case 1119:
+        #     # NGS unknown (feathers?)
+        #     return shader_1119.Shader1119
+
+        # case 1124:
+        #     # NGS ear hair?
+        #     return shader_1124.Shader1124
+
+        case x if x < 1000:
+            return shader_0100.Shader0100
 
         case _:
             return shader_1100.Shader1100

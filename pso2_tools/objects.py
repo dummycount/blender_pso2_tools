@@ -156,6 +156,17 @@ class CmxColorMapping(ColorMapping):
         )
 
 
+def get_classic_color_map(object_type: ObjectType) -> ColorMapping | None:
+    match object_type:
+        case ObjectType.BASEWEAR | ObjectType.COSTUME:
+            return ColorMapping(blue=ColorId.BASE1)
+
+        case ObjectType.OUTERWEAR:
+            return ColorMapping(blue=ColorId.OUTER1)
+
+    return None
+
+
 def split_int32(value: System.Int32):
     uvalue = System.UInt32(value)
     lo = int(uvalue) & 0x0000FFFF
@@ -453,6 +464,9 @@ class CmxBodyObject(CmxObjectBase):
         return colors
 
     def get_color_map(self) -> ColorMapping:
+        if classic_colors := get_classic_color_map(self.object_type):
+            return classic_colors
+
         return self.color_mapping
 
     def _get_files(self) -> Iterable[CmxFileName]:

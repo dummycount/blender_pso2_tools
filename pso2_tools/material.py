@@ -25,9 +25,13 @@ class UVMapping:
     to_u_max: float = 1
 
 
-CAST_ARMS_UV_MAPPING = UVMapping(from_u_max=1 / 3, to_u_max=2 / 3)
-CAST_BODY_UV_MAPPING = UVMapping(from_u_min=1 / 3, from_u_max=2 / 3, to_u_max=2 / 3)
-CAST_LEGS_UV_MAPPING = UVMapping(from_u_min=2 / 3, to_u_max=2 / 3)
+NGS_CAST_ARMS_UV = UVMapping(from_u_max=1 / 3, to_u_max=2 / 3)
+NGS_CAST_BODY_UV = UVMapping(from_u_min=1 / 3, from_u_max=2 / 3, to_u_max=2 / 3)
+NGS_CAST_LEGS_UV = UVMapping(from_u_min=2 / 3, to_u_max=2 / 3)
+
+CLASSIC_CAST_ARMS_UV = NGS_CAST_LEGS_UV
+CLASSIC_CAST_BODY_UV = NGS_CAST_BODY_UV
+CLASSIC_CAST_LEGS_UV = NGS_CAST_ARMS_UV
 
 
 @dataclass
@@ -276,10 +280,12 @@ class ModelMaterials:
         return any(m.shaders == [pixel, vertex] for m in self.materials.values())
 
     def create_custom_properties(self, context: bpy.types.Context):
-        if self.has_skin_material:
-            preferences = get_preferences(context)
+        preferences = get_preferences(context)
 
+        if self.has_skin_material or self.has_classic_default_material:
             context.scene.world["Hide Innerwear"] = False
+
+        if self.has_skin_material:
             context.scene.world["Muscularity"] = preferences.default_muscularity
 
             context.scene.world.id_properties_ensure()
