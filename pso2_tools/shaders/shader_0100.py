@@ -44,7 +44,7 @@ class Shader0100(builder.ShaderBuilder):
         )
         tree.add_link(base_group.outputs["BSDF"], output.inputs["Surface"])
 
-        channels = tree.add_node("ShaderNodeGroup", (12, 28), name="Colors")
+        channels = tree.add_node("ShaderNodeGroup", (9, 28), name="Colors")
         channels.node_tree = color_channels.get_color_channels_node(context)
 
         # Diffuse
@@ -60,11 +60,11 @@ class Shader0100(builder.ShaderBuilder):
         in_diffuse.image = self.textures.inner.diffuse
 
         skin_alpha: ShaderNodePso2ShowInnerwear = tree.add_node(
-            "ShaderNodePso2ShowInnerwear", (6, 22), name="Innerwear Alpha"
+            "ShaderNodePso2ShowInnerwear", (9, 20), name="Innerwear Alpha"
         )
         tree.add_link(in_diffuse.outputs["Alpha"], skin_alpha.inputs["Value"])
 
-        skin_color = tree.add_node("ShaderNodeMix", (18, 25), name="Skin Color")
+        skin_color = tree.add_node("ShaderNodeMix", (16, 25), name="Skin Color")
         skin_color.data_type = "RGBA"
         skin_color.blend_type = "MIX"
         skin_color.clamp_factor = True
@@ -99,7 +99,7 @@ class Shader0100(builder.ShaderBuilder):
         in_mask.image = self.textures.inner.mask
 
         mix_in_mask: ShaderNodePso2MixTexture = tree.add_node(
-            "ShaderNodePso2MixTexture", (12, 20), name="Innerwear Mask Alpha"
+            "ShaderNodePso2MixTexture", (16, 20), name="Innerwear Mask Alpha"
         )
 
         tree.add_link(skin_alpha.outputs["Value"], mix_in_mask.inputs["Factor"])
@@ -118,13 +118,13 @@ class Shader0100(builder.ShaderBuilder):
         multi.image = self.textures.default.multi
 
         multi_rgb = tree.add_node(
-            "ShaderNodeSeparateColor", (12, 16), name="Multi Map RGB"
+            "ShaderNodeSeparateColor", (12, 15), name="Multi Map RGB"
         )
         multi_rgb.mode = "RGB"
 
         tree.add_link(multi.outputs["Color"], multi_rgb.inputs["Color"])
 
-        skin_mix = tree.add_node("ShaderNodeMath", (18, 18), name="Skin Mix")
+        skin_mix = tree.add_node("ShaderNodeMath", (18, 15), name="Skin Mix")
         skin_mix.operation = "MULTIPLY"
         skin_mix.use_clamp = True
 
@@ -171,7 +171,7 @@ class Shader0100(builder.ShaderBuilder):
         in_normal.image = self.textures.inner.normal
 
         mix_normal: ShaderNodePso2MixTexture = tree.add_node(
-            "ShaderNodePso2MixTexture", (24, 8), name="Normal Map Mix"
+            "ShaderNodePso2MixTexture", (24, 6), name="Normal Map Mix"
         )
 
         tree.add_link(skin_mix.outputs["Value"], mix_normal.inputs["Factor"])
@@ -262,7 +262,6 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
         tree.new_input("NodeSocketColor", "Normal")
 
         tree.new_output("NodeSocketShader", "BSDF")
-        tree.new_output("NodeSocketFloat", "Skin Mix")
 
         bsdf = tree.add_node("ShaderNodeBsdfPrincipled")
         tree.add_link(bsdf.outputs["BSDF"], group_outputs.inputs["BSDF"])
@@ -291,9 +290,6 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
 
         tree.add_link(multi_rgb.outputs["Red"], spec_inv.inputs["Value"])
         tree.add_link(spec_inv.outputs["Result"], bsdf.inputs["Roughness"])
-
-        # Skin
-        tree.add_link(multi_rgb.outputs["Green"], group_outputs.inputs["Skin Mix"])
 
         # Emissive
         tree.add_link(multi_rgb.outputs["Blue"], bsdf.inputs["Emission Strength"])
