@@ -21,7 +21,7 @@ class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
 
     def _build(self):
         tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.name, "ShaderNodeTree")
+            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
         )
 
         group_inputs = tree.add_node("NodeGroupInput")

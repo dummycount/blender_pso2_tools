@@ -4,6 +4,7 @@ from .. import classes
 from ..colors import ColorId, ColorMapping
 from ..material import MaterialTextures, UVMapping
 from . import builder, color_channels, types
+from .attributes import ShaderNodePso2ShowInnerwear
 from .colorize import ShaderNodePso2Colorize
 from .mix import ShaderNodePso2MixTexture
 
@@ -46,17 +47,6 @@ class Shader0100(builder.ShaderBuilder):
         channels = tree.add_node("ShaderNodeGroup", (12, 28), name="Colors")
         channels.node_tree = color_channels.get_color_channels_node(context)
 
-        # Innerwear Toggle
-        in_hide = tree.add_node("ShaderNodeAttribute", (-14, 20), name="Hide Innerwear")
-        in_hide.attribute_type = "VIEW_LAYER"
-        in_hide.attribute_name = "Hide Innerwear"
-
-        in_show = tree.add_node("ShaderNodeMath", (-10, 20), name="Show Innerwear")
-        in_show.operation = "SUBTRACT"
-        in_show.inputs[0].default_value = 1
-
-        tree.add_link(in_hide.outputs["Fac"], in_show.inputs[1])
-
         # Diffuse
         diffuse = tree.add_node("ShaderNodeTexImage", (0, 36), name="Diffuse")
         diffuse.image = self.textures.default.diffuse
@@ -69,12 +59,10 @@ class Shader0100(builder.ShaderBuilder):
         )
         in_diffuse.image = self.textures.inner.diffuse
 
-        skin_alpha = tree.add_node("ShaderNodeMath", (6, 22), name="Skin Alpha")
-        skin_alpha.operation = "MULTIPLY"
-        skin_alpha.use_clamp = True
-
-        tree.add_link(in_diffuse.outputs["Alpha"], skin_alpha.inputs[0])
-        tree.add_link(in_show.outputs[0], skin_alpha.inputs[1])
+        skin_alpha: ShaderNodePso2ShowInnerwear = tree.add_node(
+            "ShaderNodePso2ShowInnerwear", (6, 22), name="Innerwear Alpha"
+        )
+        tree.add_link(in_diffuse.outputs["Alpha"], skin_alpha.inputs["Value"])
 
         skin_color = tree.add_node("ShaderNodeMix", (18, 25), name="Skin Color")
         skin_color.data_type = "RGBA"
@@ -261,7 +249,7 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
 
     def _build(self):
         tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.name, "ShaderNodeTree")
+            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
         )
 
         group_inputs = tree.add_node("NodeGroupInput")
