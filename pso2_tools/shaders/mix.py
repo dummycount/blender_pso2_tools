@@ -11,7 +11,7 @@ class ShaderNodePso2MixTexture(bpy.types.ShaderNodeCustomGroup):
     bl_icon = "NONE"
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.name, None):
+        if tree := bpy.data.node_groups.get(self.bl_label, None):
             self.node_tree = tree
         else:
             self.node_tree = self._build()
@@ -37,16 +37,12 @@ class ShaderNodePso2MixTexture(bpy.types.ShaderNodeCustomGroup):
         tree.new_output("NodeSocketColor", "Color")
         tree.new_output("NodeSocketColor", "Alpha")
 
-        color = tree.add_node("ShaderNodeMix")
-        color.name = "Color"
-        color.label = color.name
+        color = tree.add_node("ShaderNodeMix", name="Color")
         color.data_type = "RGBA"
         color.blend_type = "MIX"
         color.clamp_factor = True
 
-        alpha = tree.add_node("ShaderNodeMix")
-        alpha.name = "Color 2"
-        alpha.label = alpha.name
+        alpha = tree.add_node("ShaderNodeMix", name="Alpha")
         alpha.data_type = "FLOAT"
         alpha.blend_type = "MIX"
         alpha.clamp_factor = True

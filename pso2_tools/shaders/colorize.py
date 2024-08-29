@@ -11,7 +11,7 @@ class ShaderNodePso2Colorize(bpy.types.ShaderNodeCustomGroup):
     bl_icon = "NONE"
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.name, None):
+        if tree := bpy.data.node_groups.get(self.bl_label, None):
             self.node_tree = tree
         else:
             self.node_tree = self._build()
@@ -22,7 +22,7 @@ class ShaderNodePso2Colorize(bpy.types.ShaderNodeCustomGroup):
 
     def _build(self):
         tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.name, "ShaderNodeTree")
+            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
         )
 
         group_inputs = tree.add_node("NodeGroupInput")
@@ -38,37 +38,27 @@ class ShaderNodePso2Colorize(bpy.types.ShaderNodeCustomGroup):
 
         tree.new_output("NodeSocketColor", "Result")
 
-        mask_rgb = tree.add_node("ShaderNodeSeparateColor")
-        mask_rgb.name = "Mask RGB"
-        mask_rgb.label = mask_rgb.name
+        mask_rgb = tree.add_node("ShaderNodeSeparateColor", name="Mask RGB")
         mask_rgb.mode = "RGB"
 
         tree.add_link(group_inputs.outputs["Mask RGB"], mask_rgb.inputs["Color"])
 
-        color1 = tree.add_node("ShaderNodeMix")
-        color1.name = "Color 1"
-        color1.label = color1.name
+        color1 = tree.add_node("ShaderNodeMix", name="Color 1")
         color1.data_type = "RGBA"
         color1.blend_type = "MIX"
         color1.clamp_factor = True
 
-        color2 = tree.add_node("ShaderNodeMix")
-        color2.name = "Color 2"
-        color2.label = color2.name
+        color2 = tree.add_node("ShaderNodeMix", name="Color 2")
         color2.data_type = "RGBA"
         color2.blend_type = "MIX"
         color2.clamp_factor = True
 
-        color3 = tree.add_node("ShaderNodeMix")
-        color3.name = "Color 3"
-        color3.label = color3.name
+        color3 = tree.add_node("ShaderNodeMix", name="Color 3")
         color3.data_type = "RGBA"
         color3.blend_type = "MIX"
         color3.clamp_factor = True
 
-        color4 = tree.add_node("ShaderNodeMix")
-        color4.name = "Color 4"
-        color4.label = color4.name
+        color4 = tree.add_node("ShaderNodeMix", name="Color 4")
         color4.data_type = "RGBA"
         color4.blend_type = "MIX"
         color4.clamp_factor = True

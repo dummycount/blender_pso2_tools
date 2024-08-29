@@ -43,52 +43,40 @@ class Shader0100(builder.ShaderBuilder):
         )
         tree.add_link(base_group.outputs["BSDF"], output.inputs["Surface"])
 
-        channels = tree.add_node("ShaderNodeGroup", (12, 28))
-        channels.name = "Colors"
-        channels.label = channels.name
+        channels = tree.add_node("ShaderNodeGroup", (12, 28), name="Colors")
         channels.node_tree = color_channels.get_color_channels_node(context)
 
         # Innerwear Toggle
-        in_hide = tree.add_node("ShaderNodeAttribute", (-14, 20))
-        in_hide.name = "Hide Innerwear"
-        in_hide.label = in_hide.name
+        in_hide = tree.add_node("ShaderNodeAttribute", (-14, 20), name="Hide Innerwear")
         in_hide.attribute_type = "VIEW_LAYER"
         in_hide.attribute_name = "Hide Innerwear"
 
-        in_show = tree.add_node("ShaderNodeMath", (-10, 20))
-        in_show.name = "Show Innerwear"
-        in_show.label = in_show.name
+        in_show = tree.add_node("ShaderNodeMath", (-10, 20), name="Show Innerwear")
         in_show.operation = "SUBTRACT"
         in_show.inputs[0].default_value = 1
 
         tree.add_link(in_hide.outputs["Fac"], in_show.inputs[1])
 
         # Diffuse
-        diffuse = tree.add_node("ShaderNodeTexImage", (0, 36))
-        diffuse.name = "Diffuse"
-        diffuse.label = diffuse.name
+        diffuse = tree.add_node("ShaderNodeTexImage", (0, 36), name="Diffuse")
         diffuse.image = self.textures.default.diffuse
 
         tree.add_link(diffuse.outputs["Alpha"], base_group.inputs["Alpha"])
 
         # Skin Diffuse
-        in_diffuse = tree.add_node("ShaderNodeTexImage", (0, 24))
-        in_diffuse.name = "Innerwear Diffuse"
-        in_diffuse.label = in_diffuse.name
+        in_diffuse = tree.add_node(
+            "ShaderNodeTexImage", (0, 24), name="Innerwear Diffuse"
+        )
         in_diffuse.image = self.textures.inner.diffuse
 
-        skin_alpha = tree.add_node("ShaderNodeMath", (6, 22))
-        skin_alpha.name = "Skin Alpha"
-        skin_alpha.label = skin_alpha.name
+        skin_alpha = tree.add_node("ShaderNodeMath", (6, 22), name="Skin Alpha")
         skin_alpha.operation = "MULTIPLY"
         skin_alpha.use_clamp = True
 
         tree.add_link(in_diffuse.outputs["Alpha"], skin_alpha.inputs[0])
         tree.add_link(in_show.outputs[0], skin_alpha.inputs[1])
 
-        skin_color = tree.add_node("ShaderNodeMix", (18, 25))
-        skin_color.name = "Skin Color"
-        skin_color.label = skin_color.name
+        skin_color = tree.add_node("ShaderNodeMix", (18, 25), name="Skin Color")
         skin_color.data_type = "RGBA"
         skin_color.blend_type = "MIX"
         skin_color.clamp_factor = True
@@ -98,13 +86,11 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_link(skin_alpha.outputs["Value"], skin_color.inputs["Factor"])
 
         # Color Mask
-        mask = tree.add_node("ShaderNodeTexImage", (0, 30))
-        mask.name = "Color Maks"
-        mask.label = mask.name
+        mask = tree.add_node("ShaderNodeTexImage", (0, 30), name="Color Mask")
         mask.image = self.textures.default.mask
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
-            "ShaderNodePso2Colorize", (24, 30)
+            "ShaderNodePso2Colorize", (24, 30), name="Base Colorize"
         )
 
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
@@ -119,20 +105,20 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
         tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
 
-        in_mask = tree.add_node("ShaderNodeTexImage", (0, 18))
-        in_mask.name = "Innerwear Color Mask"
-        in_mask.label = in_mask.name
+        in_mask = tree.add_node(
+            "ShaderNodeTexImage", (0, 18), name="Innerwear Color Mask"
+        )
         in_mask.image = self.textures.inner.mask
 
         mix_in_mask: ShaderNodePso2MixTexture = tree.add_node(
-            "ShaderNodePso2MixTexture", (12, 20)
+            "ShaderNodePso2MixTexture", (12, 20), name="Innerwear Mask Alpha"
         )
 
         tree.add_link(skin_alpha.outputs["Value"], mix_in_mask.inputs["Factor"])
         tree.add_link(in_mask.outputs["Color"], mix_in_mask.inputs["Color 2"])
 
         in_colorize: ShaderNodePso2Colorize = tree.add_node(
-            "ShaderNodePso2Colorize", (24, 25)
+            "ShaderNodePso2Colorize", (24, 25), name="Innerwear Colorize"
         )
 
         tree.add_link(skin_color.outputs["Result"], in_colorize.inputs["Input"])
@@ -140,34 +126,30 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_color_link(ColorId.INNER1, channels, in_colorize.inputs["Color 3"])
 
         # Multi Map
-        multi = tree.add_node("ShaderNodeTexImage", (6, 12))
-        multi.name = "Multi Map"
-        multi.label = multi.name
+        multi = tree.add_node("ShaderNodeTexImage", (6, 12), name="Multi Map")
         multi.image = self.textures.default.multi
 
-        multi_rgb = tree.add_node("ShaderNodeSeparateColor", (12, 16))
-        multi_rgb.name = "Multi Map RGB"
-        multi_rgb.label = multi_rgb.name
+        multi_rgb = tree.add_node(
+            "ShaderNodeSeparateColor", (12, 16), name="Multi Map RGB"
+        )
         multi_rgb.mode = "RGB"
 
         tree.add_link(multi.outputs["Color"], multi_rgb.inputs["Color"])
 
-        skin_mix = tree.add_node("ShaderNodeMath", (18, 18))
-        skin_mix.name = "Skin Mix"
-        skin_mix.label = skin_mix.name
+        skin_mix = tree.add_node("ShaderNodeMath", (18, 18), name="Skin Mix")
         skin_mix.operation = "MULTIPLY"
         skin_mix.use_clamp = True
 
         tree.add_link(skin_alpha.outputs["Value"], skin_mix.inputs[0])
         tree.add_link(multi_rgb.outputs["Green"], skin_mix.inputs[1])
 
-        in_multi = tree.add_node("ShaderNodeTexImage", (0, 12))
-        in_multi.name = "Innerwear Multi Map"
-        in_multi.label = in_multi.name
+        in_multi = tree.add_node(
+            "ShaderNodeTexImage", (0, 12), name="Innerwear Multi Map"
+        )
         in_multi.image = self.textures.inner.multi
 
         mix_multi: ShaderNodePso2MixTexture = tree.add_node(
-            "ShaderNodePso2MixTexture", (24, 12)
+            "ShaderNodePso2MixTexture", (24, 12), name="Multi Map Mix"
         )
 
         tree.add_link(skin_mix.outputs["Value"], mix_multi.inputs["Factor"])
@@ -180,9 +162,7 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_link(mix_multi.outputs["Alpha"], base_group.inputs["Multi A"])
 
         # Base/Skin Color Mix
-        diffuse_mix = tree.add_node("ShaderNodeMix", (30, 25))
-        diffuse_mix.name = "Diffuse Mix"
-        diffuse_mix.label = diffuse_mix.name
+        diffuse_mix = tree.add_node("ShaderNodeMix", (30, 25), name="Diffuse Mix")
         diffuse_mix.data_type = "RGBA"
         diffuse_mix.blend_type = "MIX"
         diffuse_mix.clamp_factor = True
@@ -194,18 +174,16 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_link(diffuse_mix.outputs["Result"], base_group.inputs["Diffuse"])
 
         # Normal Map
-        normal = tree.add_node("ShaderNodeTexImage", (6, 6))
-        normal.name = "Normal Map"
-        normal.label = normal.name
+        normal = tree.add_node("ShaderNodeTexImage", (6, 6), name="Normal Map")
         normal.image = self.textures.default.normal
 
-        in_normal = tree.add_node("ShaderNodeTexImage", (0, 6))
-        in_normal.name = "Innerwear Normal Map"
-        in_normal.label = in_normal.name
+        in_normal = tree.add_node(
+            "ShaderNodeTexImage", (0, 6), name="Innerwear Normal Map"
+        )
         in_normal.image = self.textures.inner.normal
 
         mix_normal: ShaderNodePso2MixTexture = tree.add_node(
-            "ShaderNodePso2MixTexture", (24, 8)
+            "ShaderNodePso2MixTexture", (24, 8), name="Normal Map Mix"
         )
 
         tree.add_link(skin_mix.outputs["Value"], mix_normal.inputs["Factor"])
@@ -221,7 +199,9 @@ class Shader0100(builder.ShaderBuilder):
             uv = tree.add_node("ShaderNodeUVMap", (-12, 24))
             uv.uv_map = "UVChannel_1"
 
-            map_range = tree.add_node("ShaderNodeMapRange", (-6, 24))
+            map_range = tree.add_node(
+                "ShaderNodeMapRange", (-6, 24), name="Cast UV Rescale"
+            )
             map_range.data_type = "FLOAT_VECTOR"
             map_range.clamp = False
             map_range.inputs[7].default_value[0] = self.data.uv_map.from_u_min
@@ -240,7 +220,9 @@ class Shader0100(builder.ShaderBuilder):
         in_uv = tree.add_node("ShaderNodeUVMap", (-12, 12))
         in_uv.uv_map = "UVChannel_1"
 
-        map_range = tree.add_node("ShaderNodeMapRange", (-6, 12))
+        map_range = tree.add_node(
+            "ShaderNodeMapRange", (-6, 12), name="Innerwear UV Rescale"
+        )
         map_range.data_type = "FLOAT_VECTOR"
         map_range.clamp = False
         map_range.inputs[7].default_value[0] = 0
@@ -264,7 +246,7 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
     bl_icon = "NONE"
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.name, None):
+        if tree := bpy.data.node_groups.get(self.bl_label, None):
             self.node_tree = tree
         else:
             self.node_tree = self._build()
@@ -299,9 +281,7 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
 
         # ========== Multi Map ==========
 
-        multi_rgb = tree.add_node("ShaderNodeSeparateColor")
-        multi_rgb.name = "Multi Map RGB"
-        multi_rgb.label = multi_rgb.name
+        multi_rgb = tree.add_node("ShaderNodeSeparateColor", name="Multi Map RGB")
         multi_rgb.mode = "RGB"
 
         tree.add_link(group_inputs.outputs["Multi RGB"], multi_rgb.inputs["Color"])
@@ -313,9 +293,7 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
         # A = environment map bleed through
 
         # Specular
-        spec_inv = tree.add_node("ShaderNodeMapRange")
-        spec_inv.name = "Specular to Roughness"
-        spec_inv.label = spec_inv.label
+        spec_inv = tree.add_node("ShaderNodeMapRange", name="Specular to Roughness")
         spec_inv.data_type = "FLOAT"
         spec_inv.interpolation_type = "LINEAR"
         spec_inv.inputs["From Min"].default_value = 0

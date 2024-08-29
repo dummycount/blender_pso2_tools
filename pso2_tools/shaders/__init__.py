@@ -68,6 +68,10 @@ def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]
             # Classic default
             return shader_0100.Shader0100
 
+        # case 101:
+        #     # Classic face
+        #     return shader_0101.Shader0101
+
         case 1100:
             # NGS default
             return shader_1100.Shader1100

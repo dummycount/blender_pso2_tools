@@ -6,7 +6,7 @@ from . import builder
 
 class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.name, None):
+        if tree := bpy.data.node_groups.get(self.bl_label, None):
             self.node_tree = tree
         else:
             self.node_tree = self._build()
@@ -47,16 +47,14 @@ class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
 
         # ========== Multi Map ==========
 
-        multi_rgb = tree.add_node("ShaderNodeSeparateColor")
-        multi_rgb.name = "Multi Map RGB"
-        multi_rgb.label = multi_rgb.name
+        multi_rgb = tree.add_node("ShaderNodeSeparateColor", name="Multi Map RGB")
         multi_rgb.mode = "RGB"
 
         tree.add_link(group_inputs.outputs["Multi RGB"], multi_rgb.inputs["Color"])
         tree.add_link(multi_rgb.outputs["Red"], bsdf.inputs["Metallic"])
 
         # Tone down the shininess a bit to better match in game visuals
-        roughness_map = tree.add_node("ShaderNodeMapRange")
+        roughness_map = tree.add_node("ShaderNodeMapRange", name="Roughness Rescale")
         roughness_map.data_type = "FLOAT"
         roughness_map.interpolation_type = "LINEAR"
         roughness_map.clamp = True
@@ -68,9 +66,7 @@ class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
 
         # Ambient Occlusion
         # (This should really only affect ambient light, but this looks good enough)
-        ao = tree.add_node("ShaderNodeMix")
-        ao.name = "Ambient Occlusion"
-        ao.label = ao.name
+        ao = tree.add_node("ShaderNodeMix", name="Ambient Occlusion")
         ao.data_type = "RGBA"
         ao.blend_type = "MULTIPLY"
         ao.inputs["Factor"].default_value = 1

@@ -417,8 +417,8 @@ class ModelMaterials:
             case "pl_face_diffuse.dds":
                 r.default.diffuse = find("rhd", "d") or find("hd", "d")
                 if not is_ngs:
-                    r.default.mask = find("hd", "m")
-                    r.default.layer = find("hd", "l")
+                    r.default.mask = find("rhd", "d") or find("hd", "m")
+                    r.default.layer = find("rhd", "l") or find("hd", "l")
                     # TODO: no separate materials for eyelashes ("hr", "fa") or
                     # eyebrows ("hb", "fa"). Are these baked into the face texture?
             case "pl_face_multi.dds":

@@ -36,20 +36,17 @@ class Shader1103(builder.ShaderBuilder):
         tree.add_link(shader_group.outputs["BSDF"], output.inputs["Surface"])
 
         # Non-alpha Texture UVs
-        uv = tree.add_node("ShaderNodeUVMap", (-8, 0))
-        uv.label = "UVs"
+        uv = tree.add_node("ShaderNodeUVMap", (-8, 0), name="UVs")
         uv.uv_map = "UVChannel_2"
 
         # Diffuse
-        diffuse = tree.add_node("ShaderNodeTexImage", (0, 18))
-        diffuse.label = "Diffuse"
+        diffuse = tree.add_node("ShaderNodeTexImage", (0, 18), name="Diffuse")
         diffuse.image = self.textures.default.diffuse
 
         tree.add_link(uv.outputs[0], diffuse.inputs["Vector"])
 
         # Color Mask
-        mask = tree.add_node("ShaderNodeTexImage", (0, 12))
-        mask.label = "Color Mask"
+        mask = tree.add_node("ShaderNodeTexImage", (0, 12), name="Color Mask")
         mask.image = self.textures.default.mask
 
         tree.add_link(uv.outputs[0], mask.inputs["Vector"])
@@ -65,8 +62,7 @@ class Shader1103(builder.ShaderBuilder):
         if self.colors.alpha != ColorId.UNUSED:
             tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
-        channels = tree.add_node("ShaderNodeGroup", (7, 10))
-        channels.label = "Colors"
+        channels = tree.add_node("ShaderNodeGroup", (7, 10), name="Colors")
         channels.node_tree = color_channels.get_color_channels_node(context)
 
         tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
@@ -75,15 +71,13 @@ class Shader1103(builder.ShaderBuilder):
         tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
 
         # Alpha
-        alpha = tree.add_node("ShaderNodeTexImage", (0, 6))
-        alpha.label = "Alpha"
+        alpha = tree.add_node("ShaderNodeTexImage", (0, 6), name="Alpha")
         alpha.image = self.textures.default.alpha
 
         tree.add_link(alpha.outputs["Color"], shader_group.inputs["Alpha"])
 
         # Multi Map
-        multi = tree.add_node("ShaderNodeTexImage", (0, 0))
-        multi.label = "Multi Map"
+        multi = tree.add_node("ShaderNodeTexImage", (0, 0), name="Multi Map")
         multi.image = self.textures.default.multi
 
         tree.add_link(uv.outputs[0], multi.inputs["Vector"])
@@ -91,8 +85,7 @@ class Shader1103(builder.ShaderBuilder):
         tree.add_link(multi.outputs["Alpha"], shader_group.inputs["Multi A"])
 
         # Normal Map
-        normal = tree.add_node("ShaderNodeTexImage", (0, -6))
-        normal.label = "Normal Map"
+        normal = tree.add_node("ShaderNodeTexImage", (0, -6), name="Normal Map")
         normal.image = self.textures.default.normal
 
         tree.add_link(uv.outputs[0], normal.inputs["Vector"])

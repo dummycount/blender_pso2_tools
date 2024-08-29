@@ -36,8 +36,7 @@ def get_color_channels_node(context: bpy.types.Context) -> bpy.types.ShaderNodeT
         x = (index % _COLOR_GROUP_COLS) * 4
         y = (index // _COLOR_GROUP_COLS) * -4
 
-        color = tree.add_node("ShaderNodeRGB", (x, y))
-        color.label = channel.name
+        color = tree.add_node("ShaderNodeRGB", (x, y), name=channel.name)
         color.outputs[0].default_value = getattr(prefs, channel.prop)
 
         tree.new_output("NodeSocketColor", color.label, parent=panel)

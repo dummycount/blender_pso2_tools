@@ -36,16 +36,14 @@ class Shader1104(builder.ShaderBuilder):
         tree.add_link(shader_group.outputs["BSDF"], output.inputs["Surface"])
 
         # Diffuse
-        diffuse = tree.add_node("ShaderNodeTexImage", (0, 18))
-        diffuse.label = "Diffuse"
+        diffuse = tree.add_node("ShaderNodeTexImage", (0, 18), name="Diffuse")
         diffuse.image = self.textures.default.diffuse
 
         # Alpha seems to be used for something different than alpha
         # tree.add_link(diffuse.outputs["Alpha"], shader_group.inputs["Alpha"])
 
         # Color Mask
-        mask = tree.add_node("ShaderNodeTexImage", (0, 12))
-        mask.label = "Color Mask"
+        mask = tree.add_node("ShaderNodeTexImage", (0, 12), name="Color Mask")
         mask.image = self.textures.default.mask
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
@@ -59,24 +57,21 @@ class Shader1104(builder.ShaderBuilder):
         if self.colors.alpha != ColorId.UNUSED:
             tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
-        channels = tree.add_node("ShaderNodeGroup", (7, 10))
-        channels.label = "Colors"
+        channels = tree.add_node("ShaderNodeGroup", (7, 10), name="Colors")
         channels.node_tree = color_channels.get_color_channels_node(context)
 
         color = ColorId.LEFT_EYE if "eye_l" in self.material.name else ColorId.RIGHT_EYE
         tree.add_color_link(color, channels, colorize.inputs["Color 1"])
 
         # Multi Map
-        multi = tree.add_node("ShaderNodeTexImage", (0, 6))
-        multi.label = "Multi Map"
+        multi = tree.add_node("ShaderNodeTexImage", (0, 6), name="Multi Map")
         multi.image = self.textures.default.multi
 
         tree.add_link(multi.outputs["Color"], shader_group.inputs["Multi RGB"])
         tree.add_link(multi.outputs["Alpha"], shader_group.inputs["Multi A"])
 
         # Normal Map
-        normal = tree.add_node("ShaderNodeTexImage", (0, 0))
-        normal.label = "Normal Map"
+        normal = tree.add_node("ShaderNodeTexImage", (0, 0), name="Normal Map")
         normal.image = self.textures.default.normal
 
         tree.add_link(normal.outputs["Color"], shader_group.inputs["Normal"])
@@ -132,30 +127,17 @@ class ShaderNodePso2NgsEye(bpy.types.ShaderNodeCustomGroup):
 
         # TODO: does this mean the same things as in the default shader?
 
-        multi_rgb = tree.add_node("ShaderNodeSeparateColor")
-        multi_rgb.name = "Multi Map RGB"
-        multi_rgb.label = multi_rgb.name
+        multi_rgb = tree.add_node("ShaderNodeSeparateColor", name="Multi Map RGB")
         multi_rgb.mode = "RGB"
 
         tree.add_link(group_inputs.outputs["Multi RGB"], multi_rgb.inputs["Color"])
         tree.add_link(multi_rgb.outputs["Red"], bsdf.inputs["Metallic"])
 
-        # Tone down the shininess a bit to better match in game visuals
-        roughness_map = tree.add_node("ShaderNodeMapRange")
-        roughness_map.data_type = "FLOAT"
-        roughness_map.interpolation_type = "LINEAR"
-        roughness_map.clamp = True
-        roughness_map.inputs["To Min"].default_value = 0.2
-        roughness_map.inputs["To Max"].default_value = 1
-
-        tree.add_link(multi_rgb.outputs["Green"], roughness_map.inputs["Value"])
-        tree.add_link(roughness_map.outputs["Result"], bsdf.inputs["Roughness"])
+        tree.add_link(multi_rgb.outputs["Green"], bsdf.inputs["Roughness"])
 
         # Ambient Occlusion
         # (This should really only affect ambient light, but this looks good enough)
-        ao = tree.add_node("ShaderNodeMix")
-        ao.name = "Ambient Occlusion"
-        ao.label = ao.name
+        ao = tree.add_node("ShaderNodeMix", name="Ambient Occlusion")
         ao.data_type = "RGBA"
         ao.blend_type = "MULTIPLY"
         ao.inputs["Factor"].default_value = 1
