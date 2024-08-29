@@ -1,5 +1,8 @@
 {
   "editor.formatOnSave": true,
+  "files.exclude": {
+    "**/__pycache__": true
+  },
   "isort.args": ["--settings-file", "${workspaceFolder}"],
   "[python]": {
     "editor.codeActionsOnSave": {
