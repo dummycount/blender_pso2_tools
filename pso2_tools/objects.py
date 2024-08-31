@@ -1,16 +1,16 @@
+import hashlib
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass, field, fields
 from enum import StrEnum
 from pathlib import Path
-from typing import Generator, Iterable, Optional, Type, TypeVar
+from typing import Generator, Iterable, Type, TypeVar
 
 import bpy
 import System
 from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text
 from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
 from AquaModelLibrary.Data.Utility import ReferenceGenerator
-from AquaModelLibrary.Helpers import HashHelpers
 
 from . import preferences
 from .colors import ColorId, ColorMapping
@@ -187,6 +187,14 @@ def convert_color_map(data: bytes):
 sqlite3.register_converter("COLOR_MAP", convert_color_map)
 
 
+def md5digest(text: str):
+    return hashlib.md5(text.encode()).hexdigest()
+
+
+def md5digest_ex(text: str):
+    return md5digest(text + "_ex")
+
+
 class CmxFileName:
     name: str
 
@@ -203,7 +211,7 @@ class CmxFileName:
 
     @property
     def hash(self):
-        return HashHelpers.GetFileHash(self.name)
+        return md5digest(self.name)
 
     @property
     def ex(self):
@@ -253,12 +261,12 @@ def _db_type(cls: Type):
     if cls == str:
         return "TEXT NOT NULL"
 
-    if cls == Optional[int]:
+    if cls == int | None:
         return "INTGER"
     if cls == int:
         return "INTEGER NOT NULL"
 
-    if cls == Optional[float]:
+    if cls == float | None:
         return "REAL"
     if cls == float:
         return "REAL NOT NULL"
@@ -355,6 +363,14 @@ class CmxObjectWithFile(CmxObjectBase):
     def _get_files(self) -> Iterable[CmxFileName]:
         return [self.file]
 
+    @classmethod
+    def db_schema(cls, table: ObjectType):
+        return f"""
+            {super().db_schema(table)}
+            CREATE INDEX {table}_file ON {table}(md5(file));
+            CREATE INDEX {table}_file_ex ON {table}(md5_ex(file));
+            """
+
 
 @dataclass
 class CmxAccessory(CmxObjectWithFile):
@@ -433,10 +449,10 @@ class CmxSkinObject(CmxObjectWithFile):
 
 @dataclass
 class CmxBodyObject(CmxObjectBase):
-    head_id: Optional[int] = None
-    sound_id: Optional[int] = None
-    linked_inner_id: Optional[int] = None
-    linked_outer_id: Optional[int] = None
+    head_id: int | None = None
+    sound_id: int | None = None
+    linked_inner_id: int | None = None
+    linked_outer_id: int | None = None
 
     file: CmxFileName = field(default_factory=CmxFileName)
     linked_inner_file: CmxFileName = field(default_factory=CmxFileName)
@@ -453,7 +469,7 @@ class CmxBodyObject(CmxObjectBase):
     # tex_4: str = ""
     # tex_5: str = ""
     # tex_6: str = ""
-    leg_length: Optional[float] = None
+    leg_length: float | None = None
     color_mapping: CmxColorMapping = field(default_factory=CmxColorMapping)
 
     def get_colors(self) -> set[ColorId]:
@@ -598,7 +614,7 @@ class CmxHornObject(CmxObjectWithFile):
 
 
 class ObjectDatabase:
-    VERSION = 3
+    VERSION = 4
 
     def __init__(self, context: bpy.types.Context):
         self.context = context
@@ -607,96 +623,123 @@ class ObjectDatabase:
     def close(self):
         self.con.close()
 
-    def get_all(self) -> Generator[CmxObjectBase, None, None]:
-        yield from self.get_accessories()
-        yield from self.get_costumes()
-        yield from self.get_basewear()
-        yield from self.get_outerwear()
-        yield from self.get_cast_arms()
-        yield from self.get_cast_bodies()
-        yield from self.get_cast_legs()
-        yield from self.get_innerwear()
-        yield from self.get_bodypaint()
-        yield from self.get_stickers()
-        yield from self.get_skins()
-        yield from self.get_faces()
-        yield from self.get_face_textures()
-        yield from self.get_facepaint()
-        yield from self.get_eyes()
-        yield from self.get_eyebrows()
-        yield from self.get_eyelashes()
-        yield from self.get_ears()
-        yield from self.get_teeth()
-        yield from self.get_horns()
-        yield from self.get_hair()
+    def get_all(
+        self, item_id: int | None = None, file_hash: str | None = None
+    ) -> Generator[CmxObjectBase, None, None]:
+        yield from self.get_accessories(item_id, file_hash)
+        yield from self.get_costumes(item_id, file_hash)
+        yield from self.get_basewear(item_id, file_hash)
+        yield from self.get_outerwear(item_id, file_hash)
+        yield from self.get_cast_arms(item_id, file_hash)
+        yield from self.get_cast_bodies(item_id, file_hash)
+        yield from self.get_cast_legs(item_id, file_hash)
+        yield from self.get_innerwear(item_id, file_hash)
+        yield from self.get_bodypaint(item_id, file_hash)
+        yield from self.get_stickers(item_id, file_hash)
+        yield from self.get_skins(item_id, file_hash)
+        yield from self.get_faces(item_id, file_hash)
+        yield from self.get_face_textures(item_id, file_hash)
+        yield from self.get_facepaint(item_id, file_hash)
+        yield from self.get_eyes(item_id, file_hash)
+        yield from self.get_eyebrows(item_id, file_hash)
+        yield from self.get_eyelashes(item_id, file_hash)
+        yield from self.get_ears(item_id, file_hash)
+        yield from self.get_teeth(item_id, file_hash)
+        yield from self.get_horns(item_id, file_hash)
+        yield from self.get_hair(item_id, file_hash)
 
-    def get_accessories(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxAccessory, ObjectType.ACCESSORY, item_id)
+    def get_accessories(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxAccessory, ObjectType.ACCESSORY, item_id, file_hash)
 
-    def get_basewear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.BASEWEAR, item_id)
+    def get_basewear(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxBodyObject, ObjectType.BASEWEAR, item_id, file_hash)
 
-    def get_bodypaint(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyPaint, ObjectType.BODYPAINT, item_id)
+    def get_bodypaint(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxBodyPaint, ObjectType.BODYPAINT, item_id, file_hash)
 
-    def get_cast_arms(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.CAST_ARMS, item_id)
+    def get_cast_arms(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(
+            CmxBodyObject, ObjectType.CAST_ARMS, item_id, file_hash
+        )
 
-    def get_cast_bodies(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.CAST_BODY, item_id)
+    def get_cast_bodies(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(
+            CmxBodyObject, ObjectType.CAST_BODY, item_id, file_hash
+        )
 
-    def get_cast_legs(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.CAST_LEGS, item_id)
+    def get_cast_legs(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(
+            CmxBodyObject, ObjectType.CAST_LEGS, item_id, file_hash
+        )
 
-    def get_costumes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.COSTUME, item_id)
+    def get_costumes(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxBodyObject, ObjectType.COSTUME, item_id, file_hash)
 
-    def get_ears(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEarObject, ObjectType.EAR, item_id)
+    def get_ears(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxEarObject, ObjectType.EAR, item_id, file_hash)
 
-    def get_eyes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEyeObject, ObjectType.EYE, item_id)
+    def get_eyes(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxEyeObject, ObjectType.EYE, item_id, file_hash)
 
-    def get_eyebrows(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEyebrowObject, ObjectType.EYEBROW, item_id)
+    def get_eyebrows(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(
+            CmxEyebrowObject, ObjectType.EYEBROW, item_id, file_hash
+        )
 
-    def get_eyelashes(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxEyebrowObject, ObjectType.EYELASH, item_id)
+    def get_eyelashes(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(
+            CmxEyebrowObject, ObjectType.EYELASH, item_id, file_hash
+        )
 
-    def get_faces(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFaceObject, ObjectType.FACE, item_id)
+    def get_faces(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxFaceObject, ObjectType.FACE, item_id, file_hash)
 
-    def get_face_textures(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFacePaint, ObjectType.FACE_TEXTURE, item_id)
+    def get_face_textures(
+        self, item_id: int | None = None, file_hash: str | None = None
+    ):
+        return self._get_objects(
+            CmxFacePaint, ObjectType.FACE_TEXTURE, item_id, file_hash
+        )
 
-    def get_facepaint(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxFacePaint, ObjectType.FACEPAINT, item_id)
+    def get_facepaint(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxFacePaint, ObjectType.FACEPAINT, item_id, file_hash)
 
-    def get_hair(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxHairObject, ObjectType.HAIR, item_id)
+    def get_hair(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxHairObject, ObjectType.HAIR, item_id, file_hash)
 
-    def get_horns(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxHornObject, ObjectType.HORN, item_id)
+    def get_horns(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxHornObject, ObjectType.HORN, item_id, file_hash)
 
-    def get_innerwear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyPaint, ObjectType.INNERWEAR, item_id)
+    def get_innerwear(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxBodyPaint, ObjectType.INNERWEAR, item_id, file_hash)
 
-    def get_outerwear(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxBodyObject, ObjectType.OUTERWEAR, item_id)
+    def get_outerwear(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(
+            CmxBodyObject, ObjectType.OUTERWEAR, item_id, file_hash
+        )
 
-    def get_skins(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxSkinObject, ObjectType.SKIN, item_id)
+    def get_skins(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxSkinObject, ObjectType.SKIN, item_id, file_hash)
 
-    def get_stickers(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxSticker, ObjectType.STICKER, item_id)
+    def get_stickers(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxSticker, ObjectType.STICKER, item_id, file_hash)
 
-    def get_teeth(self, item_id: Optional[int] = None):
-        return self._get_objects(CmxTeethObject, ObjectType.TEETH, item_id)
+    def get_teeth(self, item_id: int | None = None, file_hash: str | None = None):
+        return self._get_objects(CmxTeethObject, ObjectType.TEETH, item_id, file_hash)
 
     def _get_objects(
-        self, cls: Type[T], object_type: ObjectType, item_id: Optional[int] = None
+        self,
+        cls: Type[T],
+        object_type: ObjectType,
+        item_id: int | None = None,
+        file_hash: str | None = None,
     ) -> list[T]:
-        if item_id is not None:
+        if file_hash is not None:
+            q = self.con.execute(
+                f"SELECT * FROM {object_type} WHERE md5(file)=? OR md5_ex(file)=?",
+                (file_hash, file_hash),
+            )
+        elif item_id is not None:
             q = self.con.execute(f"SELECT * FROM {object_type} WHERE id=?", (item_id,))
         else:
             q = self.con.execute(f"SELECT * FROM {object_type}")
@@ -747,6 +790,9 @@ class ObjectDatabase:
 
         con = sqlite3.connect(path, detect_types=sqlite3.PARSE_DECLTYPES)
         con.row_factory = sqlite3.Row
+
+        con.create_function("md5", 1, md5digest, deterministic=True)
+        con.create_function("md5_ex", 1, md5digest_ex, deterministic=True)
 
         with con:
             version = con.execute("PRAGMA user_version").fetchone()[0]
@@ -999,7 +1045,7 @@ def _get_item_names(text, category: CmxCategory):
     return result
 
 
-def _optional_number(value: T) -> Optional[T]:
+def _optional_number(value: T) -> T | None:
     return value if value >= 0 else None
 
 

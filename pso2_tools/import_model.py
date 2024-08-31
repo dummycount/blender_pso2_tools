@@ -26,28 +26,61 @@ def import_object(
 ):
     data_path = get_preferences(context).get_pso2_data_path()
 
-    texture_names = obj.get_textures()
-    print("Importing model with textures", texture_names)
-
     files = obj.get_files()
     ice_paths = [p for f in files if (p := _get_ice_path(f, data_path, high_quality))]
 
+    options = _get_import_options(obj)
+
+    _import_ice_files(
+        operator,
+        context,
+        ice_paths,
+        automatic_bone_orientation=automatic_bone_orientation,
+        high_quality=high_quality,
+        **options,
+    )
+
+
+def import_ice_file(
+    operator: bpy.types.Operator,
+    context: bpy.types.Context,
+    path: Path,
+    automatic_bone_orientation=False,
+):
+    file_hash = path.name
+    high_quality = True
+    options = {}
+
+    with closing(objects.ObjectDatabase(context)) as db:
+        if obj := next(db.get_all(file_hash=file_hash), None):
+            print(f'Found matching hash. Importing with options from "{obj.name}"')
+            options = _get_import_options(obj)
+
+            if isinstance(obj, objects.CmxObjectWithFile):
+                high_quality = file_hash == obj.file.ex.hash
+
+    _import_ice_files(
+        operator,
+        context,
+        [path],
+        automatic_bone_orientation=automatic_bone_orientation,
+        high_quality=high_quality,
+        **options,
+    )
+
+
+def _get_import_options(obj: objects.CmxObjectBase):
     color_map = obj.get_color_map()
     uv_map = None
 
     if isinstance(obj, objects.CmxBodyObject):
         uv_map = _get_uv_map(obj)
 
-    import_ice_files(
-        operator,
-        context,
-        ice_paths,
-        automatic_bone_orientation=automatic_bone_orientation,
-        high_quality=high_quality,
-        use_t2_skin=obj.is_t2,
-        color_map=color_map,
-        uv_map=uv_map,
-    )
+    return {
+        "use_t2_skin": obj.is_t2,
+        "color_map": color_map,
+        "uv_map": uv_map,
+    }
 
 
 @dataclass
@@ -76,7 +109,7 @@ def collect_ice_contents(paths: Iterable[Path]):
     return result
 
 
-def import_ice_files(
+def _import_ice_files(
     operator: bpy.types.Operator,
     context: bpy.types.Context,
     paths: Iterable[Path],
@@ -86,7 +119,6 @@ def import_ice_files(
     color_map: Optional[colors.ColorMapping] = None,
     uv_map: Optional[material.UVMapping] = None,
 ):
-
     files = collect_ice_contents(paths)
 
     original_mat_keys = set(bpy.data.materials.keys())
@@ -151,10 +183,9 @@ def import_ice_files(
 
     # TODO: update new_mats with PSO2 shader materials.
 
-    delete_empty_images()
+    _delete_empty_images()
 
     pprint(model_materials.materials)
-    print(model_materials.extra_textures)
 
     for key, mat in model_materials.materials.items():
         data = shaders.types.ShaderData(
@@ -176,15 +207,13 @@ def _get_ice_path(filename: objects.CmxFileName, data_path: Path, high_quality: 
     return None
 
 
-def delete_empty_images():
+def _delete_empty_images():
     for image in bpy.data.images.values():
         if image.size[0] == 0 and image.size[1] == 0:
             bpy.data.images.remove(image)
 
 
 def import_ice_image(data: ice.DataFile):
-    print("Importing", data.name)
-
     with TemporaryDirectory() as tempdir:
         tempfile = Path(tempdir) / data.name
 

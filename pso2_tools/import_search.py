@@ -335,6 +335,8 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
                 for color in colors:
                     col.prop(preferences, COLOR_CHANNELS[color].prop)
 
+        # TODO: add common import properties, e.g. automatic bone orientation
+
         col.separator(factor=2, type="LINE")
         col.operator(PSO2_OT_UpdateModelList.bl_idname, text="Update Model List")
 

@@ -7,6 +7,9 @@ disable=import-error,
         missing-class-docstring,
         missing-function-docstring,
         missing-module-docstring,
+        too-many-arguments,
+        too-many-locals,
+        too-many-return-statements,
         unused-argument,
 
 [TYPECHECK]

@@ -25,8 +25,6 @@ def build_material(
     material: bpy.types.Material,
     data: types.ShaderData,
 ):
-    print(data.material.shaders, data.material.textures, data.textures)
-
     if cls := _get_builder(data):
         bld = cls(material, data)
         bld.build(context)
