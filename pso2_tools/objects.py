@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass, field, fields
@@ -8,6 +9,7 @@ from typing import Generator, Iterable, Type, TypeVar
 
 import bpy
 import System
+import System.IO
 from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text
 from AquaModelLibrary.Data.PSO2.Aqua.CharacterMakingIndexData import (
     BODYObject,
@@ -17,7 +19,7 @@ from AquaModelLibrary.Data.PSO2.Aqua.CharacterMakingIndexData import (
 from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
 from AquaModelLibrary.Data.Utility import ReferenceGenerator
 
-from . import preferences
+from . import ice, preferences
 from .colors import ColorId, ColorMapping
 from .paths import get_data_path
 from .util import dict_get
@@ -655,7 +657,7 @@ class ObjectDatabase:
             self._read_eyes(cmx, parts_text)
             self._read_eyebrows(cmx, parts_text)
             self._read_eyelashes(cmx, parts_text)
-            self._read_faces(cmx, parts_text)
+            self._read_faces(cmx, parts_text, bin_path)
             self._read_face_textures(cmx, parts_text)
             self._read_facepaint(cmx, parts_text)
             self._read_hair(cmx, parts_text)
@@ -812,10 +814,11 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_faces(self, cmx, text):
+    def _read_faces(self, cmx, text, bin_path: Path):
+        face_dict = _get_face_variation_dict(bin_path)
+
         names = _get_item_names(text, CmxCategory.FACE)
-        names.update(_get_item_names(text, CmxCategory.FACE_VARIATION))
-        # TODO: need to parse face_variation.cmp.lua in 75b1632526cd6a1039625349df6ee8dd
+        names.update(_get_item_names(text, CmxCategory.FACE_VARIATION, face_dict))
 
         for item_id in cmx.faceDict.Keys:
             obj = _get_face(ObjectType.FACE, cmx.faceDict, None, names, item_id)
@@ -890,7 +893,9 @@ class ObjectDatabase:
             obj.db_insert(self.con)
 
 
-def _get_item_names(text, category: CmxCategory):
+def _get_item_names(
+    text, category: CmxCategory, lookup_dict: dict[str, int] | None = None
+):
     result = defaultdict[int, list[str]](lambda: ["", ""])
 
     index = text.categoryNames.IndexOf(str(category))
@@ -901,13 +906,21 @@ def _get_item_names(text, category: CmxCategory):
 
     for lang, text_list in enumerate(lists_by_lang):
         for item in text_list:
-            id_str: str = item.name.upper().removeprefix("NO")
+            name: str = item.name
 
+            # Name may be a key into a lookup table
+            if lookup_dict:
+                item_id = lookup_dict.get(name)
+                if item_id is not None:
+                    result[item_id][lang] = item.str
+                    continue
+
+            # Otherwise, it is "No ####"
             try:
-                item_id = int(id_str)
+                item_id = int(name.lower().removeprefix("no"))
                 result[item_id][lang] = item.str
             except ValueError:
-                print(f"Failed to parse {category} ID {id_str}")
+                print(f'Failed to parse {category} ID "{item.name}"')
 
     return result
 
@@ -1223,3 +1236,41 @@ def _get_accessory(
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
 
     return data
+
+
+def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
+    face_var_path = bin_path / "data/win32" / md5digest("ui_character_making.ice")
+    result: dict[str, int] = {}
+
+    try:
+        icefile = ice.IceFile.load(face_var_path)
+
+        for f in itertools.chain(icefile.group_one, icefile.group_two):
+            if "face_variation.cmp.lua" in f.name.lower():
+                result.update(_parse_face_variation_lua(f))
+    except System.IO.FileNotFoundException:
+        pass
+
+    return result
+
+
+def _parse_face_variation_lua(datafile: ice.DataFile):
+    result: dict[str, int] = {}
+    language: str | None = None
+    src = datafile.data.rstrip(b"\0").decode()
+
+    for line in src.splitlines():
+        if language:
+            if "crop_name" in line:
+                name = line.split('"')[1]
+                if name:
+                    result[language] = int(name[7:])
+                else:
+                    print("Ignoring", line)
+
+                language = None
+
+        elif "language" in line:
+            language = line.split('"')[1]
+
+    return result
