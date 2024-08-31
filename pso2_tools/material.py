@@ -283,13 +283,13 @@ class ModelMaterials:
         preferences = get_preferences(context)
 
         if self.has_skin_material or self.has_classic_default_material:
-            context.scene.world["Hide Innerwear"] = False
+            context.scene["Hide Innerwear"] = False
 
         if self.has_skin_material:
-            context.scene.world["Muscularity"] = preferences.default_muscularity
+            context.scene["Muscularity"] = preferences.default_muscularity
 
-            context.scene.world.id_properties_ensure()
-            context.scene.world.id_properties_ui("Muscularity").update(min=0, max=1)
+            context.scene.id_properties_ensure()
+            context.scene.id_properties_ui("Muscularity").update(min=0, max=1)
 
     def get_textures(self, material: Material):
         result = MaterialTextures()

@@ -299,9 +299,8 @@ def import_aqp(
 
         if get_preferences(context).hide_armature:
             for obj in context.selected_objects:
-                obj.select_set(obj.type == "ARMATURE")
-
-            bpy.ops.object.hide_view_set()
+                if obj.type == "ARMATURE":
+                    obj.hide_set(True)
 
     mesh_mat_mapping = List[int]()
     materials, _ = model.GetUniqueMaterials(mesh_mat_mapping)

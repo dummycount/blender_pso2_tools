@@ -48,7 +48,7 @@ clr.AddReference("ZamboniLib")
 # pylint: enable=no-member
 
 
-from . import classes, import_ice, import_search, reloader, watcher
+from . import classes, import_ice, import_search, ornaments, reloader, watcher
 
 
 def register():

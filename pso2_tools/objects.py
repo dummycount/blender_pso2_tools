@@ -814,8 +814,8 @@ class ObjectDatabase:
 
     def _read_faces(self, cmx, text):
         names = _get_item_names(text, CmxCategory.FACE)
+        names.update(_get_item_names(text, CmxCategory.FACE_VARIATION))
         # TODO: need to parse face_variation.cmp.lua in 75b1632526cd6a1039625349df6ee8dd
-        # names.update(_get_item_names(text, CmxCategory.FACE_VARIATION))
 
         for item_id in cmx.faceDict.Keys:
             obj = _get_face(ObjectType.FACE, cmx.faceDict, None, names, item_id)
