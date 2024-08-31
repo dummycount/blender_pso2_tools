@@ -7,7 +7,7 @@ from typing import Iterable, Optional, Type
 
 import bpy
 
-from . import classes, import_model, objects
+from . import classes, import_model, objects, props
 from .colors import COLOR_CHANNELS, ColorId
 from .objects import ObjectType
 from .preferences import get_preferences
@@ -142,6 +142,10 @@ class ListItem(bpy.types.PropertyGroup):
         return self.name_en or self.name_jp or f"Unnamed {self.object_id}"
 
     @property
+    def sort_name(self) -> str:
+        return self.name_en or self.name_jp or f"\uFFFF {self.object_id}"
+
+    @property
     def description(self):
         enum_items = self.bl_rna.properties["object_type"].enum_items
         desc = enum_items.get(self.object_type).description
@@ -268,7 +272,7 @@ def _get_object_class(object_type: ObjectType) -> Type[objects.CmxObjectBase]:
 
 
 @classes.register
-class PSO2_OT_ModelSearch(bpy.types.Operator):
+class PSO2_OT_ModelSearch(bpy.types.Operator, props.CommonImportProps):
     """Search for PSO2 models"""
 
     bl_label = "Import PSO2 Model"
@@ -285,7 +289,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         return _get_file_items(selected.files, data_path)
 
     models: bpy.props.CollectionProperty(name="Models", type=ListItem)
-    models_index: bpy.props.IntProperty(name="Selected Index")
+    models_index: bpy.props.IntProperty(name="Selected Index", default=-1)
     model_file: bpy.props.EnumProperty(name="File", items=_get_selected_model_files)
 
     def __init__(self):
@@ -331,19 +335,29 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
                 col.label(text=f"Leg length: {meta.leg_length:.3f}")
 
             if colors := sorted(obj.get_colors()):
+                col.separator(type="LINE")
                 col.label(text="Colors", icon="COLOR")
                 for color in colors:
                     col.prop(preferences, COLOR_CHANNELS[color].prop)
 
-        # TODO: add common import properties, e.g. automatic bone orientation
+            col.separator(type="LINE")
+            self.draw_import_props_column(col)
+            col.separator(factor=2, type="LINE")
 
-        col.separator(factor=2, type="LINE")
         col.operator(PSO2_OT_UpdateModelList.bl_idname, text="Update Model List")
 
     def execute(self, context):
         if obj := self.get_selected_object():
             high_quality = self.model_file == "HQ"
-            import_model.import_object(self, context, obj, high_quality=high_quality)
+            import_model.import_object(
+                self,
+                context,
+                obj,
+                high_quality=high_quality,
+                fbx_options=self.get_fbx_options(
+                    ignore=("models", "models_index", "model_file")
+                ),
+            )
             return {"FINISHED"}
 
         return {"CANCELLED"}
@@ -354,6 +368,9 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
         )
 
     def get_selected_object(self) -> objects.CmxObjectBase:
+        if self.models_index < 0:
+            return None
+
         try:
             return self.models[self.models_index].to_object()
         except IndexError:
@@ -363,7 +380,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator):
 def _get_file_items(items: Iterable[FileNameItem], data_path: Path):
     item = next((item for item in items if item.name == "file"), None)
     if item is None:
-        return []
+        return
 
     normal = item.to_file_name()
     high = normal.ex
@@ -506,7 +523,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
                     hide_item(idx)
 
         if preferences.model_search_sort_alpha:
-            flt_neworder = bpy.types.UI_UL_list.sort_items_by_name(items, "item_name")
+            flt_neworder = bpy.types.UI_UL_list.sort_items_by_name(items, "sort_name")
         else:
             _sort = [(idx, item.object_id) for idx, item in enumerate(items)]
             flt_neworder = bpy.types.UI_UL_list.sort_items_helper(_sort, lambda e: e[1])

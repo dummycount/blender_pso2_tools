@@ -22,7 +22,7 @@ def import_object(
     context: bpy.types.Context,
     obj: objects.CmxObjectBase,
     high_quality=True,
-    automatic_bone_orientation=False,
+    fbx_options=None,
 ):
     data_path = get_preferences(context).get_pso2_data_path()
 
@@ -35,8 +35,8 @@ def import_object(
         operator,
         context,
         ice_paths,
-        automatic_bone_orientation=automatic_bone_orientation,
         high_quality=high_quality,
+        fbx_options=fbx_options,
         **options,
     )
 
@@ -45,7 +45,7 @@ def import_ice_file(
     operator: bpy.types.Operator,
     context: bpy.types.Context,
     path: Path,
-    automatic_bone_orientation=False,
+    fbx_options=None,
 ):
     file_hash = path.name
     high_quality = True
@@ -63,7 +63,7 @@ def import_ice_file(
         operator,
         context,
         [path],
-        automatic_bone_orientation=automatic_bone_orientation,
+        fbx_options=fbx_options,
         high_quality=high_quality,
         **options,
     )
@@ -113,7 +113,7 @@ def _import_ice_files(
     operator: bpy.types.Operator,
     context: bpy.types.Context,
     paths: Iterable[Path],
-    automatic_bone_orientation=False,
+    fbx_options=None,
     high_quality=True,
     use_t2_skin=False,
     color_map: Optional[colors.ColorMapping] = None,
@@ -138,7 +138,7 @@ def _import_ice_files(
             context,
             model,
             aqn,
-            automatic_bone_orientation=automatic_bone_orientation,
+            fbx_options=fbx_options,
         )
         materials.extend(result)
 
@@ -244,8 +244,10 @@ def import_aqp(
     context: bpy.types.Context,
     aqp: Path | ice.DataFile,
     aqn: Path | ice.DataFile | None,
-    automatic_bone_orientation=False,
+    fbx_options=None,
 ):
+    fbx_options = fbx_options or {}
+
     if isinstance(aqp, Path):
         aqp_data = aqp.read_bytes()
         aqp_name = aqp.name
@@ -292,8 +294,14 @@ def import_aqp(
             operator,
             context,
             filepath=str(fbxfile),
-            automatic_bone_orientation=automatic_bone_orientation,
+            **fbx_options,
         )
+
+        if get_preferences(context).hide_armature:
+            for obj in context.selected_objects:
+                obj.select_set(obj.type == "ARMATURE")
+
+            bpy.ops.object.hide_view_set()
 
     mesh_mat_mapping = List[int]()
     materials, _ = model.GetUniqueMaterials(mesh_mat_mapping)

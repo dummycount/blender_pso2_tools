@@ -61,6 +61,12 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
 
     debug: bpy.props.BoolProperty(name="Show debug info", default=False)
 
+    hide_armature: bpy.props.BoolProperty(
+        name="Hide armature on import",
+        description="Automatically hide the armature for imported models",
+        default=False,
+    )
+
     outer_color_1: color_property(ColorId.OUTER1, "Primary outerwear color")
     outer_color_2: color_property(ColorId.OUTER2, "Secondary outerwear color")
     base_color_1: color_property(ColorId.BASE1, "Primary basewear color")
@@ -182,7 +188,7 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         layout.use_property_decorate = False
 
         layout.prop(self, "pso2_data_path")
-        layout.prop(self, "debug")
+        layout.prop(self, "hide_armature")
 
         layout.prop(self, "default_muscularity")
         layout.prop(self, "default_skin_t1")
