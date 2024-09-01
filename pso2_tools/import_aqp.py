@@ -8,9 +8,11 @@ from . import classes, import_model, props
 
 @classes.register
 class PSO2_OT_ImportAqp(bpy.types.Operator, props.CommonImportProps, ImportHelper):
+    """Load a PSO2 AQP file"""
+
     bl_label = "Import AQP"
     bl_idname = "pso2.import_aqp"
-    bl_options = {"REGISTER", "UNDO", "PRESET", "BLOCKING"}
+    bl_options = {"UNDO", "PRESET"}
 
     filter_glob: bpy.props.StringProperty(default="*.aqp", options={"HIDDEN"})
 

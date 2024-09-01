@@ -8,9 +8,11 @@ from . import classes, import_model, props
 
 @classes.register
 class PSO2_OT_ImportIce(bpy.types.Operator, props.CommonImportProps, ImportHelper):
+    """Load a PSO2 ICE archive"""
+
     bl_label = "Import ICE"
     bl_idname = "pso2.import_ice"
-    bl_options = {"REGISTER", "UNDO", "PRESET", "BLOCKING"}
+    bl_options = {"UNDO", "PRESET"}
 
     filter_glob: bpy.props.StringProperty(default="*", options={"HIDDEN"})
 

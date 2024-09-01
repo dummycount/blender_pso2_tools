@@ -9,6 +9,7 @@ import bpy
 import System
 from AquaModelLibrary.Core.General import FbxExporterNative
 from AquaModelLibrary.Data.PSO2.Aqua import AquaMotion, AquaNode, AquaPackage
+from AquaModelLibrary.Data.Utility import CoordSystem
 from io_scene_fbx import import_fbx
 from System.Collections.Generic import List
 from System.Numerics import Matrix4x4
@@ -35,7 +36,7 @@ def import_object(
 
     options = _get_import_options(obj)
 
-    _import_models(
+    return _import_models(
         operator,
         context,
         ice_files,
@@ -63,7 +64,7 @@ def import_ice_file(
             if isinstance(obj, objects.CmxObjectWithFile):
                 high_quality = file_hash == obj.file.ex.hash
 
-    _import_models(
+    return _import_models(
         operator,
         context,
         [ice.IceFile.load(path)],
@@ -85,7 +86,7 @@ def import_aqp_file(
         print(f'Found matching object. Importing with options from "{obj.name}"')
         options = _get_import_options(obj)
 
-    _import_models(
+    return _import_models(
         operator,
         context,
         [objects_aqp.AqpDataFileSource(path)],
@@ -143,21 +144,23 @@ def _import_models(
     materials: list[material.Material] = []
 
     for model in files.model_files:
-
         print("Importing", model.name)
         name = model.name.removesuffix(".aqp")
         aqn = next(
             (f for f in files.node_files if f.name.removesuffix(".aqn") == name), None
         )
 
-        result = _import_aqp(
+        result, new_materials = _import_aqp(
             operator,
             context,
             model,
             aqn,
             fbx_options=fbx_options,
         )
-        materials.extend(result)
+        if result != {"FINISHED"}:
+            return result
+
+        materials.extend(new_materials)
 
     new_mat_keys = set(bpy.data.materials.keys()).difference(original_mat_keys)
 
@@ -213,6 +216,8 @@ def _import_models(
         )
         shaders.build_material(context, bpy.data.materials[key], data)
 
+    return {"FINISHED"}
+
 
 def _get_ice_path(filename: objects.CmxFileName, data_path: Path, high_quality: bool):
     if high_quality and (path := filename.ex.path(data_path)):
@@ -262,7 +267,7 @@ def _import_aqp(
     aqp: Path | ice.IceDataFile,
     aqn: Path | ice.IceDataFile | None,
     fbx_options=None,
-):
+) -> tuple[set[str], list[material.Material]]:
     fbx_options = fbx_options or {}
 
     if isinstance(aqp, Path):
@@ -308,14 +313,17 @@ def _import_aqp(
             aqm_names,
             instance_transforms,
             include_metadata,
+            int(CoordSystem.OpenGL),
         )
 
-        import_fbx.load(
+        result = import_fbx.load(
             operator,
             context,
             filepath=str(fbxfile),
             **fbx_options,
         )
+        if result != {"FINISHED"}:
+            return result, []
 
         if get_preferences(context).hide_armature:
             for obj in context.selected_objects:
@@ -323,9 +331,13 @@ def _import_aqp(
                     obj.hide_set(True)
 
     mesh_mat_mapping = List[int]()
-    materials, _ = model.GetUniqueMaterials(mesh_mat_mapping)
+    generic_materials, _ = model.GetUniqueMaterials(mesh_mat_mapping)
 
-    return [material.Material.from_generic_material(mat) for mat in materials]
+    materials = [
+        material.Material.from_generic_material(mat) for mat in generic_materials
+    ]
+
+    return {"FINISHED"}, materials
 
 
 def _remove_invalid_bones(model: AquaPackage, skeleton: AquaNode):
