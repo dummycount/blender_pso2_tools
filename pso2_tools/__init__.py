@@ -48,7 +48,15 @@ clr.AddReference("ZamboniLib")
 # pylint: enable=no-member
 
 
-from . import classes, import_ice, import_search, ornaments, reloader, watcher
+from . import (
+    classes,
+    import_aqp,
+    import_ice,
+    import_search,
+    ornaments,
+    reloader,
+    watcher,
+)
 
 
 def register():
@@ -64,11 +72,15 @@ def unregister():
 
 
 def menu_func_import(self: bpy.types.Operator, context: bpy.types.Context):
-    # self.layout.operator(import_model.ImportAqp.bl_idname, text="PSO2 Model (.aqp)")
+    self.layout.operator(
+        import_aqp.PSO2_OT_ImportAqp.bl_idname, text="PSO2 Model (.aqp)"
+    )
     self.layout.operator(
         import_ice.PSO2_OT_ImportIce.bl_idname, text="PSO2 ICE Archive"
     )
-    self.layout.operator(import_search.PSO2_OT_ModelSearch.bl_idname, text="PSO2 Model")
+    self.layout.operator(
+        import_search.PSO2_OT_ModelSearch.bl_idname, text="PSO2 Search"
+    )
 
 
 def menu_func_export(self: bpy.types.Operator, context: bpy.types.Context):

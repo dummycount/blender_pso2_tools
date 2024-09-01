@@ -1245,7 +1245,7 @@ def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
     try:
         icefile = ice.IceFile.load(face_var_path)
 
-        for f in itertools.chain(icefile.group_one, icefile.group_two):
+        for f in icefile.get_files():
             if "face_variation.cmp.lua" in f.name.lower():
                 result.update(_parse_face_variation_lua(f))
     except System.IO.FileNotFoundException:
@@ -1254,7 +1254,7 @@ def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
     return result
 
 
-def _parse_face_variation_lua(datafile: ice.DataFile):
+def _parse_face_variation_lua(datafile: ice.IceDataFile):
     result: dict[str, int] = {}
     language: str | None = None
     src = datafile.data.rstrip(b"\0").decode()

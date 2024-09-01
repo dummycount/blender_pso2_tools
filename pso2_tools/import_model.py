@@ -13,7 +13,7 @@ from io_scene_fbx import import_fbx
 from System.Collections.Generic import List
 from System.Numerics import Matrix4x4
 
-from . import colors, ice, material, objects, shaders
+from . import colors, datafile, ice, material, objects, objects_aqp, shaders
 from .preferences import get_preferences
 
 
@@ -27,14 +27,18 @@ def import_object(
     data_path = get_preferences(context).get_pso2_data_path()
 
     files = obj.get_files()
-    ice_paths = [p for f in files if (p := _get_ice_path(f, data_path, high_quality))]
+    ice_files = [
+        ice.IceFile.load(p)
+        for f in files
+        if (p := _get_ice_path(f, data_path, high_quality))
+    ]
 
     options = _get_import_options(obj)
 
-    _import_ice_files(
+    _import_models(
         operator,
         context,
-        ice_paths,
+        ice_files,
         high_quality=high_quality,
         fbx_options=fbx_options,
         **options,
@@ -59,12 +63,34 @@ def import_ice_file(
             if isinstance(obj, objects.CmxObjectWithFile):
                 high_quality = file_hash == obj.file.ex.hash
 
-    _import_ice_files(
+    _import_models(
         operator,
         context,
-        [path],
+        [ice.IceFile.load(path)],
         fbx_options=fbx_options,
         high_quality=high_quality,
+        **options,
+    )
+
+
+def import_aqp_file(
+    operator: bpy.types.Operator,
+    context: bpy.types.Context,
+    path: Path,
+    fbx_options=None,
+):
+    options = {}
+
+    if obj := objects_aqp.guess_aqp_object(path.name, context):
+        print(f'Found matching object. Importing with options from "{obj.name}"')
+        options = _get_import_options(obj)
+
+    _import_models(
+        operator,
+        context,
+        [objects_aqp.AqpDataFileSource(path)],
+        fbx_options=fbx_options,
+        high_quality=True,
         **options,
     )
 
@@ -84,56 +110,47 @@ def _get_import_options(obj: objects.CmxObjectBase):
 
 
 @dataclass
-class IceFileContents:
-    texture_files: list[ice.DataFile] = field(default_factory=list)
-    model_files: list[ice.DataFile] = field(default_factory=list)
-    node_files: list[ice.DataFile] = field(default_factory=list)
+class ModelFiles:
+    texture_files: list[ice.IceDataFile] = field(default_factory=list)
+    model_files: list[ice.IceDataFile] = field(default_factory=list)
+    node_files: list[ice.IceDataFile] = field(default_factory=list)
 
 
-def collect_ice_contents(paths: Iterable[Path]):
-    result = IceFileContents()
+def collect_model_files(sources: Iterable[datafile.DataFileSource]):
+    result = ModelFiles()
 
-    for path in paths:
-        icefile = ice.IceFile.load(path)
-        for data in icefile.group_two:
-            match Path(data.name).suffix:
-                case ".aqp":
-                    result.model_files.append(data)
-
-                case ".aqn":
-                    result.node_files.append(data)
-
-                case ".dds":
-                    result.texture_files.append(data)
+    for source in sources:
+        result.model_files.extend(source.glob("*.aqp"))
+        result.node_files.extend(source.glob("*.aqn"))
+        result.texture_files.extend(source.glob("*.dds"))
 
     return result
 
 
-def _import_ice_files(
+def _import_models(
     operator: bpy.types.Operator,
     context: bpy.types.Context,
-    paths: Iterable[Path],
+    sources: Iterable[datafile.DataFileSource],
     fbx_options=None,
     high_quality=True,
     use_t2_skin=False,
     color_map: Optional[colors.ColorMapping] = None,
     uv_map: Optional[material.UVMapping] = None,
 ):
-    files = collect_ice_contents(paths)
+    files = collect_model_files(sources)
 
     original_mat_keys = set(bpy.data.materials.keys())
     materials: list[material.Material] = []
 
     for model in files.model_files:
-        # TODO: for linked outerwear, just get the material info from the model
-        # but don't import the model.
+
         print("Importing", model.name)
         name = model.name.removesuffix(".aqp")
         aqn = next(
             (f for f in files.node_files if f.name.removesuffix(".aqn") == name), None
         )
 
-        result = import_aqp(
+        result = _import_aqp(
             operator,
             context,
             model,
@@ -213,7 +230,7 @@ def _delete_empty_images():
             bpy.data.images.remove(image)
 
 
-def import_ice_image(data: ice.DataFile):
+def import_ice_image(data: ice.IceDataFile):
     with TemporaryDirectory() as tempdir:
         tempfile = Path(tempdir) / data.name
 
@@ -239,11 +256,11 @@ def import_image(path: Path):
     return image
 
 
-def import_aqp(
+def _import_aqp(
     operator: bpy.types.Operator,
     context: bpy.types.Context,
-    aqp: Path | ice.DataFile,
-    aqn: Path | ice.DataFile | None,
+    aqp: Path | ice.IceDataFile,
+    aqn: Path | ice.IceDataFile | None,
     fbx_options=None,
 ):
     fbx_options = fbx_options or {}
@@ -257,6 +274,9 @@ def import_aqp(
 
     package = AquaPackage(aqp_data)
     model = package.models[0]
+
+    # TODO: for linked outerwear, just get the material info from the model
+    # but don't import the model.
 
     if aqn is not None:
         aqn_data = aqn.read_bytes() if isinstance(aqn, Path) else aqn.data
@@ -332,9 +352,13 @@ def _import_skin_textures(
 
     skin = result[0]
     files = skin.get_files()
-    ice_paths = [p for f in files if (p := _get_ice_path(f, data_path, high_quality))]
+    ice_files = [
+        ice.IceFile.load(p)
+        for f in files
+        if (p := _get_ice_path(f, data_path, high_quality))
+    ]
 
-    skin_textures = collect_ice_contents(ice_paths).texture_files
+    skin_textures = collect_model_files(ice_files).texture_files
 
     return [import_ice_image(tex) for tex in skin_textures]
 

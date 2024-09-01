@@ -1,6 +1,9 @@
+import fnmatch
+import itertools
 import struct
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterable
 
 from System import Array, Byte
 from System.IO import FileMode, FileStream
@@ -8,7 +11,7 @@ from Zamboni import IceFile as InternalIceFile
 
 
 @dataclass
-class DataFile:
+class IceDataFile:
     name: str
     data: bytes
 
@@ -19,12 +22,12 @@ class DataFile:
 
         header_size = struct.unpack_from("i", data, offset=0xC)[0]
 
-        return DataFile(name=name, data=data[header_size:])
+        return IceDataFile(name=name, data=data[header_size:])
 
 
 class IceFile:
-    group_one: list[DataFile]
-    group_two: list[DataFile]
+    group_one: list[IceDataFile]
+    group_two: list[IceDataFile]
 
     @classmethod
     def load(cls, path: Path | str):
@@ -32,15 +35,21 @@ class IceFile:
         try:
             ice = InternalIceFile.LoadIceFile(stream)
 
-            group_one = [DataFile.from_byte_array(f) for f in ice.groupOneFiles]
-            group_two = [DataFile.from_byte_array(f) for f in ice.groupTwoFiles]
+            group_one = [IceDataFile.from_byte_array(f) for f in ice.groupOneFiles]
+            group_two = [IceDataFile.from_byte_array(f) for f in ice.groupTwoFiles]
 
             return IceFile(group_one, group_two)
         finally:
             stream.Close()
 
     def __init__(
-        self, group_one: list[DataFile] = None, group_two: list[DataFile] = None
+        self, group_one: list[IceDataFile] = None, group_two: list[IceDataFile] = None
     ):
         self.group_one = group_one or []
         self.group_two = group_two or []
+
+    def get_files(self) -> Iterable[IceDataFile]:
+        return itertools.chain(self.group_one, self.group_two)
+
+    def glob(self, pattern: str) -> Iterable[IceDataFile]:
+        return (f for f in self.get_files() if fnmatch.fnmatch(f.name, pattern))

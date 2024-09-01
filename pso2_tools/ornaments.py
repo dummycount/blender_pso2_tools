@@ -71,6 +71,7 @@ def find_context_area():
 
 
 class PSO2_OT_ShowOrnament(bpy.types.Operator):
+    bl_options = {"UNDO", "REGISTER", "INTERNAL"}
     mesh_id = 0
 
     def execute(self, context):

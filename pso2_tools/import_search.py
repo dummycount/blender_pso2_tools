@@ -620,6 +620,7 @@ class PSO2_OT_SelectAllCategories(bpy.types.Operator):
 
     bl_label = "Select All"
     bl_idname = "pso2.select_all_categories"
+    bl_options = {"INTERNAL"}
 
     def execute(self, context):
         preferences = get_preferences(context)
