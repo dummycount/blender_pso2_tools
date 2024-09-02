@@ -6,7 +6,7 @@ PSO2 Tools Blender addon
 # pylint: disable=wrong-import-order
 import sys
 
-from .paths import BIN_PATH
+from .paths import ADDON_PATH, BIN_PATH
 
 bl_info = {
     "name": "PSO2 Tools",
@@ -48,15 +48,7 @@ clr.AddReference("ZamboniLib")
 # pylint: enable=no-member
 
 
-from . import (
-    classes,
-    export_aqp,
-    import_aqp,
-    import_ice,
-    import_search,
-    reloader,
-    watcher,
-)
+from . import classes, export_aqp, import_aqp, import_ice, import_search, reloader
 from .panels import appearance, ornaments
 
 
@@ -90,14 +82,16 @@ def reload():
     bpy.ops.script.reload()
 
 
-# TODO: disable this in release versions (test if module directory is a symlink?)
-if "watch" not in locals():
-    watch = watcher.FileWatcher(reload)
+if ADDON_PATH.is_symlink():
+    from . import watcher
 
-if first_load:
-    watch.start()
-else:
-    watch.reset()
+    if "watch" not in locals():
+        watch = watcher.FileWatcher(reload)
+
+    if first_load:
+        watch.start()
+    else:
+        watch.reset()
 
 if __name__ == "__main__":
     register()
