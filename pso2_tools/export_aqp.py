@@ -19,8 +19,19 @@ class PSO2_OT_ExportAqp(bpy.types.Operator, ExportHelper):
     filename_ext = ".aqp"
     filter_glob: bpy.props.StringProperty(default="*.aqp", options={"HIDDEN"})
 
-    # TODO: add is_ngs option
-    # TODO: add overwrite_aqn option
+    game_version: bpy.props.EnumProperty(
+        name="Game Version",
+        items=[
+            ("NGS", "NGS", "Export for PSO2 NGS"),
+            ("CLASSIC", "Classic", "Export for PSO2 classic"),
+        ],
+        default="NGS",
+    )
+    overwrite_aqn: bpy.props.BoolProperty(
+        name="Overwrite .aqn",
+        description="If a .aqn file with the same name exists, overwrite it",
+        default=False,
+    )
 
     use_selection: bpy.props.BoolProperty(
         name="Selected Objects",
@@ -262,6 +273,7 @@ class PSO2_OT_ExportAqp(bpy.types.Operator, ExportHelper):
 
         is_file_browser = context.space_data.type == "FILE_BROWSER"
 
+        export_panel_main(layout, self)
         export_panel_include(layout, self, is_file_browser)
         export_panel_transform(layout, self)
         export_panel_geometry(layout, self)
@@ -281,14 +293,34 @@ class PSO2_OT_ExportAqp(bpy.types.Operator, ExportHelper):
             else Matrix()
         )
 
-        options = self.as_keywords(ignore=("check_existing", "filter_glob", "filepath"))
+        options = self.as_keywords(
+            ignore=(
+                "check_existing",
+                "filter_glob",
+                "filepath",
+                "version",
+                "overwrite_aqn",
+            )
+        )
         # pylint: disable-next=unsupported-assignment-operation
         options["global_matrix"] = global_matrix
 
-        return export_model.export(self, context, path, fbx_options=options)
+        return export_model.export(
+            self,
+            context,
+            path,
+            is_ngs=self.game_version == "NGS",
+            overwrite_aqn=self.overwrite_aqn,
+            fbx_options=options,
+        )
 
 
-def export_panel_include(layout, operator, is_file_browser):
+def export_panel_main(layout: bpy.types.UILayout, operator):
+    layout.prop(operator, "overwrite_aqn")
+    layout.prop(operator, "game_version")
+
+
+def export_panel_include(layout: bpy.types.UILayout, operator, is_file_browser: bool):
     if not is_file_browser:
         return
 
@@ -301,7 +333,7 @@ def export_panel_include(layout, operator, is_file_browser):
         sublayout.prop(operator, "use_active_collection")
 
 
-def export_panel_transform(layout, operator):
+def export_panel_transform(layout: bpy.types.UILayout, operator):
     header, body = layout.panel("PSO2_export_transform", default_closed=True)
     header.label(text="Transform")
     if body:
@@ -318,7 +350,7 @@ def export_panel_transform(layout, operator):
         row.label(text="", icon="ERROR")
 
 
-def export_panel_geometry(layout, operator):
+def export_panel_geometry(layout: bpy.types.UILayout, operator):
     header, body = layout.panel("PSO2_export_geometry", default_closed=False)
     header.label(text="Geometry")
     if body:
@@ -332,7 +364,7 @@ def export_panel_geometry(layout, operator):
         sub.prop(operator, "use_tspace")
 
 
-def export_panel_armature(layout, operator):
+def export_panel_armature(layout: bpy.types.UILayout, operator):
     header, body = layout.panel("PSO2_export_armature", default_closed=True)
     header.label(text="Armature")
     if body:
@@ -343,7 +375,7 @@ def export_panel_armature(layout, operator):
         body.prop(operator, "add_leaf_bones")
 
 
-def export_panel_animation(layout, operator):
+def export_panel_animation(layout: bpy.types.UILayout, operator):
     header, body = layout.panel("PSO2_export_bake_animation", default_closed=True)
     header.use_property_split = False
     header.prop(operator, "bake_anim", text="")
