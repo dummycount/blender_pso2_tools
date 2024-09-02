@@ -17,7 +17,7 @@ wheels = [
   "./wheels/clr_loader-0.2.6-py3-none-any.whl",
   "./wheels/pycparser-2.22-py3-none-any.whl",
   "./wheels/pythonnet-3.0.3-py3-none-any.whl",
-  "./wheels/watchdog-4.0.1-py3-none-win_amd64.whl",
+  "./wheels/watchdog-5.0.0-py3-none-win_amd64.whl",
 ]
 
 [permissions]
