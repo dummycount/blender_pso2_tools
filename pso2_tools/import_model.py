@@ -157,7 +157,7 @@ def _import_models(
             aqn,
             fbx_options=fbx_options,
         )
-        if result != {"FINISHED"}:
+        if "FINISHED" not in result:
             return result
 
         materials.extend(new_materials)
