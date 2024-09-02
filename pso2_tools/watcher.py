@@ -49,7 +49,5 @@ class FileWatcher(FileSystemEventHandler):
         if src_ext not in WATCH_EXTENSIONS and dest_ext not in WATCH_EXTENSIONS:
             return
 
-        print(event)
-
         self._callback_running = True
         self._callback()

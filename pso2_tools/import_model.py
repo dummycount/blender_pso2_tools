@@ -15,6 +15,7 @@ from System.Collections.Generic import List
 from System.Numerics import Matrix4x4
 
 from . import colors, datafile, ice, material, objects, objects_aqp, shaders
+from .debug import debug_pprint, debug_print
 from .preferences import get_preferences
 
 
@@ -25,6 +26,8 @@ def import_object(
     high_quality=True,
     fbx_options=None,
 ):
+    debug_print("Importing object:", obj.name)
+
     data_path = get_preferences(context).get_pso2_data_path()
 
     files = obj.get_files()
@@ -52,13 +55,17 @@ def import_ice_file(
     path: Path,
     fbx_options=None,
 ):
+    debug_print("Importing ICE:", path.name)
+
     file_hash = path.name
     high_quality = True
     options = {}
 
     with closing(objects.ObjectDatabase(context)) as db:
         if obj := next(db.get_all(file_hash=file_hash), None):
-            print(f'Found matching hash. Importing with options from "{obj.name}"')
+            debug_print(
+                f'Found matching hash. Importing with options from "{obj.name}"'
+            )
             options = _get_import_options(obj)
 
             if isinstance(obj, objects.CmxObjectWithFile):
@@ -80,10 +87,12 @@ def import_aqp_file(
     path: Path,
     fbx_options=None,
 ):
+    debug_print("Importing AQP:", path.name)
+
     options = {}
 
     if obj := objects_aqp.guess_aqp_object(path.name, context):
-        print(f'Found matching object. Importing with options from "{obj.name}"')
+        debug_print(f'Found matching object. Importing with options from "{obj.name}"')
         options = _get_import_options(obj)
 
     return _import_models(
@@ -138,13 +147,16 @@ def _import_models(
     color_map: Optional[colors.ColorMapping] = None,
     uv_map: Optional[material.UVMapping] = None,
 ):
+    debug_print(f"Import options: {high_quality=} {use_t2_skin=} {color_map=}")
+    debug_print(f"FBX options: {fbx_options=}")
+
     files = collect_model_files(sources)
 
     original_mat_keys = set(bpy.data.materials.keys())
     materials: list[material.Material] = []
 
     for model in files.model_files:
-        print("Importing", model.name)
+        debug_print("Importing", model.name)
         name = model.name.removesuffix(".aqp")
         aqn = next(
             (f for f in files.node_files if f.name.removesuffix(".aqn") == name), None
@@ -201,11 +213,10 @@ def _import_models(
     if model_materials.has_decal_texture:
         model_materials.extra_textures.extend(material.find_textures("bp"))
 
-    # TODO: update new_mats with PSO2 shader materials.
-
     _delete_empty_images()
 
-    pprint(model_materials.materials)
+    debug_print("IMPORT MATERIALS:")
+    debug_pprint(model_materials.materials)
 
     for key, mat in model_materials.materials.items():
         data = shaders.types.ShaderData(

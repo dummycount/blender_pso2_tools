@@ -10,7 +10,6 @@ def register(cls):
 
 def bpy_register():
     for cls in __classes:
-        print("Register", cls)
         try:
             bpy.utils.register_class(cls)
         except ValueError:

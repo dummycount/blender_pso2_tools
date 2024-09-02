@@ -21,6 +21,7 @@ from AquaModelLibrary.Data.Utility import ReferenceGenerator
 
 from . import ice, preferences
 from .colors import ColorId, ColorMapping
+from .debug import debug_print
 from .paths import get_data_path
 from .util import dict_get
 
@@ -444,11 +445,18 @@ class CmxBodyObject(CmxObjectBase):
     def get_colors(self) -> set[ColorId]:
         # TODO: currently just assuming every body part uses skin colors.
         # Is there a way to check without inspecting the .aqp file's materials?
-        colors = {ColorId.MAIN_SKIN, ColorId.SUB_SKIN}
-        colors |= self.color_mapping.get_used_colors()
+        colors = self.get_color_map().get_used_colors()
+        colors.add(ColorId.MAIN_SKIN)
+
+        if self.is_ngs:
+            colors.add(ColorId.SUB_SKIN)
+
         return colors
 
     def get_color_map(self) -> ColorMapping:
+        if self.is_ngs:
+            return self.color_mapping
+
         if classic_colors := get_classic_color_map(self.object_type):
             return classic_colors
 
@@ -687,7 +695,7 @@ class ObjectDatabase:
                 return con
 
             if version != 0:
-                print("Database version changed. Resetting.")
+                debug_print("Database version changed. Resetting.")
                 con.executescript(
                     """
                     PRAGMA writable_schema = 1;
@@ -920,7 +928,7 @@ def _get_item_names(
                 item_id = int(name.lower().removeprefix("no"))
                 result[item_id][lang] = item.str
             except ValueError:
-                print(f'Failed to parse {category} ID "{item.name}"')
+                debug_print(f'Failed to parse {category} ID "{item.name}"')
 
     return result
 
@@ -1262,11 +1270,8 @@ def _parse_face_variation_lua(datafile: ice.IceDataFile):
     for line in src.splitlines():
         if language:
             if "crop_name" in line:
-                name = line.split('"')[1]
-                if name:
+                if name := line.split('"')[1]:
                     result[language] = int(name[7:])
-                else:
-                    print("Ignoring", line)
 
                 language = None
 

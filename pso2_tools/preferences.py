@@ -59,7 +59,11 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         default=_get_default_data_path(),
     )
 
-    debug: bpy.props.BoolProperty(name="Show debug info", default=False)
+    debug: bpy.props.BoolProperty(
+        name="Debug logging",
+        description="Print debug info to the console",
+        default=False,
+    )
 
     hide_armature: bpy.props.BoolProperty(
         name="Hide armature on import",
@@ -189,6 +193,7 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
 
         layout.prop(self, "pso2_data_path")
         layout.prop(self, "hide_armature")
+        layout.prop(self, "debug")
 
         layout.prop(self, "default_muscularity")
         layout.prop(self, "default_skin_t1")

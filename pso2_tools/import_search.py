@@ -9,6 +9,7 @@ import bpy
 
 from . import classes, import_model, objects, props
 from .colors import COLOR_CHANNELS, ColorId
+from .debug import debug_print
 from .objects import ObjectType
 from .preferences import get_preferences
 
@@ -403,7 +404,7 @@ def _populate_model_list(collection, context: bpy.types.Context):
             item.populate(obj)
 
     end = time.monotonic()
-    print(f"PSO2 items loaded in {end - start:0.1f}s")
+    debug_print(f"PSO2 items loaded in {end - start:0.1f}s")
 
 
 @classes.register
