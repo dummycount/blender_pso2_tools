@@ -2,3 +2,4 @@ black
 fake-bpy-module
 pre-commit
 pythonnet~=3.0.3
+watchdog~=5.0.0

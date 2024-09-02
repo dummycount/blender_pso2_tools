@@ -9,6 +9,7 @@ OUTPUT_DIR = ROOT / "dist"
 
 MANIFEST = SOURCE_DIR / "blender_manifest.toml"
 
+
 def build():
     blender_call(
         [
@@ -24,8 +25,9 @@ def build():
 
     return get_package_path()
 
+
 def get_package_path() -> Path:
-    with MANIFEST.open('rb') as f:
+    with MANIFEST.open("rb") as f:
         manifest = tomllib.load(f)
         name = f"{manifest["id"]}-{manifest['version']}.zip"
 
