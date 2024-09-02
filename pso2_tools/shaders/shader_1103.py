@@ -2,8 +2,9 @@ import bpy
 
 from .. import classes
 from ..colors import ColorId
-from . import builder, color_channels, types
+from . import builder, types
 from .colorize import ShaderNodePso2Colorize
+from .colors import ShaderNodePso2Colorchannels
 
 
 class Shader1103(builder.ShaderBuilder):
@@ -62,8 +63,9 @@ class Shader1103(builder.ShaderBuilder):
         if self.colors.alpha != ColorId.UNUSED:
             tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
-        channels = tree.add_node("ShaderNodeGroup", (7, 10), name="Colors")
-        channels.node_tree = color_channels.get_color_channels_node(context)
+        channels: ShaderNodePso2Colorchannels = tree.add_node(
+            "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
+        )
 
         tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])

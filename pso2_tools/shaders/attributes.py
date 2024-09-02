@@ -1,6 +1,6 @@
 import bpy
 
-from .. import classes
+from .. import classes, scene_props
 from . import builder
 
 
@@ -36,7 +36,7 @@ class ShaderNodePso2ShowInnerwear(bpy.types.ShaderNodeCustomGroup):
 
         in_hide = tree.add_node("ShaderNodeAttribute", name="Hide Innerwear")
         in_hide.attribute_type = "VIEW_LAYER"
-        in_hide.attribute_name = "Hide Innerwear"
+        in_hide.attribute_name = scene_props.HIDE_INNERWEAR
 
         in_show = tree.add_node("ShaderNodeMath", name="Show Innerwear")
         in_show.operation = "SUBTRACT"

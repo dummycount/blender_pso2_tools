@@ -1,10 +1,12 @@
 import bpy
 
+from .. import scene_props
 from ..colors import ColorId
-from . import builder, color_channels, types
+from . import builder, types
 from .attributes import ShaderNodePso2ShowInnerwear
 from .colorize import ShaderNodePso2Colorize
-from .mix import ShaderNodePso2MixTexture, ShaderNodePso2MixTextureAttribute
+from .colors import ShaderNodePso2Colorchannels
+from .mix import ShaderNodePso2MixTextureAttribute
 from .ngs import ShaderNodePso2Ngs, ShaderNodePso2NgsSkin
 
 
@@ -51,7 +53,7 @@ class Shader1102(builder.ShaderBuilder):
             "ShaderNodePso2MixTextureAttribute", (18, 18), name="Diffuse Mix"
         )
         diffuse_mix.attribute_type = "VIEW_LAYER"
-        diffuse_mix.attribute_name = "Muscularity"
+        diffuse_mix.attribute_name = scene_props.MUSCULARITY
 
         # tree.add_link(muscularity.outputs["Fac"], diffuse_mix.inputs["Factor"])
         tree.add_link(diffuse_0.outputs["Color"], diffuse_mix.inputs["Color 1"])
@@ -72,7 +74,7 @@ class Shader1102(builder.ShaderBuilder):
             "ShaderNodePso2MixTextureAttribute", (18, 12), name="Color Mask Mix"
         )
         mask_mix.attribute_type = "VIEW_LAYER"
-        mask_mix.attribute_name = "Muscularity"
+        mask_mix.attribute_name = scene_props.MUSCULARITY
 
         # tree.add_link(muscularity.outputs["Fac"], mask_mix.inputs["Factor"])
         tree.add_link(mask_0.outputs["Color"], mask_mix.inputs["Color 1"])
@@ -88,8 +90,9 @@ class Shader1102(builder.ShaderBuilder):
         tree.add_link(mask_mix.outputs["Color"], colorize.inputs["Mask RGB"])
         tree.add_link(colorize.outputs["Result"], skin_group.inputs["Diffuse"])
 
-        channels = skin.add_node("ShaderNodeGroup", (22, 10), name="Colors")
-        channels.node_tree = color_channels.get_color_channels_node(context)
+        channels: ShaderNodePso2Colorchannels = skin.add_node(
+            "ShaderNodePso2Colorchannels", (22, 10), name="Colors"
+        )
 
         tree.add_color_link(ColorId.MAIN_SKIN, channels, colorize.inputs["Color 1"])
         tree.add_color_link(ColorId.SUB_SKIN, channels, colorize.inputs["Color 2"])
@@ -105,7 +108,7 @@ class Shader1102(builder.ShaderBuilder):
             "ShaderNodePso2MixTextureAttribute", (18, 6), name="Multi Map Mix"
         )
         multi_mix.attribute_type = "VIEW_LAYER"
-        multi_mix.attribute_name = "Muscularity"
+        multi_mix.attribute_name = scene_props.MUSCULARITY
 
         # tree.add_link(muscularity.outputs["Fac"], multi_mix.inputs["Factor"])
         tree.add_link(multi_0.outputs["Color"], multi_mix.inputs["Color 1"])
@@ -127,7 +130,7 @@ class Shader1102(builder.ShaderBuilder):
             "ShaderNodePso2MixTextureAttribute", (18, 0), name="Normal Map Mix"
         )
         normal_mix.attribute_type = "VIEW_LAYER"
-        normal_mix.attribute_name = "Muscularity"
+        normal_mix.attribute_name = scene_props.MUSCULARITY
 
         # tree.add_link(muscularity.outputs["Fac"], normal_mix.inputs["Factor"])
         tree.add_link(normal_0.outputs["Color"], normal_mix.inputs["Color 1"])
@@ -163,8 +166,9 @@ class Shader1102(builder.ShaderBuilder):
         tree.add_link(in_mask.outputs["Color"], in_colorize.inputs["Mask RGB"])
         tree.add_link(in_colorize.outputs["Result"], in_group.inputs["Diffuse"])
 
-        channels = inner.add_node("ShaderNodeGroup", (7, 10), name="Colors")
-        channels.node_tree = color_channels.get_color_channels_node(context)
+        channels: ShaderNodePso2Colorchannels = inner.add_node(
+            "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
+        )
 
         tree.add_color_link(ColorId.INNER1, channels, in_colorize.inputs["Color 1"])
         tree.add_color_link(ColorId.INNER2, channels, in_colorize.inputs["Color 2"])

@@ -7,7 +7,7 @@ from typing import Iterable, Optional, Type
 
 import bpy
 
-from . import classes, import_model, objects, props
+from . import classes, import_model, import_props, objects
 from .colors import COLOR_CHANNELS, ColorId
 from .debug import debug_print
 from .objects import ObjectType
@@ -273,7 +273,7 @@ def _get_object_class(object_type: ObjectType) -> Type[objects.CmxObjectBase]:
 
 
 @classes.register
-class PSO2_OT_ModelSearch(bpy.types.Operator, props.CommonImportProps):
+class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
     """Search for PSO2 models"""
 
     bl_label = "Import PSO2 Model"

@@ -60,6 +60,10 @@ class ColorChannel:
     name: str
     default: Color
 
+    @property
+    def custom_property_name(self):
+        return f"pso2_{self.prop}"
+
 
 COLOR_CHANNELS = {
     ColorId.OUTER1: ColorChannel("Costume", "outer_color_1", "Outerwear 1", GRAY),

@@ -3,11 +3,13 @@ from pathlib import Path
 import bpy
 from bpy_extras.io_utils import ImportHelper
 
-from . import classes, import_model, props
+from . import classes, import_model, import_props
 
 
 @classes.register
-class PSO2_OT_ImportAqp(bpy.types.Operator, props.CommonImportProps, ImportHelper):
+class PSO2_OT_ImportAqp(
+    bpy.types.Operator, import_props.CommonImportProps, ImportHelper
+):
     """Load a PSO2 AQP file"""
 
     bl_label = "Import AQP"

@@ -2,7 +2,7 @@ import re
 
 import bpy
 
-from . import classes, util
+from .. import classes, util
 
 
 @classes.register

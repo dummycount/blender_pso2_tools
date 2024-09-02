@@ -3,9 +3,10 @@ import bpy
 from .. import classes
 from ..colors import ColorId, ColorMapping
 from ..material import MaterialTextures, UVMapping
-from . import builder, color_channels, types
+from . import builder, types
 from .attributes import ShaderNodePso2ShowInnerwear
 from .colorize import ShaderNodePso2Colorize
+from .colors import ShaderNodePso2Colorchannels
 from .mix import ShaderNodePso2MixTexture
 
 
@@ -44,8 +45,9 @@ class Shader0100(builder.ShaderBuilder):
         )
         tree.add_link(base_group.outputs["BSDF"], output.inputs["Surface"])
 
-        channels = tree.add_node("ShaderNodeGroup", (9, 28), name="Colors")
-        channels.node_tree = color_channels.get_color_channels_node(context)
+        channels: ShaderNodePso2Colorchannels = tree.add_node(
+            "ShaderNodePso2Colorchannels", (9, 28), name="Colors"
+        )
 
         # Diffuse
         diffuse = tree.add_node("ShaderNodeTexImage", (0, 36), name="Diffuse")

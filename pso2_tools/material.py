@@ -7,7 +7,7 @@ import AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary
 import bpy
 import System.Numerics
 
-from . import util
+from . import colors, scene_props, util
 from .preferences import get_preferences
 
 Vector4 = tuple[float, float, float, float]
@@ -278,18 +278,6 @@ class ModelMaterials:
         pixel = f"{shader_id:04d}p"
         vertex = f"{shader_id:04d}"
         return any(m.shaders == [pixel, vertex] for m in self.materials.values())
-
-    def create_custom_properties(self, context: bpy.types.Context):
-        preferences = get_preferences(context)
-
-        if self.has_skin_material or self.has_classic_default_material:
-            context.scene["Hide Innerwear"] = False
-
-        if self.has_skin_material:
-            context.scene["Muscularity"] = preferences.default_muscularity
-
-            context.scene.id_properties_ensure()
-            context.scene.id_properties_ui("Muscularity").update(min=0, max=1)
 
     def get_textures(self, material: Material):
         result = MaterialTextures()

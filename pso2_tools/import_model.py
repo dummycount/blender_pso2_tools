@@ -1,7 +1,6 @@
 from contextlib import closing
 from dataclasses import dataclass, field
 from pathlib import Path
-from pprint import pprint
 from tempfile import TemporaryDirectory
 from typing import Iterable, Optional
 
@@ -14,7 +13,16 @@ from io_scene_fbx import import_fbx
 from System.Collections.Generic import List
 from System.Numerics import Matrix4x4
 
-from . import colors, datafile, ice, material, objects, objects_aqp, shaders
+from . import (
+    colors,
+    datafile,
+    ice,
+    material,
+    objects,
+    objects_aqp,
+    scene_props,
+    shaders,
+)
 from .debug import debug_pprint, debug_print
 from .preferences import get_preferences
 
@@ -61,6 +69,7 @@ def import_ice_file(
     high_quality = True
     options = {}
 
+    # TODO: if this fails, check the ICE file for an AQP and use guess_aqp_object()
     with closing(objects.ObjectDatabase(context)) as db:
         if obj := next(db.get_all(file_hash=file_hash), None):
             debug_print(
@@ -185,7 +194,7 @@ def _import_models(
         textures=[import_ice_image(tex) for tex in files.texture_files],
     )
 
-    model_materials.create_custom_properties(context)
+    scene_props.add_scene_properties(context)
 
     # Collect extra textures that are not part of the model but are used by it.
     if model_materials.has_skin_material:

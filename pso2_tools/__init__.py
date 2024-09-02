@@ -54,10 +54,10 @@ from . import (
     import_aqp,
     import_ice,
     import_search,
-    ornaments,
     reloader,
     watcher,
 )
+from .panels import appearance, ornaments
 
 
 def register():
