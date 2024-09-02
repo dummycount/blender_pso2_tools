@@ -1,4 +1,3 @@
-black
 fake-bpy-module
 pre-commit
 pythonnet~=3.0.3
