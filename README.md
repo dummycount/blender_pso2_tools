@@ -2,12 +2,15 @@
 
 ## Installation
 
-1. Download `pso2_tools-****.zip` from the [latest release](https://github.com/dummycount/blender_pso2_tools/releases/latest).
-2. In Blender, go to **Edit > Preferences > Add-ons**.
-3. Click the down arrow in the upper-right corner and select **Install from Disk...**.
-4. Select the .zip file you downloaded.
-5. Make sure **PSO2 Tools** is checked in the add-ons list.
-6. Expand **PSO2 Tools** and make sure **Path to pso2_bin/data** is correct. If not, set it to point to your game's install directory.
+The libraries used for import/export are only compiled for Windows x64. This add-on will not currently work on other OSes.
+
+1. Install the [.NET Runtime 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) for Windows (on the bottom right of the page).
+2. Download `pso2_tools-****.zip` from the [latest release](https://github.com/dummycount/blender_pso2_tools/releases/latest).
+3. In Blender, go to **Edit > Preferences > Add-ons**.
+4. Click the down arrow in the upper-right corner and select **Install from Disk...**.
+5. Select the .zip file you downloaded.
+6. Make sure **PSO2 Tools** is checked in the add-ons list.
+7. Expand **PSO2 Tools** and make sure **Path to pso2_bin/data** is correct. If not, set it to point to your game's install directory.
 
 ## Usage
 
