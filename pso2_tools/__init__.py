@@ -4,9 +4,7 @@ PSO2 Tools Blender addon
 
 # pylint: disable=wrong-import-position
 # pylint: disable=wrong-import-order
-import sys
-
-from .paths import ADDON_PATH, BIN_PATH
+import bpy
 
 bl_info = {
     "name": "PSO2 Tools",
@@ -22,34 +20,13 @@ if "reloader" in locals():
     importlib.reload(reloader)
     reloader.reload_addon(__name__)
 
-    first_load = False
-else:
-    first_load = True
+from . import dotnet
 
-import bpy
-from pythonnet import load
-
-load("coreclr")
-
-import clr
-
-# Blender complains about this, but there's no other way to get pythonnet
-# to find the assemblies.
-if str(BIN_PATH) not in sys.path:
-    sys.path.append(str(BIN_PATH))
-
-# pylint: disable=no-member
-clr.AddReference("System")
-clr.AddReference("System.IO")
-clr.AddReference("AquaModelLibrary.Core")
-clr.AddReference("AquaModelLibrary.Data")
-clr.AddReference("AquaModelLibrary.Helpers")
-clr.AddReference("ZamboniLib")
-# pylint: enable=no-member
-
+dotnet.load()
 
 from . import classes, export_aqp, import_aqp, import_ice, import_search, reloader
 from .panels import appearance, ornaments
+from .paths import ADDON_PATH
 
 
 def register():
@@ -59,6 +36,7 @@ def register():
 
 
 def unregister():
+    # TODO: unload pythonnet when the extension is disabled.
     bpy.types.TOPBAR_MT_file_import.remove(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     classes.bpy_unregister()
@@ -78,20 +56,12 @@ def menu_func_export(self: bpy.types.Operator, context: bpy.types.Context):
     self.layout.operator(export_aqp.PSO2_OT_ExportAqp.bl_idname, text="PSO2 AQP (.aqp)")
 
 
-def reload():
-    bpy.ops.script.reload()
-
-
 if ADDON_PATH.is_symlink():
     from . import watcher
 
-    if "watch" not in locals():
-        watch = watcher.FileWatcher(reload)
-
-    if first_load:
-        watch.start()
+    if "watch" in locals():
+        # pylint: disable-next=used-before-assignment
+        watch.reset()  # pyright: ignore[reportUndefinedVariable]
     else:
-        watch.reset()
-
-if __name__ == "__main__":
-    register()
+        watch = watcher.FileWatcher(bpy.ops.script.reload)
+        watch.start()

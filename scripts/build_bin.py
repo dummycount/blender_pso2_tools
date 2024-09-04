@@ -75,11 +75,17 @@ def copy_package_dlls():
     frameworks = [FRAMEWORK, "netstandard1.3"]
 
     for package, version in PACKAGES:
-        src = PACKAGES_PATH / f"{package}.{version}/lib"
-        src = next(src / f for f in frameworks if (src / f).exists())
+        src = PACKAGES_PATH / f"{package}.{version}"
+        lib = src / "lib"
+        runtime_x64 = src / "runtimes/win-x64/native"
 
-        for dll in src.glob("*.dll"):
+        framework = next(lib / f for f in frameworks if (lib / f).exists())
+
+        for dll in framework.glob("*.dll"):
             shutil.copyfile(dll, BIN_PATH / dll.name)
+
+        for dll in runtime_x64.glob("*.dll"):
+            shutil.copyfile(dll, BIN_PATH / "x64" / dll.name)
 
 
 def call_msbuild(args: list[str]):
