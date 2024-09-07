@@ -8,7 +8,7 @@ class Shader1117(shader_1102.Shader1102):
         super().build(context)
 
         tree = builder.NodeTreeBuilder(self.tree)
-        frame = tree.tree.nodes["Frame"]
+        frame = tree.tree.nodes["Skin"]
         diffuse = tree.tree.nodes["Skin Colorize"]
         skin = tree.tree.nodes["PSO2 NGS Skin"]
 
