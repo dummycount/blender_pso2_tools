@@ -33,9 +33,8 @@ def export(
             return result
 
         AssimpModelImporter.scaleHandling = (
-            AssimpModelImporter.ScaleHandling.CustomScale
+            AssimpModelImporter.ScaleHandling.FileScaling
         )
-        AssimpModelImporter.customScale = 100
 
         # TODO: support exporting motions
         model, aqn = cast(
