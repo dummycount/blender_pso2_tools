@@ -49,7 +49,7 @@ class CommonImportProps:
             ("-Y", "-Y Axis", ""),
             ("-Z", "-Z Axis", ""),
         ),
-        default="Y",
+        default="X",
     )
     secondary_bone_axis: bpy.props.EnumProperty(
         name="Secondary Bone Axis",
@@ -61,7 +61,7 @@ class CommonImportProps:
             ("-Y", "-Y Axis", ""),
             ("-Z", "-Z Axis", ""),
         ),
-        default="X",
+        default="Y",
     )
 
     def get_fbx_options(self, ignore: Iterable[str] = None):

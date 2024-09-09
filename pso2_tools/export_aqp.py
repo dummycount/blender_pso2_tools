@@ -169,7 +169,7 @@ class PSO2_OT_ExportAqp(bpy.types.Operator, ExportHelper):
             ("-Y", "-Y Axis", ""),
             ("-Z", "-Z Axis", ""),
         ),
-        default="Y",
+        default="X",
     )
     secondary_bone_axis: bpy.props.EnumProperty(
         name="Secondary Bone Axis",
@@ -181,7 +181,7 @@ class PSO2_OT_ExportAqp(bpy.types.Operator, ExportHelper):
             ("-Y", "-Y Axis", ""),
             ("-Z", "-Z Axis", ""),
         ),
-        default="X",
+        default="Y",
     )
     use_armature_deform_only: bpy.props.BoolProperty(
         name="Only Deform Bones",
