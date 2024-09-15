@@ -1,6 +1,6 @@
 import bpy
 
-from . import builder, types
+from . import attributes, builder, types
 from .ngs import ShaderNodePso2Ngs
 
 
@@ -29,6 +29,11 @@ class Shader1101(builder.ShaderBuilder):
         output = tree.add_node("ShaderNodeOutputMaterial", (18, 6))
 
         shader_group: ShaderNodePso2Ngs = tree.add_node("ShaderNodePso2Ngs", (12, 6))
+        attributes.add_alpha_threshold(
+            target=shader_group.inputs["Alpha Threshold"],
+            material=self.material,
+        )
+
         tree.add_link(shader_group.outputs["BSDF"], output.inputs["Surface"])
 
         # Diffuse

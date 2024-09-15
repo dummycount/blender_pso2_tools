@@ -3,8 +3,12 @@ import bpy
 from .colors import COLOR_CHANNELS
 from .preferences import get_preferences
 
+# Scene
 HIDE_INNERWEAR = "pso2_hide_innerwear"
 MUSCULARITY = "pso2_muscularity"
+
+# Object
+ALPHA_THRESHOLD = "pso2_alpha_threshold"
 
 
 def add_scene_properties(context: bpy.types.Context):
@@ -42,3 +46,17 @@ def add_scene_properties(context: bpy.types.Context):
                 size=4,
             ),
         )
+
+
+def add_material_properties(context: bpy.types.Context):
+    setattr(
+        bpy.types.Material,
+        ALPHA_THRESHOLD,
+        bpy.props.IntProperty(
+            name="Alpha Threshold",
+            min=0,
+            max=255,
+            default=0,
+            subtype="FACTOR",
+        ),
+    )

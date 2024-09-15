@@ -35,7 +35,7 @@ class ShaderNodePso2Mix(bpy.types.ShaderNodeCustomGroup):
         tree.new_input("NodeSocketFloat", "Alpha 2")
 
         tree.new_output("NodeSocketColor", "Color")
-        tree.new_output("NodeSocketColor", "Alpha")
+        tree.new_output("NodeSocketFloat", "Alpha")
 
         color = tree.add_node("ShaderNodeMix", name="Color")
         color.data_type = "RGBA"

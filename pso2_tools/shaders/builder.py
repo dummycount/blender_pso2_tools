@@ -9,6 +9,28 @@ GRID = 50
 Vec2 = Tuple[float, float]
 
 
+def add_driver(
+    target: bpy.types.bpy_struct,
+    prop: str,
+    id_type: str,
+    source: bpy.types.bpy_struct,
+    data_path: str,
+    index=-1,
+    expression=None,
+):
+    driver = target.driver_add(prop, index)
+
+    var = driver.driver.variables.new()
+    var.name = data_path
+    var.targets[0].id_type = id_type
+    var.targets[0].id = source
+    var.targets[0].data_path = data_path
+
+    driver.driver.expression = expression or data_path
+
+    return driver
+
+
 class ShaderBuilder:
     material: bpy.types.Material
 

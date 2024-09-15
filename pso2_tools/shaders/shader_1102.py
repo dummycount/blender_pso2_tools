@@ -2,7 +2,7 @@ import bpy
 
 from .. import scene_props
 from ..colors import ColorId
-from . import builder, types
+from . import attributes, builder, types
 from .attributes import ShaderNodePso2ShowInnerwear
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
@@ -41,6 +41,10 @@ class Shader1102(builder.ShaderBuilder):
         skin_group: ShaderNodePso2NgsSkin = skin.add_node(
             "ShaderNodePso2NgsSkin", (30, 6)
         )
+        attributes.add_alpha_threshold(
+            target=skin_group.inputs["Alpha Threshold"],
+            material=self.material,
+        )
 
         # Diffuse
         diffuse_0 = skin.add_node("ShaderNodeTexImage", (0, 18), name="Diffuse")
@@ -55,7 +59,6 @@ class Shader1102(builder.ShaderBuilder):
         diffuse_mix.attribute_type = "VIEW_LAYER"
         diffuse_mix.attribute_name = scene_props.MUSCULARITY
 
-        # tree.add_link(muscularity.outputs["Fac"], diffuse_mix.inputs["Factor"])
         tree.add_link(diffuse_0.outputs["Color"], diffuse_mix.inputs["Color 1"])
         tree.add_link(diffuse_0.outputs["Alpha"], diffuse_mix.inputs["Alpha 1"])
         tree.add_link(diffuse_1.outputs["Color"], diffuse_mix.inputs["Color 2"])
@@ -76,7 +79,6 @@ class Shader1102(builder.ShaderBuilder):
         mask_mix.attribute_type = "VIEW_LAYER"
         mask_mix.attribute_name = scene_props.MUSCULARITY
 
-        # tree.add_link(muscularity.outputs["Fac"], mask_mix.inputs["Factor"])
         tree.add_link(mask_0.outputs["Color"], mask_mix.inputs["Color 1"])
         tree.add_link(mask_0.outputs["Alpha"], mask_mix.inputs["Alpha 1"])
         tree.add_link(mask_1.outputs["Color"], mask_mix.inputs["Color 2"])
@@ -94,8 +96,19 @@ class Shader1102(builder.ShaderBuilder):
             "ShaderNodePso2Colorchannels", (22, 10), name="Colors"
         )
 
-        tree.add_color_link(ColorId.MAIN_SKIN, channels, colorize.inputs["Color 1"])
-        tree.add_color_link(ColorId.SUB_SKIN, channels, colorize.inputs["Color 2"])
+        if self.textures.skin_0.mask:
+            # If using skin textures, use skin colors
+            tree.add_color_link(ColorId.MAIN_SKIN, channels, colorize.inputs["Color 1"])
+            tree.add_color_link(ColorId.SUB_SKIN, channels, colorize.inputs["Color 2"])
+        else:
+            # Otherwise, use the object's colors
+            if self.colors.alpha != ColorId.UNUSED:
+                tree.add_link(mask_mix.outputs["Alpha"], colorize.inputs["Mask A"])
+
+            tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
+            tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
+            tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
+            tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
 
         # Multi Map
         multi_0 = skin.add_node("ShaderNodeTexImage", (0, 6), name="Multi Map")
@@ -110,7 +123,6 @@ class Shader1102(builder.ShaderBuilder):
         multi_mix.attribute_type = "VIEW_LAYER"
         multi_mix.attribute_name = scene_props.MUSCULARITY
 
-        # tree.add_link(muscularity.outputs["Fac"], multi_mix.inputs["Factor"])
         tree.add_link(multi_0.outputs["Color"], multi_mix.inputs["Color 1"])
         tree.add_link(multi_0.outputs["Alpha"], multi_mix.inputs["Alpha 1"])
         tree.add_link(multi_1.outputs["Color"], multi_mix.inputs["Color 2"])
@@ -132,7 +144,6 @@ class Shader1102(builder.ShaderBuilder):
         normal_mix.attribute_type = "VIEW_LAYER"
         normal_mix.attribute_name = scene_props.MUSCULARITY
 
-        # tree.add_link(muscularity.outputs["Fac"], normal_mix.inputs["Factor"])
         tree.add_link(normal_0.outputs["Color"], normal_mix.inputs["Color 1"])
         tree.add_link(normal_1.outputs["Color"], normal_mix.inputs["Color 2"])
 
@@ -143,6 +154,10 @@ class Shader1102(builder.ShaderBuilder):
         inner = tree.add_group("Innerwear", (12, -26))
 
         in_group: ShaderNodePso2Ngs = inner.add_node("ShaderNodePso2Ngs", (18, 10))
+        attributes.add_alpha_threshold(
+            target=in_group.inputs["Alpha Threshold"],
+            material=self.material,
+        )
 
         # Diffuse
         in_diffuse = inner.add_node(

@@ -2,7 +2,7 @@ import bpy
 
 from ..colors import ColorId, ColorMapping
 from ..material import MaterialTextures
-from . import builder, types
+from . import attributes, builder, types
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
 from .ngs import ShaderNodePso2NgsSkin
@@ -37,6 +37,11 @@ class Shader1109(builder.ShaderBuilder):
         shader_group: ShaderNodePso2NgsSkin = tree.add_node(
             "ShaderNodePso2NgsSkin", (18, 6)
         )
+        attributes.add_alpha_threshold(
+            target=shader_group.inputs["Alpha Threshold"],
+            material=self.material,
+        )
+
         tree.add_link(shader_group.outputs["BSDF"], output.inputs["Surface"])
 
         # Diffuse

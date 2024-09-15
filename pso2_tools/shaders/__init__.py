@@ -2,6 +2,7 @@ from typing import Optional, Type
 
 import bpy
 
+from .. import scene_props
 from . import (
     builder,
     shader_0100,
@@ -33,15 +34,21 @@ def build_material(
 
 
 def _update_material_settings(material: bpy.types.Material, data: types.ShaderData):
+    setattr(material, scene_props.ALPHA_THRESHOLD, data.material.alpha_cutoff)
+
     if data.material.blend_type in ("add", "blendalpha", "hollow"):
         if data.material.alpha_cutoff > 0:
-            material.blend_method = "CLIP"
-            material.alpha_threshold = data.material.alpha_cutoff / 256
+            material.surface_render_method = "DITHERED"
         else:
-            material.blend_method = "BLEND"  # TODO: HASHED looks better on hair?
-            material.show_transparent_back = False
+            # TODO: use_transparency_overlap looks wrong in some models, such as
+            # Twilight Tenzan [Se]. Using DITHERED mode works for those, but then
+            # translucent materials look wrong.
+            material.surface_render_method = "BLENDED"
+            material.use_transparency_overlap = True
+
     else:
-        material.blend_method = "OPAQUE"
+        material.surface_render_method = "BLENDED"
+        material.use_transparency_overlap = False
 
     match data.material.two_sided:
         case 0:
@@ -53,8 +60,11 @@ def _update_material_settings(material: bpy.types.Material, data: types.ShaderDa
         case 2:
             # Not sure about this. Turning on backface culling fixes Z fighting
             # on some opaque models but makes some features of transparent
-            # models disappear, so just enable it if not using alpha.
-            material.use_backface_culling = material.blend_method != "blendalpha"
+            # models disappear, so just enable it if not using alpha I guess?
+            material.use_backface_culling = data.material.blend_type not in (
+                "blendalpha",
+                "hollow",
+            )
 
 
 def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]]:

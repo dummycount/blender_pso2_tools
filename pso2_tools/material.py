@@ -7,8 +7,7 @@ import AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary
 import bpy
 import System.Numerics
 
-from . import colors, scene_props, util
-from .preferences import get_preferences
+from . import util
 
 Vector4 = tuple[float, float, float, float]
 

@@ -4,6 +4,17 @@ from .. import classes, scene_props
 from . import builder
 
 
+def add_alpha_threshold(target: bpy.types.NodeSocket, material: bpy.types.Material):
+    builder.add_driver(
+        target=target,
+        prop="default_value",
+        id_type="MATERIAL",
+        source=material,
+        data_path=scene_props.ALPHA_THRESHOLD,
+        expression=f"{scene_props.ALPHA_THRESHOLD} / 255",
+    )
+
+
 @classes.register
 class ShaderNodePso2ShowInnerwear(bpy.types.ShaderNodeCustomGroup):
     bl_name = "ShaderNodePso2ShowInnerwear"

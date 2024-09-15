@@ -4,16 +4,17 @@ from .. import classes
 from . import builder
 
 
-class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
+@classes.register
+class ShaderNodePso2AlphaThreshold(bpy.types.ShaderNodeCustomGroup):
+    bl_name = "ShaderNodePso2AlphaThreshold"
+    bl_label = "PSO2 Alpha Threshold"
+    bl_icon = "NONE"
+
     def init(self, context):
         if tree := bpy.data.node_groups.get(self.bl_label, None):
             self.node_tree = tree
         else:
             self.node_tree = self._build()
-
-        self.inputs["Diffuse"].default_value = (1, 0, 1, 1)
-        self.inputs["Alpha"].default_value = 1
-        self.inputs["Multi RGB"].default_value = (0, 1, 1, 1)
 
     def free(self):
         if self.node_tree.users == 1:
@@ -27,8 +28,67 @@ class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
         group_inputs = tree.add_node("NodeGroupInput")
         group_outputs = tree.add_node("NodeGroupOutput")
 
+        tree.new_input("NodeSocketFloat", "Alpha")
+        tree.new_input("NodeSocketFloat", "Threshold")
+
+        tree.new_output("NodeSocketFloat", "Alpha")
+
+        threshold = tree.add_node("ShaderNodeMath", name="Above Threshold")
+        threshold.operation = "GREATER_THAN"
+
+        disabled = tree.add_node("ShaderNodeMath", name="Disabled")
+        disabled.operation = "COMPARE"
+        disabled.inputs[1].default_value = 0
+        disabled.inputs[2].default_value = 0
+
+        mix = tree.add_node("ShaderNodeMix", name="Mix")
+        mix.data_type = "FLOAT"
+        mix.clamp_result = True
+
+        tree.add_link(group_inputs.outputs["Alpha"], threshold.inputs[0])
+        tree.add_link(group_inputs.outputs["Threshold"], threshold.inputs[1])
+
+        tree.add_link(group_inputs.outputs["Threshold"], disabled.inputs[0])
+
+        tree.add_link(disabled.outputs["Value"], mix.inputs["Factor"])
+        tree.add_link(threshold.outputs["Value"], mix.inputs["A"])
+        tree.add_link(group_inputs.outputs["Alpha"], mix.inputs["B"])
+
+        tree.add_link(mix.outputs["Result"], group_outputs.inputs["Alpha"])
+
+        return tree.tree
+
+
+class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
+    def init(self, context):
+        if tree := bpy.data.node_groups.get(self.bl_label, None):
+            self.node_tree = tree
+        else:
+            self.node_tree = self._build()
+
+        self.inputs["Diffuse"].default_value = (1, 0, 1, 1)
+        self.inputs["Alpha"].default_value = 1
+        self.inputs["Alpha Threshold"].default_value = 0
+        self.inputs["Multi RGB"].default_value = (0, 1, 1, 1)
+
+    def free(self):
+        if self.node_tree.users == 1:
+            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
+
+    def draw_buttons(self, context, layout):
+        layout.prop(self, "alpha_threshold")
+
+    def _build(self):
+        tree = builder.NodeTreeBuilder(
+            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
+        )
+
+        group_inputs = tree.add_node("NodeGroupInput")
+        group_outputs = tree.add_node("NodeGroupOutput")
+
         tree.new_input("NodeSocketColor", "Diffuse")
         tree.new_input("NodeSocketFloat", "Alpha")
+        tree.new_input("NodeSocketFloat", "Alpha Threshold")
         tree.new_input("NodeSocketColor", "Multi RGB")
         tree.new_input("NodeSocketFloat", "Multi A")
         tree.new_input("NodeSocketColor", "Normal")
@@ -81,7 +141,19 @@ class ShaderNodePso2NgsBase(bpy.types.ShaderNodeCustomGroup):
         # ========== Base color ==========
 
         tree.add_link(group_inputs.outputs["Diffuse"], ao.inputs["A"])
-        tree.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
+
+        # ========== Alpha ==========
+
+        alpha: ShaderNodePso2AlphaThreshold = tree.add_node(
+            "ShaderNodePso2AlphaThreshold", name="Alpha"
+        )
+
+        tree.add_link(group_inputs.outputs["Alpha"], alpha.inputs["Alpha"])
+        tree.add_link(
+            group_inputs.outputs["Alpha Threshold"], alpha.inputs["Threshold"]
+        )
+
+        tree.add_link(alpha.outputs["Alpha"], bsdf.inputs["Alpha"])
 
         return tree.tree
 

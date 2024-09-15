@@ -195,6 +195,7 @@ def _import_models(
     )
 
     scene_props.add_scene_properties(context)
+    scene_props.add_material_properties(context)
 
     # Collect extra textures that are not part of the model but are used by it.
     if model_materials.has_skin_material:
