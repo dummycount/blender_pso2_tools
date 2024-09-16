@@ -63,6 +63,7 @@ class Shader1103(builder.ShaderBuilder):
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
         tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
         tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
+        colorize.set_colors_used(self.colors)
 
         # Alpha
         alpha = tree.add_node("ShaderNodeTexImage", (0, 6), name="Alpha")

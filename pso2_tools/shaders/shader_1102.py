@@ -80,6 +80,7 @@ class Shader1102(builder.ShaderBuilder):
 
         tree.add_link(diffuse_mix.outputs["Color"], colorize.inputs["Input"])
         tree.add_link(mask_mix.outputs["Color"], colorize.inputs["Mask RGB"])
+        tree.add_link(mask_mix.outputs["Alpha"], colorize.inputs["Mask A"])
         tree.add_link(colorize.outputs["Result"], skin_group.inputs["Diffuse"])
 
         channels: ShaderNodePso2Colorchannels = skin.add_node(
@@ -90,15 +91,15 @@ class Shader1102(builder.ShaderBuilder):
             # If using skin textures, use skin colors
             tree.add_color_link(ColorId.MAIN_SKIN, channels, colorize.inputs["Color 1"])
             tree.add_color_link(ColorId.SUB_SKIN, channels, colorize.inputs["Color 2"])
+
+            colorize.set_colors_used([1, 2])
         else:
             # Otherwise, use the object's colors
-            if self.colors.alpha != ColorId.UNUSED:
-                tree.add_link(mask_mix.outputs["Alpha"], colorize.inputs["Mask A"])
-
             tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
             tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
             tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
             tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
+            colorize.set_colors_used(self.colors)
 
         # Multi Map
         multi_0 = skin.add_node("ShaderNodeTexImage", (0, 6), name="Multi Map")
@@ -137,7 +138,9 @@ class Shader1102(builder.ShaderBuilder):
         normal_mix.attribute_name = scene_props.MUSCULARITY
 
         tree.add_link(normal_0.outputs["Color"], normal_mix.inputs["Color 1"])
+        tree.add_link(normal_0.outputs["Alpha"], normal_mix.inputs["Alpha 1"])
         tree.add_link(normal_1.outputs["Color"], normal_mix.inputs["Color 2"])
+        tree.add_link(normal_1.outputs["Alpha"], normal_mix.inputs["Alpha 2"])
 
         tree.add_link(normal_mix.outputs["Color"], skin_group.inputs["Normal"])
 
@@ -171,6 +174,7 @@ class Shader1102(builder.ShaderBuilder):
 
         tree.add_link(in_diffuse.outputs["Color"], in_colorize.inputs["Input"])
         tree.add_link(in_mask.outputs["Color"], in_colorize.inputs["Mask RGB"])
+        tree.add_link(in_mask.outputs["Alpha"], in_colorize.inputs["Mask A"])
         tree.add_link(in_colorize.outputs["Result"], in_group.inputs["Diffuse"])
 
         channels: ShaderNodePso2Colorchannels = inner.add_node(
@@ -179,6 +183,7 @@ class Shader1102(builder.ShaderBuilder):
 
         tree.add_color_link(ColorId.INNER1, channels, in_colorize.inputs["Color 1"])
         tree.add_color_link(ColorId.INNER2, channels, in_colorize.inputs["Color 2"])
+        in_colorize.set_colors_used([1, 2])
 
         # Multi Map
         in_multi = inner.add_node(

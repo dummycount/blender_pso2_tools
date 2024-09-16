@@ -1,4 +1,4 @@
-from typing import Type, TypeVar, cast
+from typing import ClassVar, Type, TypeVar, cast
 
 import bpy
 
@@ -6,17 +6,25 @@ _T = TypeVar("_T")
 
 
 class ShaderNodeCustomGroup(bpy.types.ShaderNodeCustomGroup):
+    # Set to True to not share node tree between instances
+    has_attributes: ClassVar[bool] = False
+
     @property
     def group_name(self):
+        if self.has_attributes:
+            return "." + self.bl_label + "." + self.name
+
         return self.bl_label
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.group_name, None):
+        if not self.has_attributes and (
+            tree := bpy.data.node_groups.get(self.group_name, None)
+        ):
             self.node_tree = cast(bpy.types.ShaderNodeTree, tree)
         else:
             self.node_tree = cast(
                 bpy.types.ShaderNodeTree,
-                bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree"),  # type: ignore
+                bpy.data.node_groups.new(self.group_name, "ShaderNodeTree"),  # type: ignore
             )
             self._build(self.node_tree)
 

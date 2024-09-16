@@ -47,8 +47,7 @@ class Shader1104(builder.ShaderBuilder):
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
 
         tree.add_link(mask.outputs["Color"], colorize.inputs["Mask RGB"])
-        if self.colors.alpha != ColorId.UNUSED:
-            tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
+        tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
@@ -56,6 +55,7 @@ class Shader1104(builder.ShaderBuilder):
 
         color = ColorId.LEFT_EYE if "eye_l" in self.material.name else ColorId.RIGHT_EYE
         tree.add_color_link(color, channels, colorize.inputs["Color 1"])
+        colorize.set_colors_used([1])
 
         # Multi Map
         multi = tree.add_node("ShaderNodeTexImage", (0, 6), name="Multi Map")

@@ -52,8 +52,7 @@ class Shader1100(builder.ShaderBuilder):
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
 
         tree.add_link(mask.outputs["Color"], colorize.inputs["Mask RGB"])
-        if self.colors.alpha != ColorId.UNUSED:
-            tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
+        tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
@@ -63,6 +62,7 @@ class Shader1100(builder.ShaderBuilder):
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
         tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
         tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
+        colorize.set_colors_used(self.colors)
 
         # Multi Map
         multi = tree.add_node("ShaderNodeTexImage", (0, 6), name="Multi Map")

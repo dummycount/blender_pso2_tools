@@ -78,14 +78,13 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
 
         tree.add_link(mask.outputs["Color"], colorize.inputs["Mask RGB"])
-        # TODO: mask is opaque for cast part. Where does channel 4 come from?
-        # if self.colors.alpha != ColorId.UNUSED:
-        #     tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
+        tree.add_link(mask.outputs["Alpha"], colorize.inputs["Mask A"])
 
         tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
         tree.add_color_link(self.colors.blue, channels, colorize.inputs["Color 3"])
         tree.add_color_link(self.colors.alpha, channels, colorize.inputs["Color 4"])
+        colorize.set_colors_used(self.colors)
 
         in_mask = tree.add_node(
             "ShaderNodeTexImage", (0, 18), name="Innerwear Color Mask"
@@ -100,12 +99,13 @@ class Shader0100(builder.ShaderBuilder):
         tree.add_link(in_mask.outputs["Color"], mix_in_mask.inputs["Color 2"])
 
         in_colorize: ShaderNodePso2Colorize = tree.add_node(
-            "ShaderNodePso2Colorize", (24, 25), name="Innerwear Colorize"
+            "ShaderNodePso2Colorize", (24, 24), name="Innerwear Colorize"
         )  # type: ignore
 
         tree.add_link(skin_color.outputs["Result"], in_colorize.inputs["Input"])
         tree.add_link(mix_in_mask.outputs["Color"], in_colorize.inputs["Mask RGB"])
         tree.add_color_link(ColorId.INNER1, channels, in_colorize.inputs["Color 3"])
+        in_colorize.set_colors_used([3])
 
         # Multi Map
         multi = tree.add_node("ShaderNodeTexImage", (6, 12), name="Multi Map")

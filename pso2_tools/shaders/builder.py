@@ -159,6 +159,14 @@ class NodeTreeBuilder:
     @overload
     def add_node(
         self,
+        node_type: Literal["ShaderNodeCombineXYZ"],
+        location: Vec2 | None = None,
+        name: str | None = None,
+    ) -> bpy.types.ShaderNodeCombineXYZ: ...
+
+    @overload
+    def add_node(
+        self,
         node_type: Literal["ShaderNodeGroup"],
         location: Vec2 | None = None,
         name: str | None = None,
@@ -251,6 +259,14 @@ class NodeTreeBuilder:
         location: Vec2 | None = None,
         name: str | None = None,
     ) -> bpy.types.ShaderNodeValue: ...
+
+    @overload
+    def add_node(
+        self,
+        node_type: Literal["ShaderNodeVectorMath"],
+        location: Vec2 | None = None,
+        name: str | None = None,
+    ) -> bpy.types.ShaderNodeVectorMath: ...
 
     @overload
     def add_node(

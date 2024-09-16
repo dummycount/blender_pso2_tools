@@ -56,9 +56,6 @@ class ShaderNodePso2NgsBase(group.ShaderNodeCustomGroup):
         self.input(bpy.types.NodeSocketFloat, "Alpha Threshold").default_value = 0
         self.input(bpy.types.NodeSocketColor, "Multi RGB").default_value = (0, 1, 1, 1)
 
-    def draw_buttons(self, context, layout):
-        layout.prop(self, "alpha_threshold")
-
     def _build(self, node_tree):
         tree = builder.NodeTreeBuilder(node_tree)
 

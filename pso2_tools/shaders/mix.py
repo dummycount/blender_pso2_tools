@@ -75,6 +75,12 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
     bl_label = "PSO2 Mix Texture Attribute"
     bl_icon = "NONE"
 
+    has_attributes = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.width = 180
+
     def _type_update(self, context: bpy.types.Context):
         self.attribute_node.attribute_type = self.attribute_type
 
@@ -96,11 +102,6 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
     def draw_buttons(self, context: Context, layout: UILayout):
         layout.prop(self, "attribute_type")
         layout.prop(self, "attribute_name")
-
-    @property
-    def group_name(self):
-        # TODO: use a counter to give unique names?
-        return "." + self.bl_name + "." + self.name
 
     @property
     def attribute_node(self):
