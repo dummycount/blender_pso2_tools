@@ -88,7 +88,7 @@ def copy_package_dlls():
             shutil.copyfile(dll, BIN_PATH / "x64" / dll.name)
 
 
-def call_msbuild(args: list[str]):
+def call_msbuild(args: list[Path | str]):
     vs = json.loads(
         subprocess.check_output(
             [VSWHERE, "-latest", "-format", "json"], encoding="utf-8"

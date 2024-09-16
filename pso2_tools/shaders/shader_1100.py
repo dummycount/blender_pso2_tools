@@ -1,8 +1,6 @@
-import bpy
-
 from ..colors import ColorId, ColorMapping
 from ..material import MaterialTextures, UVMapping
-from . import attributes, builder, types
+from . import attributes, builder
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
 from .ngs import ShaderNodePso2Ngs
@@ -11,24 +9,16 @@ from .ngs import ShaderNodePso2Ngs
 class Shader1100(builder.ShaderBuilder):
     """Default NGS shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self) -> MaterialTextures:
         return self.data.textures
 
     @property
     def colors(self) -> ColorMapping:
-        return self.data.color_map
+        return self.data.color_map or ColorMapping()
 
     @property
-    def uv_map(self) -> UVMapping:
+    def uv_map(self) -> UVMapping | None:
         return self.data.uv_map
 
     def build(self, context):
@@ -36,7 +26,7 @@ class Shader1100(builder.ShaderBuilder):
 
         output = tree.add_node("ShaderNodeOutputMaterial", (20, 10))
 
-        shader_group: ShaderNodePso2Ngs = tree.add_node("ShaderNodePso2Ngs", (16, 10))
+        shader_group: ShaderNodePso2Ngs = tree.add_node("ShaderNodePso2Ngs", (16, 10))  # type: ignore
         attributes.add_alpha_threshold(
             target=shader_group.inputs["Alpha Threshold"],
             material=self.material,
@@ -56,7 +46,7 @@ class Shader1100(builder.ShaderBuilder):
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (12, 15)
-        )
+        )  # type: ignore
 
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
@@ -67,7 +57,7 @@ class Shader1100(builder.ShaderBuilder):
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
-        )
+        )  # type: ignore
 
         tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
@@ -97,10 +87,10 @@ class Shader1100(builder.ShaderBuilder):
             )
             map_range.data_type = "FLOAT_VECTOR"
             map_range.clamp = False
-            map_range.inputs[7].default_value[0] = self.data.uv_map.from_u_min
-            map_range.inputs[8].default_value[0] = self.data.uv_map.from_u_max
-            map_range.inputs[9].default_value[0] = self.data.uv_map.to_u_min
-            map_range.inputs[10].default_value[0] = self.data.uv_map.to_u_max
+            map_range.inputs[7].default_value[0] = self.data.uv_map.from_u_min  # type: ignore
+            map_range.inputs[8].default_value[0] = self.data.uv_map.from_u_max  # type: ignore
+            map_range.inputs[9].default_value[0] = self.data.uv_map.to_u_min  # type: ignore
+            map_range.inputs[10].default_value[0] = self.data.uv_map.to_u_max  # type: ignore
 
             tree.add_link(uv.outputs["UV"], map_range.inputs[6])
 

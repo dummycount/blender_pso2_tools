@@ -1,9 +1,10 @@
 import sys
 import time
+from collections.abc import Sequence
 from contextlib import closing
 from dataclasses import dataclass, fields
 from pathlib import Path
-from typing import Iterable, Optional, Type
+from typing import Iterable, Optional, Type, cast
 
 import bpy
 
@@ -148,7 +149,7 @@ class ListItem(bpy.types.PropertyGroup):
 
     @property
     def description(self):
-        enum_items = self.bl_rna.properties["object_type"].enum_items
+        enum_items = self.bl_rna.properties["object_type"].enum_items  # type: ignore
         desc = enum_items.get(self.object_type).description
         if _is_ngs(self):
             desc += " (NGS)"
@@ -170,27 +171,27 @@ class ListItem(bpy.types.PropertyGroup):
             value = getattr(obj, name)
 
             if field.type in (float, Optional[float]):
-                prop: FloatItem = self.float_fields.add()
+                prop = cast(FloatItem, self.float_fields.add())
                 prop.name = name
                 prop.value = FloatItem.INVALID if value is None else value
 
             elif field.type in (int, Optional[int]):
-                prop: IntItem = self.float_fields.add()
+                prop = cast(IntItem, self.float_fields.add())
                 prop.name = name
                 prop.value = IntItem.INVALID if value is None else value
 
             elif field.type == str:
-                prop: StringItem = self.string_fields.add()
+                prop = cast(StringItem, self.string_fields.add())
                 prop.name = name
                 prop.value = value
 
             elif field.type == objects.CmxFileName:
-                prop: FileNameItem = self.files.add()
+                prop = cast(FileNameItem, self.files.add())
                 prop.name = name
                 prop.value = value.name
 
             elif field.type == objects.CmxColorMapping:
-                prop: ColorMapItem = self.color_map_fields.add()
+                prop = cast(ColorMapItem, self.color_map_fields.add())
                 prop.name = name
                 prop.red = int(value.red)
                 prop.green = int(value.green)
@@ -211,29 +212,28 @@ class ListItem(bpy.types.PropertyGroup):
             name_jp=self.name_jp,
         )
 
-        for prop in self.files:
-            prop: FileNameItem
-            setattr(obj, prop.name, prop.to_file_name())
+        for file_item in self.files:
+            setattr(obj, file_item.name, file_item.to_file_name())
 
-        for prop in self.float_fields:
-            prop: FloatItem
+        for float_item in self.float_fields:
             setattr(
-                obj, prop.name, None if prop.value == FloatItem.INVALID else prop.value
+                obj,
+                float_item.name,
+                None if float_item.value == FloatItem.INVALID else float_item.value,
             )
 
-        for prop in self.int_fields:
-            prop: IntItem
+        for int_item in self.int_fields:
             setattr(
-                obj, prop.name, None if prop.value == IntItem.INVALID else prop.value
+                obj,
+                int_item.name,
+                None if int_item.value == IntItem.INVALID else int_item.value,
             )
 
-        for prop in self.string_fields:
-            prop: StringItem
-            setattr(obj, prop.name, prop.value)
+        for str_item in self.string_fields:
+            setattr(obj, str_item.name, str_item.value)
 
-        for prop in self.color_map_fields:
-            prop: ColorMapItem
-            setattr(obj, prop.name, prop.to_color_map())
+        for color_item in self.color_map_fields:
+            setattr(obj, color_item.name, color_item.to_color_map())
 
         return obj
 
@@ -280,7 +280,10 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
     bl_idname = "pso2.model_search"
     bl_options = {"REGISTER", "UNDO"}
 
-    def _get_selected_model_files(self, context: bpy.types.Context):
+    def _get_selected_model_files(
+        self,
+        context: bpy.types.Context | None,
+    ) -> Iterable[tuple[str, str, str]]:
         try:
             selected: ListItem = self.models[self.models_index]
         except IndexError:
@@ -347,7 +350,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
 
         col.operator(PSO2_OT_UpdateModelList.bl_idname, text="Update Model List")
 
-    def execute(self, context):
+    def execute(self, context):  # type: ignore
         if obj := self.get_selected_object():
             high_quality = self.model_file == "HQ"
             import_model.import_object(
@@ -363,12 +366,12 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
 
         return {"CANCELLED"}
 
-    def invoke(self, context, event) -> set[str]:
+    def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(
             self, width=800, confirm_text="Import"
         )
 
-    def get_selected_object(self) -> objects.CmxObjectBase:
+    def get_selected_object(self) -> objects.CmxObjectBase | None:
         if self.models_index < 0:
             return None
 
@@ -414,11 +417,11 @@ class PSO2_OT_UpdateModelList(bpy.types.Operator):
     bl_label = "Update Model List"
     bl_idname = "pso2.update_model_list"
 
-    def execute(self, context) -> set[str]:
+    def execute(self, context):  # type: ignore
         with closing(objects.ObjectDatabase(context)) as db:
             db.update_database()
 
-        _populate_model_list(context.parent.models, context)
+        _populate_model_list(context.parent.models, context)  # type: ignore
 
         return {"FINISHED"}
 
@@ -460,10 +463,10 @@ class PSO2_UL_ModelList(bpy.types.UIList):
     bl_idname = "PSO2_UL_ModelList"
     layout_type = "DEFAULT"
 
-    # pylint: disable-next=arguments-renamed
-    def filter_items(self, context, data, prop):
+    # pylint: disable-next=redefined-builtin
+    def filter_items(self, context, data, property):
         preferences = get_preferences(context)
-        items: Iterable[ListItem] = getattr(data, prop)
+        items: Sequence[ListItem] = getattr(data, property)
 
         if self.filter_name:
             flt_flags = bpy.types.UI_UL_list.filter_items_by_name(
@@ -553,7 +556,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         flow = layout.grid_flow(columns=4, align=True)
         flow.prop(preferences, "model_search_categories", expand=True)
 
-    def draw_item(
+    def draw_item(  # type: ignore
         self,
         context,
         layout,
@@ -573,7 +576,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
 
             row = layout.split(factor=0.5)
 
-            row.label(text=item.item_name, icon=icon)
+            row.label(text=item.item_name, icon=icon)  # type: ignore
             row.label(text=item.description)
             row.label(text=str(item.object_id))
 
@@ -623,7 +626,7 @@ class PSO2_OT_SelectAllCategories(bpy.types.Operator):
     bl_idname = "pso2.select_all_categories"
     bl_options = {"INTERNAL"}
 
-    def execute(self, context):
+    def execute(self, context):  # type: ignore
         preferences = get_preferences(context)
 
         preferences.model_search_categories = _get_all_enum_items(
@@ -638,4 +641,4 @@ class PSO2_OT_SelectAllCategories(bpy.types.Operator):
 
 
 def _get_all_enum_items(obj: bpy.types.bpy_struct, prop: str) -> set[str]:
-    return {enum.identifier for enum in obj.bl_rna.properties[prop].enum_items.values()}
+    return {enum.identifier for enum in obj.bl_rna.properties[prop].enum_items.values()}  # type: ignore

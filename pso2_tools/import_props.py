@@ -64,7 +64,7 @@ class CommonImportProps:
         default="Y",
     )
 
-    def get_fbx_options(self, ignore: Iterable[str] = None):
+    def get_fbx_options(self, ignore: Iterable[str] | None = None):
         operator = cast(bpy.types.Operator, self)
         ignore = ignore or ()
 
@@ -106,7 +106,7 @@ def import_panel_transform_orientation(
     header.prop(operator, "use_manual_orientation", text="")
     header.label(text="Manual Orientation")
     if body:
-        body.enabled = operator.use_manual_orientation
+        body.enabled = operator.use_manual_orientation  # type: ignore
         body.prop(operator, "axis_forward")
         body.prop(operator, "axis_up")
 
@@ -117,7 +117,7 @@ def import_panel_animation(layout: bpy.types.UILayout, operator: bpy.types.Opera
     header.prop(operator, "use_anim", text="")
     header.label(text="Animation")
     if body:
-        body.enabled = operator.use_anim
+        body.enabled = operator.use_anim  # type: ignore
         body.prop(operator, "anim_offset")
 
 
@@ -129,6 +129,6 @@ def import_panel_armature(layout: bpy.types.UILayout, operator: bpy.types.Operat
         body.prop(operator, "force_connect_children")
         body.prop(operator, "automatic_bone_orientation")
         sub = body.column()
-        sub.enabled = not operator.automatic_bone_orientation
+        sub.enabled = not operator.automatic_bone_orientation  # type: ignore
         sub.prop(operator, "primary_bone_axis")
         sub.prop(operator, "secondary_bone_axis")

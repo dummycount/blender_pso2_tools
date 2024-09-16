@@ -1,13 +1,14 @@
 import os
 import re
 from pathlib import Path
+from typing import cast
 
 import bpy
 
 from . import classes
 from .colors import COLOR_CHANNELS, ColorId
 
-PROGRAM_FILES = Path(os.getenv("PROGRAMFILES(x86)"))
+PROGRAM_FILES = Path(os.getenv("PROGRAMFILES(x86)", "C:\\Program Files (x86)"))
 
 WINDOWS_STORE_PATH = PROGRAM_FILES / "ModifiableWindowsApps/pso2_bin/data"
 STEAM_PATH = "SteamApps/common/PHANTASYSTARONLINE2_NA_STEAM/pso2_bin/data"
@@ -51,7 +52,7 @@ def color_property(color: ColorId, description: str):
 
 @classes.register
 class Pso2ToolsPreferences(bpy.types.AddonPreferences):
-    bl_idname = __package__
+    bl_idname = __package__ or ""
 
     pso2_data_path: bpy.props.StringProperty(
         name="Path to pso2_bin/data",
@@ -214,5 +215,11 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         return self.get_pso2_data_path().parent
 
 
-def get_preferences(context: bpy.types.Context) -> Pso2ToolsPreferences:
-    return context.preferences.addons[__package__].preferences
+def get_preferences(context: bpy.types.Context | None) -> Pso2ToolsPreferences:
+    if not __package__:
+        raise RuntimeError("__package__ is unset")
+
+    context = context or bpy.context
+    return cast(
+        Pso2ToolsPreferences, context.preferences.addons[__package__].preferences
+    )

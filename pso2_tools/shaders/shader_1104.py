@@ -1,8 +1,8 @@
 import bpy
 
 from .. import classes
-from ..colors import ColorId
-from . import builder, types
+from ..colors import ColorId, ColorMapping
+from . import builder, group
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
 
@@ -10,21 +10,13 @@ from .colors import ShaderNodePso2Colorchannels
 class Shader1104(builder.ShaderBuilder):
     """NGS eye shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self):
         return self.data.textures
 
     @property
-    def colors(self):
-        return self.data.color_map
+    def colors(self) -> ColorMapping:
+        return self.data.color_map or ColorMapping()
 
     def build(self, context):
         tree = self.init_tree()
@@ -33,7 +25,7 @@ class Shader1104(builder.ShaderBuilder):
 
         shader_group: ShaderNodePso2NgsEye = tree.add_node(
             "ShaderNodePso2NgsEye", (18, 6)
-        )
+        )  # type: ignore
         tree.add_link(shader_group.outputs["BSDF"], output.inputs["Surface"])
 
         # Diffuse
@@ -49,7 +41,7 @@ class Shader1104(builder.ShaderBuilder):
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (12, 14)
-        )
+        )  # type: ignore
 
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
@@ -60,7 +52,7 @@ class Shader1104(builder.ShaderBuilder):
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
-        )
+        )  # type: ignore
 
         color = ColorId.LEFT_EYE if "eye_l" in self.material.name else ColorId.RIGHT_EYE
         tree.add_color_link(color, channels, colorize.inputs["Color 1"])
@@ -80,29 +72,20 @@ class Shader1104(builder.ShaderBuilder):
 
 
 @classes.register
-class ShaderNodePso2NgsEye(bpy.types.ShaderNodeCustomGroup):
+class ShaderNodePso2NgsEye(group.ShaderNodeCustomGroup):
     bl_name = "ShaderNodePso2Eye"
     bl_label = "PSO2 Eye"
     bl_icon = "NONE"
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.name, None):
-            self.node_tree = tree
-        else:
-            self.node_tree = self._build()
+        super().init(context)
 
-        self.inputs["Diffuse"].default_value = (1, 0, 1, 1)
-        self.inputs["Alpha"].default_value = 1
-        self.inputs["Multi RGB"].default_value = (0, 1, 1, 1)
+        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)
+        self.input(bpy.types.NodeSocketFloat, "Alpha").default_value = 1
+        self.input(bpy.types.NodeSocketColor, "Multi RGB").default_value = (0, 1, 1, 1)
 
-    def free(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
-
-    def _build(self):
-        tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.name, "ShaderNodeTree")
-        )
+    def _build(self, node_tree):
+        tree = builder.NodeTreeBuilder(node_tree)
 
         group_inputs = tree.add_node("NodeGroupInput")
         group_outputs = tree.add_node("NodeGroupOutput")
@@ -142,7 +125,7 @@ class ShaderNodePso2NgsEye(bpy.types.ShaderNodeCustomGroup):
         ao = tree.add_node("ShaderNodeMix", name="Ambient Occlusion")
         ao.data_type = "RGBA"
         ao.blend_type = "MULTIPLY"
-        ao.inputs["Factor"].default_value = 1
+        ao.inputs["Factor"].default_value = 1  # type: ignore
 
         tree.add_link(multi_rgb.outputs["Blue"], ao.inputs["B"])
         tree.add_link(ao.outputs["Result"], bsdf.inputs["Base Color"])
@@ -155,5 +138,3 @@ class ShaderNodePso2NgsEye(bpy.types.ShaderNodeCustomGroup):
 
         tree.add_link(group_inputs.outputs["Diffuse"], ao.inputs["A"])
         tree.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
-
-        return tree.tree

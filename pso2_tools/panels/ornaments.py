@@ -74,7 +74,7 @@ class PSO2_OT_ShowOrnament(bpy.types.Operator):
     bl_options = {"UNDO", "REGISTER", "INTERNAL"}
     mesh_id = 0
 
-    def execute(self, context):
+    def execute(self, context):  # type: ignore
         for mesh in get_ornament_mesh_objects(self.mesh_id):
             mesh.hide_set(False)
 
@@ -84,8 +84,7 @@ class PSO2_OT_ShowOrnament(bpy.types.Operator):
 class PSO2_OT_HideOrnament(bpy.types.Operator):
     mesh_id = 0
 
-    def execute(self, context):
-
+    def execute(self, context):  # type: ignore
         for mesh in get_ornament_mesh_objects(self.mesh_id):
             mesh.hide_set(True)
 

@@ -1,8 +1,8 @@
 import bpy
 
 from .. import classes
-from ..colors import ColorId
-from . import builder, types
+from ..colors import ColorId, ColorMapping
+from . import builder, group
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
 
@@ -10,21 +10,13 @@ from .colors import ShaderNodePso2Colorchannels
 class Shader1103(builder.ShaderBuilder):
     """NGS hair shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self):
         return self.data.textures
 
     @property
-    def colors(self):
-        return self.data.color_map
+    def colors(self) -> ColorMapping:
+        return self.data.color_map or ColorMapping()
 
     def build(self, context):
         tree = self.init_tree()
@@ -33,7 +25,7 @@ class Shader1103(builder.ShaderBuilder):
 
         shader_group: ShaderNodePso2NgsHair = tree.add_node(
             "ShaderNodePso2NgsHair", (18, 6)
-        )
+        )  # type: ignore
         tree.add_link(shader_group.outputs["BSDF"], output.inputs["Surface"])
 
         # Non-alpha Texture UVs
@@ -54,7 +46,7 @@ class Shader1103(builder.ShaderBuilder):
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (12, 14)
-        )
+        )  # type: ignore
 
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
@@ -65,7 +57,7 @@ class Shader1103(builder.ShaderBuilder):
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
-        )
+        )  # type: ignore
 
         tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])
@@ -95,28 +87,19 @@ class Shader1103(builder.ShaderBuilder):
 
 
 @classes.register
-class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
+class ShaderNodePso2NgsHair(group.ShaderNodeCustomGroup):
     bl_name = "ShaderNodePso2NgsHair"
     bl_label = "PSO2 NGS Hair"
     bl_icon = "NONE"
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.name, None):
-            self.node_tree = tree
-        else:
-            self.node_tree = self._build()
+        super().init(context)
 
-        self.inputs["Diffuse"].default_value = (1, 0, 1, 1)
-        self.inputs["Alpha"].default_value = 1
+        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)
+        self.input(bpy.types.NodeSocketFloat, "Alpha").default_value = 1
 
-    def free(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
-
-    def _build(self):
-        tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.name, "ShaderNodeTree")
-        )
+    def _build(self, node_tree):
+        tree = builder.NodeTreeBuilder(node_tree)
 
         group_inputs = tree.add_node("NodeGroupInput")
         group_outputs = tree.add_node("NodeGroupOutput")
@@ -158,5 +141,3 @@ class ShaderNodePso2NgsHair(bpy.types.ShaderNodeCustomGroup):
 
         tree.add_link(group_inputs.outputs["Diffuse"], bsdf.inputs["Base Color"])
         tree.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
-
-        return tree.tree

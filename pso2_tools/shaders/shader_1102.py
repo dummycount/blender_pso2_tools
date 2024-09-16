@@ -1,8 +1,6 @@
-import bpy
-
 from .. import scene_props
-from ..colors import ColorId
-from . import attributes, builder, types
+from ..colors import ColorId, ColorMapping
+from . import attributes, builder
 from .attributes import ShaderNodePso2ShowInnerwear
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
@@ -13,21 +11,13 @@ from .ngs import ShaderNodePso2Ngs, ShaderNodePso2NgsSkin
 class Shader1102(builder.ShaderBuilder):
     """NGS skin shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self):
         return self.data.textures
 
     @property
-    def colors(self):
-        return self.data.color_map
+    def colors(self) -> ColorMapping:
+        return self.data.color_map or ColorMapping()
 
     def build(self, context):
         tree = self.init_tree()
@@ -40,7 +30,7 @@ class Shader1102(builder.ShaderBuilder):
 
         skin_group: ShaderNodePso2NgsSkin = skin.add_node(
             "ShaderNodePso2NgsSkin", (30, 6)
-        )
+        )  # type: ignore
         attributes.add_alpha_threshold(
             target=skin_group.inputs["Alpha Threshold"],
             material=self.material,
@@ -55,7 +45,7 @@ class Shader1102(builder.ShaderBuilder):
 
         diffuse_mix: ShaderNodePso2MixTextureAttribute = skin.add_node(
             "ShaderNodePso2MixTextureAttribute", (18, 18), name="Diffuse Mix"
-        )
+        )  # type: ignore
         diffuse_mix.attribute_type = "VIEW_LAYER"
         diffuse_mix.attribute_name = scene_props.MUSCULARITY
 
@@ -75,7 +65,7 @@ class Shader1102(builder.ShaderBuilder):
 
         mask_mix: ShaderNodePso2MixTextureAttribute = skin.add_node(
             "ShaderNodePso2MixTextureAttribute", (18, 12), name="Color Mask Mix"
-        )
+        )  # type: ignore
         mask_mix.attribute_type = "VIEW_LAYER"
         mask_mix.attribute_name = scene_props.MUSCULARITY
 
@@ -86,7 +76,7 @@ class Shader1102(builder.ShaderBuilder):
 
         colorize: ShaderNodePso2Colorize = skin.add_node(
             "ShaderNodePso2Colorize", (26, 14), name="Skin Colorize"
-        )
+        )  # type: ignore
 
         tree.add_link(diffuse_mix.outputs["Color"], colorize.inputs["Input"])
         tree.add_link(mask_mix.outputs["Color"], colorize.inputs["Mask RGB"])
@@ -94,7 +84,7 @@ class Shader1102(builder.ShaderBuilder):
 
         channels: ShaderNodePso2Colorchannels = skin.add_node(
             "ShaderNodePso2Colorchannels", (22, 10), name="Colors"
-        )
+        )  # type: ignore
 
         if self.textures.skin_0.mask:
             # If using skin textures, use skin colors
@@ -119,7 +109,7 @@ class Shader1102(builder.ShaderBuilder):
 
         multi_mix: ShaderNodePso2MixTextureAttribute = skin.add_node(
             "ShaderNodePso2MixTextureAttribute", (18, 6), name="Multi Map Mix"
-        )
+        )  # type: ignore
         multi_mix.attribute_type = "VIEW_LAYER"
         multi_mix.attribute_name = scene_props.MUSCULARITY
 
@@ -139,8 +129,10 @@ class Shader1102(builder.ShaderBuilder):
         normal_1.image = self.textures.skin_1.normal or self.textures.default.normal
 
         normal_mix: ShaderNodePso2MixTextureAttribute = skin.add_node(
-            "ShaderNodePso2MixTextureAttribute", (18, 0), name="Normal Map Mix"
-        )
+            "ShaderNodePso2MixTextureAttribute",
+            (18, 0),
+            name="Normal Map Mix",
+        )  # type: ignore
         normal_mix.attribute_type = "VIEW_LAYER"
         normal_mix.attribute_name = scene_props.MUSCULARITY
 
@@ -153,7 +145,7 @@ class Shader1102(builder.ShaderBuilder):
 
         inner = tree.add_group("Innerwear", (12, -26))
 
-        in_group: ShaderNodePso2Ngs = inner.add_node("ShaderNodePso2Ngs", (18, 10))
+        in_group: ShaderNodePso2Ngs = inner.add_node("ShaderNodePso2Ngs", (18, 10))  # type: ignore
         attributes.add_alpha_threshold(
             target=in_group.inputs["Alpha Threshold"],
             material=self.material,
@@ -175,7 +167,7 @@ class Shader1102(builder.ShaderBuilder):
 
         in_colorize: ShaderNodePso2Colorize = inner.add_node(
             "ShaderNodePso2Colorize", (12, 15), name="Innerwear Colorize"
-        )
+        )  # type: ignore
 
         tree.add_link(in_diffuse.outputs["Color"], in_colorize.inputs["Input"])
         tree.add_link(in_mask.outputs["Color"], in_colorize.inputs["Mask RGB"])
@@ -183,7 +175,7 @@ class Shader1102(builder.ShaderBuilder):
 
         channels: ShaderNodePso2Colorchannels = inner.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
-        )
+        )  # type: ignore
 
         tree.add_color_link(ColorId.INNER1, channels, in_colorize.inputs["Color 1"])
         tree.add_color_link(ColorId.INNER2, channels, in_colorize.inputs["Color 2"])
@@ -219,7 +211,7 @@ class Shader1102(builder.ShaderBuilder):
 
         in_show: ShaderNodePso2ShowInnerwear = tree.add_node(
             "ShaderNodePso2ShowInnerwear", (34, 0), name="Show Innerwear"
-        )
+        )  # type: ignore
 
         tree.add_link(layer_rgb.outputs["Red"], in_show.inputs["Value"])
 

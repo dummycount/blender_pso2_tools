@@ -21,8 +21,8 @@ class PSO2_OT_ImportAqp(
     def draw(self, context):
         self.draw_import_props_panel(self.layout)
 
-    def execute(self, context):
-        path = Path(self.filepath)  # pylint: disable=no-member
+    def execute(self, context):  # type: ignore
+        path = Path(self.filepath)  # pylint: disable=no-member # type: ignore
 
         import_model.import_aqp_file(
             self, context, path, fbx_options=self.get_fbx_options()

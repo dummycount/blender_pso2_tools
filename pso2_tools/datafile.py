@@ -2,8 +2,11 @@ from typing import Iterable, Protocol
 
 
 class DataFile(Protocol):
-    name: str
-    data: bytes
+    @property
+    def name(self) -> str: ...
+
+    @property
+    def data(self) -> bytes: ...
 
 
 class DataFileSource(Protocol):

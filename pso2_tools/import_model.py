@@ -5,9 +5,9 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, Optional
 
 import bpy
-import System
 from AquaModelLibrary.Core.General import FbxExporterNative
-from AquaModelLibrary.Data.PSO2.Aqua import AquaMotion, AquaNode, AquaPackage
+from AquaModelLibrary.Data.PSO2.Aqua import AquaPackage  # type: ignore
+from AquaModelLibrary.Data.PSO2.Aqua import AquaMotion, AquaNode
 from AquaModelLibrary.Data.Utility import CoordSystem
 from io_scene_fbx import import_fbx
 from System.Collections.Generic import List
@@ -130,9 +130,9 @@ def _get_import_options(obj: objects.CmxObjectBase):
 
 @dataclass
 class ModelFiles:
-    texture_files: list[ice.IceDataFile] = field(default_factory=list)
-    model_files: list[ice.IceDataFile] = field(default_factory=list)
-    node_files: list[ice.IceDataFile] = field(default_factory=list)
+    texture_files: list[datafile.DataFile] = field(default_factory=list)
+    model_files: list[datafile.DataFile] = field(default_factory=list)
+    node_files: list[datafile.DataFile] = field(default_factory=list)
 
 
 def collect_model_files(sources: Iterable[datafile.DataFileSource]):
@@ -191,7 +191,7 @@ def _import_models(
             for key in new_mat_keys
             if (mat := material.find_material(key, materials))
         },
-        textures=[import_ice_image(tex) for tex in files.texture_files],
+        textures=[import_data_image(tex) for tex in files.texture_files],
     )
 
     scene_props.add_scene_properties(context)
@@ -256,7 +256,7 @@ def _delete_empty_images():
             bpy.data.images.remove(image)
 
 
-def import_ice_image(data: ice.IceDataFile):
+def import_data_image(data: datafile.DataFile):
     with TemporaryDirectory() as tempdir:
         tempfile = Path(tempdir) / data.name
 
@@ -273,11 +273,11 @@ def import_image(path: Path):
     if material.texture_has_parts(image.name, "d"):
         # Diffuse texture
         image.colorspace_settings.is_data = False
-        image.colorspace_settings.name = "sRGB"
+        image.colorspace_settings.name = "sRGB"  # type: ignore
     else:
         # Data textures (normal map, etc.)
         image.colorspace_settings.is_data = True
-        image.colorspace_settings.name = "Non-Color"
+        image.colorspace_settings.name = "Non-Color"  # type: ignore
 
     return image
 
@@ -285,8 +285,8 @@ def import_image(path: Path):
 def _import_aqp(
     operator: bpy.types.Operator,
     context: bpy.types.Context,
-    aqp: Path | ice.IceDataFile,
-    aqn: Path | ice.IceDataFile | None,
+    aqp: Path | datafile.DataFile,
+    aqn: Path | datafile.DataFile | None,
     fbx_options=None,
 ) -> tuple[set[str], list[material.Material]]:
     fbx_options = fbx_options or {}
@@ -306,7 +306,7 @@ def _import_aqp(
 
     if aqn is not None:
         aqn_data = aqn.read_bytes() if isinstance(aqn, Path) else aqn.data
-        skeleton = AquaNode(aqn_data)
+        skeleton = AquaNode(aqn_data)  # type: ignore
     else:
         skeleton = AquaNode.GenerateBasicAQN()
 
@@ -319,7 +319,7 @@ def _import_aqp(
 
     # TODO: support importing motion files
     aqms = List[AquaMotion]()
-    aqm_names = List[System.String]()
+    aqm_names = List[str]()
     instance_transforms = List[Matrix4x4]()
     include_metadata = True
 
@@ -332,7 +332,7 @@ def _import_aqp(
             aqms,
             str(fbxfile),
             aqm_names,
-            instance_transforms,
+            instance_transforms,  # type: ignore
             include_metadata,
             int(CoordSystem.OpenGL),
         )
@@ -393,7 +393,7 @@ def _import_skin_textures(
 
     skin_textures = collect_model_files(ice_files).texture_files
 
-    return [import_ice_image(tex) for tex in skin_textures]
+    return [import_data_image(tex) for tex in skin_textures]
 
 
 def _get_uv_map(obj: objects.CmxBodyObject):

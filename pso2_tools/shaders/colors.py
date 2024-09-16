@@ -1,31 +1,17 @@
-import bpy
-
 from .. import classes, colors
-from . import builder
+from . import builder, group
 
 _COLOR_GROUP_COLS = 6
 
 
 @classes.register
-class ShaderNodePso2Colorchannels(bpy.types.ShaderNodeCustomGroup):
+class ShaderNodePso2Colorchannels(group.ShaderNodeCustomGroup):
     bl_name = "ShaderNodePso2Colorchannels"
     bl_label = "PSO2 Colors"
     bl_icon = "NONE"
 
-    def init(self, context):
-        if tree := bpy.data.node_groups.get(self.bl_label, None):
-            self.node_tree = tree
-        else:
-            self.node_tree = self._build()
-
-    def free(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
-
-    def _build(self):
-        tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
-        )
+    def _build(self, node_tree):
+        tree = builder.NodeTreeBuilder(node_tree)
 
         output = tree.add_node("NodeGroupOutput", (28, 0))
         panels = {}
@@ -49,5 +35,3 @@ class ShaderNodePso2Colorchannels(bpy.types.ShaderNodeCustomGroup):
 
             tree.new_output("NodeSocketColor", color.label, parent=panel)
             tree.add_link(color.outputs[0], output.inputs[index])
-
-        return tree.tree

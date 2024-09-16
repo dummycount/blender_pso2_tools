@@ -3,7 +3,7 @@ import bpy
 from .. import classes
 from ..colors import ColorId, ColorMapping
 from ..material import MaterialTextures, UVMapping
-from . import builder, types
+from . import builder, group
 from .attributes import ShaderNodePso2ShowInnerwear
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
@@ -13,24 +13,16 @@ from .mix import ShaderNodePso2MixTexture
 class Shader0100(builder.ShaderBuilder):
     """Default classic shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self) -> MaterialTextures:
         return self.data.textures
 
     @property
     def colors(self) -> ColorMapping:
-        return self.data.color_map
+        return self.data.color_map or ColorMapping()
 
     @property
-    def uv_map(self) -> UVMapping:
+    def uv_map(self) -> UVMapping | None:
         return self.data.uv_map
 
     def build(self, context):
@@ -42,12 +34,12 @@ class Shader0100(builder.ShaderBuilder):
 
         base_group: ShaderNodePso2Classic = tree.add_node(
             "ShaderNodePso2Classic", (34, 20)
-        )
+        )  # type: ignore
         tree.add_link(base_group.outputs["BSDF"], output.inputs["Surface"])
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (9, 28), name="Colors"
-        )
+        )  # type: ignore
 
         # Diffuse
         diffuse = tree.add_node("ShaderNodeTexImage", (0, 36), name="Diffuse")
@@ -63,7 +55,7 @@ class Shader0100(builder.ShaderBuilder):
 
         skin_alpha: ShaderNodePso2ShowInnerwear = tree.add_node(
             "ShaderNodePso2ShowInnerwear", (9, 20), name="Innerwear Alpha"
-        )
+        )  # type: ignore
         tree.add_link(in_diffuse.outputs["Alpha"], skin_alpha.inputs["Value"])
 
         skin_color = tree.add_node("ShaderNodeMix", (16, 25), name="Skin Color")
@@ -81,7 +73,7 @@ class Shader0100(builder.ShaderBuilder):
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (24, 30), name="Base Colorize"
-        )
+        )  # type: ignore
 
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
 
@@ -102,14 +94,14 @@ class Shader0100(builder.ShaderBuilder):
 
         mix_in_mask: ShaderNodePso2MixTexture = tree.add_node(
             "ShaderNodePso2MixTexture", (16, 20), name="Innerwear Mask Alpha"
-        )
+        )  # type: ignore
 
         tree.add_link(skin_alpha.outputs["Value"], mix_in_mask.inputs["Factor"])
         tree.add_link(in_mask.outputs["Color"], mix_in_mask.inputs["Color 2"])
 
         in_colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (24, 25), name="Innerwear Colorize"
-        )
+        )  # type: ignore
 
         tree.add_link(skin_color.outputs["Result"], in_colorize.inputs["Input"])
         tree.add_link(mix_in_mask.outputs["Color"], in_colorize.inputs["Mask RGB"])
@@ -140,7 +132,7 @@ class Shader0100(builder.ShaderBuilder):
 
         mix_multi: ShaderNodePso2MixTexture = tree.add_node(
             "ShaderNodePso2MixTexture", (24, 12), name="Multi Map Mix"
-        )
+        )  # type: ignore
 
         tree.add_link(skin_mix.outputs["Value"], mix_multi.inputs["Factor"])
         tree.add_link(multi.outputs["Color"], mix_multi.inputs["Color 1"])
@@ -174,7 +166,7 @@ class Shader0100(builder.ShaderBuilder):
 
         mix_normal: ShaderNodePso2MixTexture = tree.add_node(
             "ShaderNodePso2MixTexture", (24, 6), name="Normal Map Mix"
-        )
+        )  # type: ignore
 
         tree.add_link(skin_mix.outputs["Value"], mix_normal.inputs["Factor"])
         tree.add_link(normal.outputs["Color"], mix_normal.inputs["Color 1"])
@@ -194,10 +186,10 @@ class Shader0100(builder.ShaderBuilder):
             )
             map_range.data_type = "FLOAT_VECTOR"
             map_range.clamp = False
-            map_range.inputs[7].default_value[0] = self.data.uv_map.from_u_min
-            map_range.inputs[8].default_value[0] = self.data.uv_map.from_u_max
-            map_range.inputs[9].default_value[0] = self.data.uv_map.to_u_min
-            map_range.inputs[10].default_value[0] = self.data.uv_map.to_u_max
+            map_range.inputs[7].default_value[0] = self.data.uv_map.from_u_min  # type: ignore
+            map_range.inputs[8].default_value[0] = self.data.uv_map.from_u_max  # type: ignore
+            map_range.inputs[9].default_value[0] = self.data.uv_map.to_u_min  # type: ignore
+            map_range.inputs[10].default_value[0] = self.data.uv_map.to_u_max  # type: ignore
 
             tree.add_link(uv.outputs["UV"], map_range.inputs[6])
 
@@ -215,10 +207,10 @@ class Shader0100(builder.ShaderBuilder):
         )
         map_range.data_type = "FLOAT_VECTOR"
         map_range.clamp = False
-        map_range.inputs[7].default_value[0] = 0
-        map_range.inputs[8].default_value[0] = 0.5
-        map_range.inputs[9].default_value[0] = 0
-        map_range.inputs[10].default_value[0] = 1
+        map_range.inputs[7].default_value[0] = 0  # type: ignore
+        map_range.inputs[8].default_value[0] = 0.5  # type: ignore
+        map_range.inputs[9].default_value[0] = 0  # type: ignore
+        map_range.inputs[10].default_value[0] = 1  # type: ignore
 
         tree.add_link(in_uv.outputs["UV"], map_range.inputs[6])
 
@@ -229,30 +221,21 @@ class Shader0100(builder.ShaderBuilder):
 
 
 @classes.register
-class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
+class ShaderNodePso2Classic(group.ShaderNodeCustomGroup):
 
     bl_name = "ShaderNodePso2Classic"
     bl_label = "PSO2 Classic"
     bl_icon = "NONE"
 
     def init(self, context):
-        if tree := bpy.data.node_groups.get(self.bl_label, None):
-            self.node_tree = tree
-        else:
-            self.node_tree = self._build()
+        super().init(context)
 
-        self.inputs["Diffuse"].default_value = (1, 0, 1, 1)
-        self.inputs["Alpha"].default_value = 1
-        self.inputs["Multi RGB"].default_value = (0, 0, 0, 1)
+        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)
+        self.input(bpy.types.NodeSocketFloat, "Alpha").default_value = 1
+        self.input(bpy.types.NodeSocketColor, "Multi RGB").default_value = (0, 0, 0, 1)
 
-    def free(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
-
-    def _build(self):
-        tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
-        )
+    def _build(self, node_tree):
+        tree = builder.NodeTreeBuilder(node_tree)
 
         group_inputs = tree.add_node("NodeGroupInput")
         group_outputs = tree.add_node("NodeGroupOutput")
@@ -285,10 +268,10 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
         spec_inv = tree.add_node("ShaderNodeMapRange", name="Specular to Roughness")
         spec_inv.data_type = "FLOAT"
         spec_inv.interpolation_type = "LINEAR"
-        spec_inv.inputs["From Min"].default_value = 0
-        spec_inv.inputs["From Max"].default_value = 1
-        spec_inv.inputs["To Min"].default_value = 1
-        spec_inv.inputs["To Max"].default_value = 0
+        spec_inv.inputs["From Min"].default_value = 0  # type: ignore
+        spec_inv.inputs["From Max"].default_value = 1  # type: ignore
+        spec_inv.inputs["To Min"].default_value = 1  # type: ignore
+        spec_inv.inputs["To Max"].default_value = 0  # type: ignore
 
         tree.add_link(multi_rgb.outputs["Red"], spec_inv.inputs["Value"])
         tree.add_link(spec_inv.outputs["Result"], bsdf.inputs["Roughness"])
@@ -311,5 +294,3 @@ class ShaderNodePso2Classic(bpy.types.ShaderNodeCustomGroup):
 
         tree.add_link(group_inputs.outputs["Diffuse"], bsdf.inputs["Base Color"])
         tree.add_link(group_inputs.outputs["Alpha"], bsdf.inputs["Alpha"])
-
-        return tree.tree

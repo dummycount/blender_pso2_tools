@@ -28,6 +28,6 @@ def load():
 
     for name in _DLL_NAMES:
         path = str(BIN_PATH / name)
-        clr.AddReference(path)  # pylint: disable=no-member
+        clr.AddReference(path)  # pylint: disable=no-member # type: ignore
 
     _loaded = True

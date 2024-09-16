@@ -280,15 +280,15 @@ class PSO2_OT_ExportAqp(bpy.types.Operator, ExportHelper):
         export_panel_armature(layout, self)
         export_panel_animation(layout, self)
 
-    def execute(self, context):
-        if not self.filepath:  # pylint: disable=no-member
+    def execute(self, context):  # type: ignore
+        if not self.filepath:  # pylint: disable=no-member # type: ignore
             raise ValueError("filepath not set")
 
-        path = Path(self.filepath)  # pylint: disable=no-member
+        path = Path(self.filepath)  # pylint: disable=no-member # type: ignore
 
         global_matrix = (
             # pylint: disable-next=no-member
-            axis_conversion(to_forward=self.axis_forward, to_up=self.axis_up).to_4x4()
+            axis_conversion(to_forward=self.axis_forward, to_up=self.axis_up).to_4x4()  # type: ignore
             if self.use_space_transform
             else Matrix()
         )

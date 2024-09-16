@@ -62,7 +62,7 @@ class Material:
         cls,
         mat: AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary.GenericMaterial,
     ):
-        return cls(
+        return cls(  # type: ignore
             textures=[str(x) for x in mat.texNames] if mat.texNames else [],
             uv_sets=[int(x) for x in mat.texUVSets] if mat.texUVSets else [],
             shaders=[str(x) for x in mat.shaderNames] if mat.shaderNames else [],
@@ -215,13 +215,13 @@ def texture_has_parts(name: str, parts: str | Iterable[str]):
     return all(part in split_name for part in parts)
 
 
-def find_textures(*parts: str, images: Iterable[bpy.types.Image] = None):
+def find_textures(*parts: str, images: Iterable[bpy.types.Image] | None = None):
     images = images or bpy.data.images
 
     return [img for img in images if texture_has_parts(img.name, parts)]
 
 
-def find_texture(*parts: str, images: Iterable[bpy.types.Image] = None):
+def find_texture(*parts: str, images: Iterable[bpy.types.Image] | None = None):
     if result := find_textures(*parts, images=images):
         return result[0]
     return None
@@ -314,7 +314,7 @@ class ModelMaterials:
             except IndexError:
                 return None
 
-        def find_alt(alts: list[Iterable[str]], part: str):
+        def find_alt(alts: Iterable[Iterable[str]], part: str):
             """Equivalent to find(*alts[0], part) or find(*alts[1], part) or ..."""
             for alt in alts:
                 if result := find(*alt, part):
@@ -518,19 +518,19 @@ class ModelMaterials:
 
 
 _NGS_CAST_PARTS = [
-    ("rbd", "rm"),  # Cast arms
-    ("rbd", "bd"),  # Cast body
-    ("rbd", "lg"),  # Cast legs
+    ["rbd", "rm"],  # Cast arms
+    ["rbd", "bd"],  # Cast body
+    ["rbd", "lg"],  # Cast legs
 ]
 
 _NGS_BODY_PARTS = [
-    ("rbd", "bw"),  # Basewear
+    ["rbd", "bw"],  # Basewear
     *_NGS_CAST_PARTS,
 ]
 
 _CLASSIC_BODY_PARTS = [
-    ("bd", "bw"),  # Basewear
-    ("rm",),  # Cast arms
-    ("tr",),  # Cast body
-    ("lg",),  # Cast legs
+    ["bd", "bw"],  # Basewear
+    ["rm"],  # Cast arms
+    ["tr"],  # Cast body
+    ["lg"],  # Cast legs
 ]

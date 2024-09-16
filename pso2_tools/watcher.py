@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Callable
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -7,7 +8,7 @@ WATCH_EXTENSIONS = [".py"]
 
 
 class FileWatcher(FileSystemEventHandler):
-    def __init__(self, callback: callable):
+    def __init__(self, callback: Callable):
         self._callback = callback
         self._observer = Observer()
         self._callback_running = False

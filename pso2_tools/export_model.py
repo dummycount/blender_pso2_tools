@@ -5,7 +5,8 @@ from typing import Any, Iterable, cast
 
 import bpy
 from AquaModelLibrary.Core.General import AssimpModelImporter
-from AquaModelLibrary.Data.PSO2.Aqua import AquaNode, AquaObject, AquaPackage
+from AquaModelLibrary.Data.PSO2.Aqua import AquaPackage  # type: ignore
+from AquaModelLibrary.Data.PSO2.Aqua import AquaNode, AquaObject
 from io_scene_fbx import export_fbx_bin
 
 
@@ -15,7 +16,7 @@ def export(
     path: Path,
     is_ngs=True,
     overwrite_aqn=False,
-    fbx_options: dict[str, Any] = None,
+    fbx_options: dict[str, Any] | None = None,
 ):
     fbx_options = fbx_options or {}
 
@@ -49,7 +50,7 @@ def export(
 
     aqn_path = path.with_suffix(".aqn")
     if overwrite_aqn or not aqn_path.exists():
-        aqn_path.write_bytes(aqn.GetBytesNIFL())
+        aqn_path.write_bytes(aqn.GetBytesNIFL())  # type: ignore
 
     return {"FINISHED"}
 

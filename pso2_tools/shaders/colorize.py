@@ -1,29 +1,15 @@
-import bpy
-
 from .. import classes
-from . import builder
+from . import builder, group
 
 
 @classes.register
-class ShaderNodePso2Colorize(bpy.types.ShaderNodeCustomGroup):
+class ShaderNodePso2Colorize(group.ShaderNodeCustomGroup):
     bl_name = "ShaderNodePso2Colorize"
     bl_label = "PSO2 Colorize"
     bl_icon = "NONE"
 
-    def init(self, context):
-        if tree := bpy.data.node_groups.get(self.bl_label, None):
-            self.node_tree = tree
-        else:
-            self.node_tree = self._build()
-
-    def free(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
-
-    def _build(self):
-        tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self.bl_label, "ShaderNodeTree")
-        )
+    def _build(self, node_tree):
+        tree = builder.NodeTreeBuilder(node_tree)
 
         group_inputs = tree.add_node("NodeGroupInput")
         group_outputs = tree.add_node("NodeGroupOutput")
@@ -80,5 +66,3 @@ class ShaderNodePso2Colorize(bpy.types.ShaderNodeCustomGroup):
         tree.add_link(group_inputs.outputs["Mask A"], color4.inputs["Factor"])
 
         tree.add_link(color4.outputs["Result"], group_outputs.inputs["Result"])
-
-        return tree.tree

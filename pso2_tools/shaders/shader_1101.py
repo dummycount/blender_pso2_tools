@@ -1,34 +1,20 @@
-import bpy
-
-from . import attributes, builder, types
+from . import attributes, builder
 from .ngs import ShaderNodePso2Ngs
 
 
 class Shader1101(builder.ShaderBuilder):
     """NGS horn/tooth shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self):
         return self.data.textures
-
-    @property
-    def colors(self):
-        return self.data.color_map
 
     def build(self, context):
         tree = self.init_tree()
 
         output = tree.add_node("ShaderNodeOutputMaterial", (18, 6))
 
-        shader_group: ShaderNodePso2Ngs = tree.add_node("ShaderNodePso2Ngs", (12, 6))
+        shader_group: ShaderNodePso2Ngs = tree.add_node("ShaderNodePso2Ngs", (12, 6))  # type: ignore
         attributes.add_alpha_threshold(
             target=shader_group.inputs["Alpha Threshold"],
             material=self.material,

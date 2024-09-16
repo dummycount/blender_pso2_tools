@@ -1,8 +1,6 @@
-import bpy
-
 from ..colors import ColorId, ColorMapping
 from ..material import MaterialTextures
-from . import attributes, builder, types
+from . import attributes, builder
 from .colorize import ShaderNodePso2Colorize
 from .colors import ShaderNodePso2Colorchannels
 from .ngs import ShaderNodePso2NgsSkin
@@ -11,21 +9,13 @@ from .ngs import ShaderNodePso2NgsSkin
 class Shader1109(builder.ShaderBuilder):
     """NGS ear shader"""
 
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
-
     @property
     def textures(self) -> MaterialTextures:
         return self.data.textures
 
     @property
     def colors(self) -> ColorMapping:
-        return self.data.color_map
+        return self.data.color_map or ColorMapping()
 
     def build(self, context):
         tree = self.init_tree()
@@ -36,7 +26,7 @@ class Shader1109(builder.ShaderBuilder):
         # machine kitten ears that use 1109 for parts that aren't skin.
         shader_group: ShaderNodePso2NgsSkin = tree.add_node(
             "ShaderNodePso2NgsSkin", (18, 6)
-        )
+        )  # type: ignore
         attributes.add_alpha_threshold(
             target=shader_group.inputs["Alpha Threshold"],
             material=self.material,
@@ -56,7 +46,7 @@ class Shader1109(builder.ShaderBuilder):
 
         colorize: ShaderNodePso2Colorize = tree.add_node(
             "ShaderNodePso2Colorize", (12, 14)
-        )
+        )  # type: ignore
 
         tree.add_link(diffuse.outputs["Color"], colorize.inputs["Input"])
         tree.add_link(colorize.outputs["Result"], shader_group.inputs["Diffuse"])
@@ -67,7 +57,7 @@ class Shader1109(builder.ShaderBuilder):
 
         channels: ShaderNodePso2Colorchannels = tree.add_node(
             "ShaderNodePso2Colorchannels", (7, 10), name="Colors"
-        )
+        )  # type: ignore
 
         tree.add_color_link(self.colors.red, channels, colorize.inputs["Color 1"])
         tree.add_color_link(self.colors.green, channels, colorize.inputs["Color 2"])

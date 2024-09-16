@@ -5,9 +5,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from System import Array, Byte
+from System import Array
 from System.IO import FileMode, FileStream
 from Zamboni import IceFile as InternalIceFile
+
+from . import datafile
 
 
 @dataclass
@@ -16,8 +18,8 @@ class IceDataFile:
     data: bytes
 
     @classmethod
-    def from_byte_array(cls, array: Array[Byte]):
-        name = InternalIceFile.getFileName(array)
+    def from_byte_array(cls, array: Array[int]):  # type: ignore
+        name = InternalIceFile.getFileName(array)  # type: ignore
         data = bytes(array)
 
         header_size = struct.unpack_from("i", data, offset=0xC)[0]
@@ -43,13 +45,15 @@ class IceFile:
             stream.Close()
 
     def __init__(
-        self, group_one: list[IceDataFile] = None, group_two: list[IceDataFile] = None
+        self,
+        group_one: list[IceDataFile] | None = None,
+        group_two: list[IceDataFile] | None = None,
     ):
         self.group_one = group_one or []
         self.group_two = group_two or []
 
-    def get_files(self) -> Iterable[IceDataFile]:
+    def get_files(self) -> Iterable[datafile.DataFile]:
         return itertools.chain(self.group_one, self.group_two)
 
-    def glob(self, pattern: str) -> Iterable[IceDataFile]:
+    def glob(self, pattern: str) -> Iterable[datafile.DataFile]:
         return (f for f in self.get_files() if fnmatch.fnmatch(f.name, pattern))

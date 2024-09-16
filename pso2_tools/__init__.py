@@ -17,8 +17,8 @@ if "reloader" in locals():
     import importlib
 
     # pylint: disable=used-before-assignment
-    importlib.reload(reloader)
-    reloader.reload_addon(__name__)
+    importlib.reload(reloader)  # type: ignore
+    reloader.reload_addon(__name__)  # type: ignore
 
 from . import dotnet
 

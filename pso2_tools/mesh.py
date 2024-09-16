@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from functools import reduce
 from typing import Iterable
 
@@ -25,14 +26,14 @@ class PSO2_OT_WeldMeshEdges(bpy.types.Operator):
     def poll(cls, context):
         return context.mode == "EDIT_MESH"
 
-    def execute(self, context):
+    def execute(self, context):  # type: ignore
         weld_mesh_edges(context, self.distance)
         return {"FINISHED"}
 
 
 def weld_mesh_edges(context: bpy.types.Context, distance: float):
     objects = [obj for obj in context.selected_objects if obj.type == "MESH"]
-    meshes = [bmesh.from_edit_mesh(obj.data) for obj in objects]
+    meshes = [bmesh.from_edit_mesh(obj.data) for obj in objects]  # type: ignore
 
     verts = [v for m in meshes for v in m.verts if v.select]
 
@@ -55,10 +56,10 @@ def weld_mesh_edges(context: bpy.types.Context, distance: float):
             v.normal = normal
 
     for obj in objects:
-        bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
+        bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)  # type: ignore
 
 
-def average(vectors: Iterable[mathutils.Vector]):
+def average(vectors: Sequence[mathutils.Vector]):
     return reduce(lambda x, y: x + y, vectors) / len(vectors)
 
 

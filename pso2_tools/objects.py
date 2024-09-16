@@ -4,27 +4,27 @@ from collections import defaultdict
 from dataclasses import dataclass, field, fields
 from enum import StrEnum
 from pathlib import Path
-from typing import Generator, Iterable, Type, TypeVar
+from typing import Any, Generator, Iterable, Type, TypeVar
 
 import bpy
 import System
 import System.IO
-from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text
+from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text  # type: ignore
 from AquaModelLibrary.Data.PSO2.Aqua.CharacterMakingIndexData import (
     BODYObject,
     HAIRObject,
     NGS_EarObject,
 )
 from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
-from AquaModelLibrary.Data.Utility import ReferenceGenerator
+from AquaModelLibrary.Data.Utility import ReferenceGenerator  # type: ignore
 
-from . import ice, preferences
+from . import datafile, ice, preferences
 from .colors import ColorId, ColorMapping
 from .debug import debug_print
 from .paths import get_data_path
 from .util import dict_get
 
-T = TypeVar("T")
+T = TypeVar("T", bound="CmxObjectBase")
 NameDict = defaultdict[int, list[str]]
 
 
@@ -188,9 +188,9 @@ def get_classic_color_map(object_type: ObjectType) -> ColorMapping | None:
 
 
 def split_int32(value: System.Int32):
-    uvalue = System.UInt32(value)
-    lo = int(uvalue) & 0x0000FFFF
-    hi = int(uvalue) >> 16
+    uvalue = System.UInt32(value)  # type: ignore
+    lo = int(uvalue) & 0x0000FFFF  # type: ignore
+    hi = int(uvalue) >> 16  # type: ignore
     return lo, hi
 
 
@@ -269,7 +269,7 @@ def _db_attr(name: str):
     return ""
 
 
-def _db_type(cls: Type):
+def _db_type(cls: Type[Any] | str | Any) -> str:
     if cls == str:
         return "TEXT NOT NULL"
 
@@ -932,7 +932,10 @@ def _get_item_names(
     return result
 
 
-def _optional_number(value: T) -> T | None:
+_N = TypeVar("_N", bound=int | float)
+
+
+def _optional_number(value: _N) -> _N | None:
     return value if value >= 0 else None
 
 
@@ -1255,13 +1258,13 @@ def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
         for f in icefile.get_files():
             if "face_variation.cmp.lua" in f.name.lower():
                 result.update(_parse_face_variation_lua(f))
-    except System.IO.FileNotFoundException:
+    except System.IO.FileNotFoundException:  # type: ignore
         pass
 
     return result
 
 
-def _parse_face_variation_lua(datafile: ice.IceDataFile):
+def _parse_face_variation_lua(datafile: datafile.DataFile) -> dict[str, int]:
     result: dict[str, int] = {}
     language: str | None = None
     src = datafile.data.rstrip(b"\0").decode()

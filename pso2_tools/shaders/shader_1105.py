@@ -1,18 +1,8 @@
-import bpy
-
-from . import builder, types
+from . import builder
 
 
 class Shader1105(builder.ShaderBuilder):
     """NGS eye tear shader"""
-
-    def __init__(
-        self,
-        mat: bpy.types.Material,
-        data: types.ShaderData,
-    ):
-        super().__init__(mat)
-        self.data = data
 
     def build(self, context):
         # TODO: figure out how this shader works.

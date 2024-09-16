@@ -1,29 +1,15 @@
+from typing import cast
+
 import bpy
 from bpy.types import Context, UILayout
 
 from .. import classes
-from . import builder
+from . import builder, group
 
 
-class ShaderNodePso2Mix(bpy.types.ShaderNodeCustomGroup):
-    def init(self, context):
-        if tree := bpy.data.node_groups.get(self._group_name, None):
-            self.node_tree = tree
-        else:
-            self.node_tree = self._build()
-
-    def free(self):
-        if self.node_tree.users == 1:
-            bpy.data.node_groups.remove(self.node_tree, do_unlink=True)
-
-    @property
-    def _group_name(self):
-        return self.bl_label
-
-    def _build(self):
-        tree = builder.NodeTreeBuilder(
-            bpy.data.node_groups.new(self._group_name, "ShaderNodeTree")
-        )
+class ShaderNodePso2Mix(group.ShaderNodeCustomGroup):
+    def _build(self, node_tree):
+        tree = builder.NodeTreeBuilder(node_tree)
 
         group_inputs = tree.add_node("NodeGroupInput")
         group_outputs = tree.add_node("NodeGroupOutput")
@@ -49,18 +35,16 @@ class ShaderNodePso2Mix(bpy.types.ShaderNodeCustomGroup):
 
         self._add_nodes(tree)
 
-        tree.add_link(self._factor_socket(tree.tree), color.inputs["Factor"])
+        tree.add_link(self._factor_socket(node_tree), color.inputs["Factor"])
         tree.add_link(group_inputs.outputs["Color 1"], color.inputs["A"])
         tree.add_link(group_inputs.outputs["Color 2"], color.inputs["B"])
 
-        tree.add_link(self._factor_socket(tree.tree), alpha.inputs["Factor"])
+        tree.add_link(self._factor_socket(node_tree), alpha.inputs["Factor"])
         tree.add_link(group_inputs.outputs["Alpha 1"], alpha.inputs["A"])
         tree.add_link(group_inputs.outputs["Alpha 2"], alpha.inputs["B"])
 
         tree.add_link(color.outputs["Result"], group_outputs.inputs["Color"])
         tree.add_link(alpha.outputs["Result"], group_outputs.inputs["Alpha"])
-
-        return tree.tree
 
     def _add_inputs(self, tree: builder.NodeTreeBuilder):
         pass
@@ -92,10 +76,10 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
     bl_icon = "NONE"
 
     def _type_update(self, context: bpy.types.Context):
-        self.node_tree.nodes["Attribute"].attribute_type = self.attribute_type
+        self.attribute_node.attribute_type = self.attribute_type
 
     def _name_update(self, context: bpy.types.Context):
-        self.node_tree.nodes["Attribute"].attribute_name = self.attribute_name
+        self.attribute_node.attribute_name = self.attribute_name
 
     attribute_type: bpy.props.EnumProperty(
         name="Type",
@@ -114,9 +98,16 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
         layout.prop(self, "attribute_name")
 
     @property
-    def _group_name(self):
+    def group_name(self):
         # TODO: use a counter to give unique names?
         return "." + self.bl_name + "." + self.name
+
+    @property
+    def attribute_node(self):
+        if not self.node_tree:
+            raise RuntimeError("Tree missing")
+
+        return cast(bpy.types.ShaderNodeAttribute, self.node_tree.nodes["Attribute"])
 
     def _add_nodes(self, tree: builder.NodeTreeBuilder):
         attr = tree.add_node("ShaderNodeAttribute", name="Attribute")
