@@ -84,7 +84,8 @@ class CmxCategory(StrEnum):
 
 
 CLASSIC_START = 0
-CLASSIC_GENDERLESS_START = 0
+CLASSIC_MALE_COSTUME_START = 0
+CLASSIC_FEMALE_COSTUME_START = 10000
 CLASSIC_MALE_START = 20000
 CLASSIC_FEMALE_START = 30000
 CLASSIC_CAST_START = 40000
@@ -105,7 +106,8 @@ def is_ngs(object_id: int):
 
 def is_t1(object_id: int):
     return (
-        CLASSIC_MALE_START <= object_id < CLASSIC_FEMALE_START
+        CLASSIC_MALE_COSTUME_START <= object_id < CLASSIC_FEMALE_COSTUME_START
+        or CLASSIC_MALE_START <= object_id < CLASSIC_FEMALE_START
         or CLASSIC_CAST_START <= object_id < CLASSIC_CASEAL_START
         or NGS_T1_START <= object_id < NGS_T2_START
         or NGS_CAST_START <= object_id < NGS_CASEAL_START
@@ -114,7 +116,8 @@ def is_t1(object_id: int):
 
 def is_t2(object_id: int):
     return (
-        CLASSIC_FEMALE_START <= object_id < CLASSIC_CAST_START
+        CLASSIC_FEMALE_COSTUME_START <= object_id < CLASSIC_MALE_START
+        or CLASSIC_FEMALE_START <= object_id < CLASSIC_CAST_START
         or CLASSIC_CASEAL_START <= object_id < CLASSIC_UNKNOWN_START
         or NGS_T2_START <= object_id < NGS_CAST_START
         or NGS_CASEAL_START <= object_id < NGS_GENDERLESS_START
@@ -122,10 +125,7 @@ def is_t2(object_id: int):
 
 
 def is_genderless(object_id: int):
-    return (
-        CLASSIC_GENDERLESS_START <= object_id < CLASSIC_MALE_START
-        or NGS_GENDERLESS_START <= object_id < NGS_UNKNOWN_START
-    )
+    return NGS_GENDERLESS_START <= object_id < NGS_UNKNOWN_START
 
 
 def md5digest(text: str):

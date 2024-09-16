@@ -530,6 +530,8 @@ _NGS_BODY_PARTS = [
 
 _CLASSIC_BODY_PARTS = [
     ["bd", "bw"],  # Basewear
+    ["bd", "fu"],  # Female Costume
+    ["bd", "mu"],  # Male Costume
     ["rm"],  # Cast arms
     ["tr"],  # Cast body
     ["lg"],  # Cast legs
