@@ -463,6 +463,10 @@ class PSO2_UL_ModelList(bpy.types.UIList):
     bl_idname = "PSO2_UL_ModelList"
     layout_type = "DEFAULT"
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.use_filter_show = True
+
     # pylint: disable-next=redefined-builtin
     def filter_items(self, context, data, property):
         preferences = get_preferences(context)
