@@ -24,7 +24,15 @@ from . import dotnet
 
 dotnet.load()
 
-from . import classes, export_aqp, import_aqp, import_ice, import_search, reloader
+from . import (
+    classes,
+    export_aqp,
+    import_aqp,
+    import_ice,
+    import_search,
+    reloader,
+    scene_props,
+)
 from .panels import appearance, ornaments
 from .paths import ADDON_PATH
 
@@ -33,6 +41,9 @@ def register():
     classes.bpy_register()
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+
+    scene_props.add_scene_properties()
+    scene_props.add_material_properties()
 
 
 def unregister():

@@ -13,6 +13,15 @@ class PSO2OrnamentsPanel(bpy.types.Panel):
     bl_region_type = "WINDOW"
     bl_context = "scene"
 
+    @classmethod
+    def poll(cls, context):
+        return any(
+            obj
+            for obj in bpy.data.objects
+            if obj.type == "MESH"
+            and MESH_ID_RE.search(util.remove_blender_suffix(obj.name))
+        )
+
     def draw(self, context):
         layout = self.layout
 

@@ -11,8 +11,8 @@ MUSCULARITY = "pso2_muscularity"
 ALPHA_THRESHOLD = "pso2_alpha_threshold"
 
 
-def add_scene_properties(context: bpy.types.Context):
-    preferences = get_preferences(context)
+def add_scene_properties():
+    preferences = get_preferences(bpy.context)
 
     setattr(
         bpy.types.Scene,
@@ -48,7 +48,7 @@ def add_scene_properties(context: bpy.types.Context):
         )
 
 
-def add_material_properties(context: bpy.types.Context):
+def add_material_properties():
     setattr(
         bpy.types.Material,
         ALPHA_THRESHOLD,

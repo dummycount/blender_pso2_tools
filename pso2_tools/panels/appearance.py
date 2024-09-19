@@ -1,6 +1,10 @@
+import re
+
 import bpy
 
 from .. import classes, colors, material, scene_props
+
+MAT_RE = re.compile(r"^\(\d+p,\d+\)")
 
 
 @classes.register
@@ -13,7 +17,7 @@ class PSO2AppearancePanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return hasattr(bpy.types.Scene, scene_props.HIDE_INNERWEAR)
+        return any(mat for mat in bpy.data.materials if MAT_RE.match(mat.name))
 
     def draw(self, context):
         layout = self.layout
