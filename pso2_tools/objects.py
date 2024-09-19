@@ -125,7 +125,7 @@ def is_t2(object_id: int):
 
 
 def is_genderless(object_id: int):
-    return NGS_GENDERLESS_START <= object_id < NGS_UNKNOWN_START
+    return not is_t1(object_id) and not is_t2(object_id)
 
 
 def md5digest(text: str):
