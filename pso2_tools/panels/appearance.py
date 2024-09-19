@@ -27,14 +27,15 @@ class PSO2AppearancePanel(bpy.types.Panel):
         layout.prop(context.scene, scene_props.HIDE_INNERWEAR)
         layout.prop(context.scene, scene_props.MUSCULARITY)
 
-        box = layout.box()
-        box.use_property_split = False
-        box.label(text="Colors", icon="COLOR")
+        header, body = layout.panel("PSO2_appearance_colors", default_closed=True)
+        header.label(text="Colors", icon="COLOR")
+        if body:
+            body.use_property_split = False
 
-        grid = box.grid_flow(columns=3)
+            grid = body.grid_flow(columns=3)
 
-        for channel in colors.COLOR_CHANNELS.values():
-            grid.prop(context.scene, channel.custom_property_name)
+            for channel in colors.COLOR_CHANNELS.values():
+                grid.prop(context.scene, channel.custom_property_name)
 
 
 @classes.register
