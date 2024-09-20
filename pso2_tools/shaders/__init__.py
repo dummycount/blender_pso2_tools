@@ -40,11 +40,12 @@ def _update_material_settings(material: bpy.types.Material, data: types.ShaderDa
         if data.material.alpha_cutoff > 0:
             material.surface_render_method = "DITHERED"
         else:
-            # TODO: use_transparency_overlap looks wrong in some models, such as
-            # Twilight Tenzan [Se]. Using DITHERED mode works for those, but then
-            # translucent materials look wrong.
-            material.surface_render_method = "BLENDED"
-            material.use_transparency_overlap = True
+            # TODO: 'BLENDED' looks better for models with translucent materials,
+            # but it causes some meshes that are behind transparent meshes to not
+            # appear at all, such as Twilight Tenzan [Se]. Dithered looks the
+            # least wrong across all models, but ideally we could use blended if
+            # we can figure out the transparency ordering issues.
+            material.surface_render_method = "DITHERED"
 
     else:
         material.surface_render_method = "BLENDED"
