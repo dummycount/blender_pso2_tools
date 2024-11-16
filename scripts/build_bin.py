@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Iterable
 
 ROOT = Path(__file__).parent.parent
 
@@ -133,8 +134,10 @@ def main():
     # Copy to pso2_tools/bin folder
     out_path = AQUA_CORE_PATH / "bin" / config / FRAMEWORK
 
+    ignore = None if args.debug else shutil.ignore_patterns("*.pdb")
+
     shutil.rmtree(BIN_PATH, ignore_errors=True)
-    shutil.copytree(out_path, BIN_PATH, dirs_exist_ok=True)
+    shutil.copytree(out_path, BIN_PATH, dirs_exist_ok=True, ignore=ignore)
 
     copy_package_dlls()
 
