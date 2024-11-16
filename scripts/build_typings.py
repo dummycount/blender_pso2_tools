@@ -4,15 +4,16 @@ Generate type stubs for .net dependencies.
 build_bin.py must be run first.
 """
 
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 ROOT_PATH = Path(__file__).parent.parent
 TYPES_PATH = ROOT_PATH / "typings"
 BIN_PATH = ROOT_PATH / "pso2_tools/bin"
 
 DLLS = [
+    BIN_PATH / "AssimpNet.dll",
     BIN_PATH / "ZamboniLib.dll",
     BIN_PATH / "AquaModelLibrary.Core.dll",
     BIN_PATH / "AquaModelLibrary.Data.dll",

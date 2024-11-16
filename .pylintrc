@@ -1,5 +1,5 @@
 [MAIN]
-extension-pkg-whitelist=bpy,bpy_extras,AquaModelLibrary,Zamboni
+extension-pkg-whitelist=bpy,bpy_extras,AquaModelLibrary,Assimp,Zamboni
 
 [MESSAGES CONTROL]
 disable=import-error,
@@ -18,7 +18,7 @@ disable=import-error,
         unused-argument,
 
 [TYPECHECK]
-ignored-modules=AquaModelLibrary,Zamboni
+ignored-modules=AquaModelLibrary,Assimp,Zamboni
 
 [FORMAT]
 good-names=d,ex,f,i,id
