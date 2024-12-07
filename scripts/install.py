@@ -31,7 +31,7 @@ def main():
         source_path = build_package.SOURCE_DIR
         dest_path = repo_path / source_path.name
 
-        shutil.rmtree(dest_path)
+        shutil.rmtree(dest_path, ignore_errors=True)
         dest_path.symlink_to(source_path, target_is_directory=True)
 
 
