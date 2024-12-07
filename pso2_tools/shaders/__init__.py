@@ -59,13 +59,8 @@ def _update_material_settings(material: bpy.types.Material, data: types.ShaderDa
             material.use_backface_culling = False
 
         case 2:
-            # Not sure about this. Turning on backface culling fixes Z fighting
-            # on some opaque models but makes some features of transparent
-            # models disappear, so just enable it if not using alpha I guess?
-            material.use_backface_culling = data.material.blend_type not in (
-                "blendalpha",
-                "hollow",
-            )
+            # Not sure what 2 means. Some models look wrong unless culling is on though.
+            material.use_backface_culling = True
 
 
 def _get_builder(data: types.ShaderData) -> Optional[Type[builder.ShaderBuilder]]:
