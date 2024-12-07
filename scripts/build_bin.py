@@ -8,7 +8,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable
 
 ROOT = Path(__file__).parent.parent
 
@@ -30,8 +29,8 @@ AQUA_CORE_PATH = ROOT / "PSO2-Aqua-Library/AquaModelLibrary.Core"
 PACKAGES_PATH = ROOT / "packages"
 PACKAGES = [
     ("AssimpNet", "5.0.0-beta1"),
-    ("Reloaded.Memory", "9.3.2"),
-    ("System.Drawing.Common", "8.0.0"),
+    ("Reloaded.Memory", "9.4.2"),
+    ("System.Drawing.Common", "8.0.11"),
 ]
 
 
