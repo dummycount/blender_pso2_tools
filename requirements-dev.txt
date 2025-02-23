@@ -1,4 +1,4 @@
 fake-bpy-module
 pre-commit
-pythonnet==3.0.4
+pythonnet==3.0.5
 watchdog==6.0.0

@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 WHEELS = ROOT / "pso2_tools" / "wheels"
 
-DEPENDENCIES = ["pythonnet==3.0.4", "watchdog==6.0.0"]
+DEPENDENCIES = ["pythonnet==3.0.5", "watchdog==6.0.0"]
 
 PYTHON_VERSION = "3.11"
 PLATFORM = "win_amd64"

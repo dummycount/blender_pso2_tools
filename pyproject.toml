@@ -6,5 +6,5 @@ reportInvalidTypeForm = false
 reportMissingImports = false
 reportMissingModuleSource = false
 extraPaths = [
-    "C:/Program Files/Blender Foundation/Blender 4.2/4.2/scripts/addons_core",
+    "C:/Program Files/Blender Foundation/Blender 4.3/4.3/scripts/addons_core",
 ]

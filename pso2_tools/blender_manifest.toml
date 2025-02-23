@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "pso2_tools"
-version = "2.2.0"
+version = "2.3.0"
 name = "PSO2 Tools"
 tagline = "PSO2 file format support"
 maintainer = "dummycount"
@@ -14,9 +14,9 @@ platforms = ["windows-x64"]
 
 wheels = [
   "./wheels/cffi-1.17.1-cp311-cp311-win_amd64.whl",
-  "./wheels/clr_loader-0.2.6-py3-none-any.whl",
+  "./wheels/clr_loader-0.2.7.post0-py3-none-any.whl",
   "./wheels/pycparser-2.22-py3-none-any.whl",
-  "./wheels/pythonnet-3.0.4-py3-none-any.whl",
+  "./wheels/pythonnet-3.0.5-py3-none-any.whl",
   "./wheels/watchdog-6.0.0-py3-none-win_amd64.whl",
 ]
 
