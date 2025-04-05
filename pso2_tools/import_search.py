@@ -145,7 +145,7 @@ class ListItem(bpy.types.PropertyGroup):
 
     @property
     def sort_name(self) -> str:
-        return self.name_en or self.name_jp or f"\uFFFF {self.object_id}"
+        return self.name_en or self.name_jp or f"\uffff {self.object_id}"
 
     @property
     def description(self):
@@ -296,8 +296,8 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
     models_index: bpy.props.IntProperty(name="Selected Index", default=-1)
     model_file: bpy.props.EnumProperty(name="File", items=_get_selected_model_files)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         _populate_model_list(self.models, bpy.context)
 
     def draw(self, context):
@@ -463,8 +463,8 @@ class PSO2_UL_ModelList(bpy.types.UIList):
     bl_idname = "PSO2_UL_ModelList"
     layout_type = "DEFAULT"
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.use_filter_show = True
 
     # pylint: disable-next=redefined-builtin

@@ -77,8 +77,8 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
 
     has_attributes = True
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.width = 180
 
     def _type_update(self, context: bpy.types.Context):
