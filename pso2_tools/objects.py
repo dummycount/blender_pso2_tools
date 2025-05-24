@@ -8,15 +8,28 @@ from typing import Any, Generator, Iterable, Type, TypeVar
 
 import bpy
 import System
+import System.Collections.Generic
 import System.IO
-from AquaModelLibrary.Data.PSO2.Aqua import PSO2Text  # type: ignore
+from AquaModelLibrary.Data.PSO2.Aqua import CharacterMakingIndex, PSO2Text
 from AquaModelLibrary.Data.PSO2.Aqua.CharacterMakingIndexData import (
+    ACCEObject,
+    BBLYObject,
+    BCLNObject,
     BODYObject,
+    EYEBObject,
+    EYEObject,
+    FACEObject,
+    FaceTextureObject,
+    FCPObject,
     HAIRObject,
     NGS_EarObject,
+    NGS_HornObject,
+    NGS_SKINObject,
+    NGS_TeethObject,
+    StickerObject,
 )
 from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
-from AquaModelLibrary.Data.Utility import ReferenceGenerator  # type: ignore
+from AquaModelLibrary.Data.Utility import ReferenceGenerator
 
 from . import datafile, ice, preferences
 from .colors import ColorId, ColorMapping
@@ -187,7 +200,7 @@ def get_classic_color_map(object_type: ObjectType) -> ColorMapping | None:
     return None
 
 
-def split_int32(value: System.Int32):
+def split_int32(value: int):
     uvalue = System.UInt32(value)  # type: ignore
     lo = int(uvalue) & 0x0000FFFF  # type: ignore
     hi = int(uvalue) >> 16  # type: ignore
@@ -643,7 +656,7 @@ class ObjectDatabase:
     def update_database(self):
         bin_path = preferences.get_preferences(self.context).get_pso2_bin_path()
 
-        cmx = ReferenceGenerator.ExtractCMX(str(bin_path))
+        cmx: CharacterMakingIndex = ReferenceGenerator.ExtractCMX(str(bin_path))
 
         parts_text, accessory_text, common_text, common_text_reboot = (
             ReferenceGenerator.ReadCMXText(
@@ -719,7 +732,7 @@ class ObjectDatabase:
         for table in ObjectType:
             self.con.execute(f"DELETE FROM {table}")
 
-    def _read_accessories(self, cmx, text):
+    def _read_accessories(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.ACCESSORY)
         for item_id in cmx.accessoryDict.Keys:
             obj = _get_accessory(
@@ -731,7 +744,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_basewear(self, cmx, text):
+    def _read_basewear(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.BASEWEAR)
         for item_id in cmx.baseWearDict.Keys:
             obj = _get_body(
@@ -743,7 +756,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_bodies(self, cmx, text):
+    def _read_bodies(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.COSTUME)
         names.update(_get_item_names(text, CmxCategory.BODY))
 
@@ -761,7 +774,7 @@ class ObjectDatabase:
             else:
                 obj.db_insert(self.con)
 
-    def _read_bodypaint(self, cmx, text):
+    def _read_bodypaint(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.BODYPAINT1)
         for item_id in cmx.bodyPaintDict.Keys:
             obj = _get_bodypaint(
@@ -773,7 +786,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_cast_arms(self, cmx, text):
+    def _read_cast_arms(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.ARM)
         for item_id in cmx.carmDict.Keys:
             obj = _get_body(
@@ -785,7 +798,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_cast_legs(self, cmx, text):
+    def _read_cast_legs(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.LEG)
         for item_id in cmx.clegDict.Keys:
             obj = _get_body(
@@ -793,32 +806,28 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_ears(self, cmx, text):
+    def _read_ears(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.EARS)
         for item_id in cmx.ngsEarDict.Keys:
-            obj = _get_ear(ObjectType.EAR, cmx.ngsEarDict, None, names, item_id)
+            obj = _get_ear(ObjectType.EAR, cmx.ngsEarDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_eyes(self, cmx, text):
+    def _read_eyes(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.EYE)
         for item_id in cmx.eyeDict.Keys:
-            obj = _get_eye(ObjectType.EYE, cmx.eyeDict, None, names, item_id)
+            obj = _get_eye(ObjectType.EYE, cmx.eyeDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_eyebrows(self, cmx, text):
+    def _read_eyebrows(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.EYEBROWS)
         for item_id in cmx.eyebrowDict.Keys:
-            obj = _get_eyebrow(
-                ObjectType.EYEBROW, cmx.eyebrowDict, None, names, item_id
-            )
+            obj = _get_eyebrow(ObjectType.EYEBROW, cmx.eyebrowDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_eyelashes(self, cmx, text):
+    def _read_eyelashes(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.EYELASHES)
         for item_id in cmx.eyelashDict.Keys:
-            obj = _get_eyebrow(
-                ObjectType.EYELASH, cmx.eyelashDict, None, names, item_id
-            )
+            obj = _get_eyebrow(ObjectType.EYELASH, cmx.eyelashDict, names, item_id)
             obj.db_insert(self.con)
 
     def _read_faces(self, cmx, text, bin_path: Path):
@@ -828,38 +837,36 @@ class ObjectDatabase:
         names.update(_get_item_names(text, CmxCategory.FACE_VARIATION, face_dict))
 
         for item_id in cmx.faceDict.Keys:
-            obj = _get_face(ObjectType.FACE, cmx.faceDict, None, names, item_id)
+            obj = _get_face(ObjectType.FACE, cmx.faceDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_face_textures(self, cmx, text):
+    def _read_face_textures(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.FACEPAINT1)
         for item_id in cmx.faceTextureDict.Keys:
-            obj = _get_facepaint(
-                ObjectType.FACE_TEXTURE, cmx.faceTextureDict, None, names, item_id
+            obj = _get_face_texture(
+                ObjectType.FACE_TEXTURE, cmx.faceTextureDict, names, item_id
             )
             obj.db_insert(self.con)
 
-    def _read_facepaint(self, cmx, text):
+    def _read_facepaint(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.FACEPAINT2)
         for item_id in cmx.fcpDict.Keys:
-            obj = _get_facepaint(
-                ObjectType.FACEPAINT, cmx.fcpDict, None, names, item_id
-            )
+            obj = _get_facepaint(ObjectType.FACEPAINT, cmx.fcpDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_hair(self, cmx, text):
+    def _read_hair(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.HAIR)
         for item_id in cmx.hairDict.Keys:
-            obj = _get_hair(ObjectType.HAIR, cmx.hairDict, None, names, item_id)
+            obj = _get_hair(ObjectType.HAIR, cmx.hairDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_horns(self, cmx, text):
+    def _read_horns(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.HORN)
         for item_id in cmx.ngsHornDict.Keys:
-            obj = _get_horn(ObjectType.HORN, cmx.ngsHornDict, None, names, item_id)
+            obj = _get_horn(ObjectType.HORN, cmx.ngsHornDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_innerwear(self, cmx, text):
+    def _read_innerwear(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.INNERWEAR)
         for item_id in cmx.innerWearDict.Keys:
             obj = _get_bodypaint(
@@ -871,7 +878,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_outerwear(self, cmx, text):
+    def _read_outerwear(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.COSTUME)
         for item_id in cmx.outerDict.Keys:
             obj = _get_body(
@@ -879,24 +886,22 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_skins(self, cmx, text):
+    def _read_skins(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.SKIN)
         for item_id in cmx.ngsSkinDict.Keys:
-            obj = _get_skin(ObjectType.SKIN, cmx.ngsSkinDict, None, names, item_id)
+            obj = _get_skin(ObjectType.SKIN, cmx.ngsSkinDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_stickers(self, cmx, text):
+    def _read_stickers(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.BODYPAINT2)
         for item_id in cmx.stickerDict.Keys:
-            obj = _get_sticker(
-                ObjectType.STICKER, cmx.stickerDict, None, names, item_id
-            )
+            obj = _get_sticker(ObjectType.STICKER, cmx.stickerDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_teeth(self, cmx, text):
+    def _read_teeth(self, cmx: CharacterMakingIndex, text: PSO2Text):
         names = _get_item_names(text, CmxCategory.TEETH)
         for item_id in cmx.ngsTeethDict.Keys:
-            obj = _get_teeth(ObjectType.TEETH, cmx.ngsTeethDict, None, names, item_id)
+            obj = _get_teeth(ObjectType.TEETH, cmx.ngsTeethDict, names, item_id)
             obj.db_insert(self.con)
 
 
@@ -939,7 +944,10 @@ def _optional_number(value: _N) -> _N | None:
     return value if value >= 0 else None
 
 
-def _get_adjusted_id(item_id, link_id_dict):
+def _get_adjusted_id(
+    item_id: int,
+    link_id_dict: "System.Collections.Generic.Dictionary_2[int, BCLNObject] | None",
+):
     if link_id_dict and (link := dict_get(link_id_dict, item_id)):
         return link.bcln.fileId
 
@@ -953,7 +961,12 @@ def _get_file_path_start(item_id):
     return CharacterMakingDynamic.classicStart
 
 
-def _common_props(object_type: ObjectType, item_id: int, name_dict, link_id_dict):
+def _common_props(
+    object_type: ObjectType,
+    item_id: int,
+    name_dict,
+    link_id_dict: "System.Collections.Generic.Dictionary_2[int, BCLNObject] | None" = None,
+):
     name_jp, name_en = name_dict[item_id]
     return {
         "object_type": object_type,
@@ -1012,8 +1025,8 @@ def _get_file_tag(object_type: ObjectType):
 
 def _get_body(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, BODYObject]",
+    link_id_dict: "System.Collections.Generic.Dictionary_2[int, BCLNObject]",
     name_dict: NameDict,
     item_id: int,
 ):
@@ -1024,7 +1037,7 @@ def _get_body(
         data.head_id = _optional_number(item.body2.headId)
         data.sound_id = _optional_number(item.body2.costumeSoundId)
         data.linked_inner_id = _optional_number(item.body2.linkedInnerId)
-        data.linked_outer_id = _optional_number(item.body2.int_3C)
+        data.linked_outer_id = _optional_number(item.body2.linkedOuterId)
         data.leg_length = _optional_number(item.body2.legLength)
         data.color_mapping = CmxColorMapping.from_body_obj(item)
 
@@ -1047,8 +1060,8 @@ def _get_body(
 
 def _get_bodypaint(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, BBLYObject]",
+    link_id_dict: "System.Collections.Generic.Dictionary_2[int, BCLNObject] | None",
     name_dict: NameDict,
     item_id: int,
 ):
@@ -1063,13 +1076,12 @@ def _get_bodypaint(
 
 def _get_sticker(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, StickerObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxSticker(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxSticker(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1079,13 +1091,12 @@ def _get_sticker(
 
 def _get_skin(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, NGS_SKINObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxSkinObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxSkinObject(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1095,13 +1106,12 @@ def _get_skin(
 
 def _get_face(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, FACEObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxFaceObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxFaceObject(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1111,13 +1121,27 @@ def _get_face(
 
 def _get_facepaint(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, FCPObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxFacePaint(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxFacePaint(**_common_props(object_type, item_id, name_dict))
+
+    start = _get_file_path_start(item_id)
+    data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
+
+    return data
+
+
+def _get_face_texture(
+    object_type: ObjectType,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, FaceTextureObject]",
+    name_dict: NameDict,
+    item_id: int,
+):
+    tag = _get_file_tag(object_type)
+    data = CmxFacePaint(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1127,13 +1151,12 @@ def _get_facepaint(
 
 def _get_eye(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, EYEObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxEyeObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxEyeObject(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1143,15 +1166,12 @@ def _get_eye(
 
 def _get_eyebrow(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, EYEBObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxEyebrowObject(
-        **_common_props(object_type, item_id, name_dict, link_id_dict)
-    )
+    data = CmxEyebrowObject(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1161,13 +1181,12 @@ def _get_eyebrow(
 
 def _get_hair(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, HAIRObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxHairObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxHairObject(**_common_props(object_type, item_id, name_dict))
 
     if item := dict_get(object_dict, item_id):
         if data.is_ngs:
@@ -1181,13 +1200,12 @@ def _get_hair(
 
 def _get_ear(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, NGS_EarObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxEarObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxEarObject(**_common_props(object_type, item_id, name_dict))
 
     if item := dict_get(object_dict, item_id):
         data.color_mapping = CmxColorMapping.from_ear_obj(item)
@@ -1200,15 +1218,12 @@ def _get_ear(
 
 def _get_teeth(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, NGS_TeethObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxTeethObject(
-        **_common_props(object_type, item_id, name_dict, link_id_dict)
-    )
+    data = CmxTeethObject(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1218,13 +1233,12 @@ def _get_teeth(
 
 def _get_horn(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, NGS_HornObject]",
     name_dict: NameDict,
     item_id: int,
 ):
     tag = _get_file_tag(object_type)
-    data = CmxHornObject(**_common_props(object_type, item_id, name_dict, link_id_dict))
+    data = CmxHornObject(**_common_props(object_type, item_id, name_dict))
 
     start = _get_file_path_start(item_id)
     data.file.name = f"{start}{tag}_{data.adjusted_id:05d}.ice"
@@ -1234,8 +1248,8 @@ def _get_horn(
 
 def _get_accessory(
     object_type: ObjectType,
-    object_dict,
-    link_id_dict,
+    object_dict: "System.Collections.Generic.Dictionary_2[int, ACCEObject]",
+    link_id_dict: "System.Collections.Generic.Dictionary_2[int, BCLNObject]",
     name_dict: NameDict,
     item_id: int,
 ):
@@ -1264,10 +1278,10 @@ def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
     return result
 
 
-def _parse_face_variation_lua(datafile: datafile.DataFile) -> dict[str, int]:
+def _parse_face_variation_lua(script_file: datafile.DataFile) -> dict[str, int]:
     result: dict[str, int] = {}
     language: str | None = None
-    src = datafile.data.rstrip(b"\0").decode()
+    src = script_file.data.rstrip(b"\0").decode()
 
     for line in src.splitlines():
         if language:

@@ -1,13 +1,16 @@
 import re
-from typing import Any, Optional
+from typing import TypeVar
 
-from System.Collections.Generic import KeyNotFoundException
+import System.Collections.Generic
+
+K = TypeVar("K")
+T = TypeVar("T")
 
 
-def dict_get(d, key: Any) -> Optional[Any]:
+def dict_get(d: "System.Collections.Generic.Dictionary_2[K, T]", key: K) -> T | None:
     try:
-        return d[key]
-    except KeyNotFoundException:  # type: ignore
+        return d[key]  # type: ignore
+    except System.Collections.Generic.KeyNotFoundException:  # type: ignore
         return None
 
 
