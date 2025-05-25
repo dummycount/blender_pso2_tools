@@ -89,7 +89,7 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
 
     attribute_type: bpy.props.EnumProperty(
         name="Type",
-        update=_type_update,
+        update=_type_update,  # type: ignore
         items=[
             ("GEOMETRY", "Geometry", ""),
             ("OBJECT", "Object", ""),
@@ -97,7 +97,9 @@ class ShaderNodePso2MixTextureAttribute(ShaderNodePso2Mix):
             ("VIEW_LAYER", "View Layer", ""),
         ],
     )
-    attribute_name: bpy.props.StringProperty(name="Name", update=_name_update)
+    attribute_name: bpy.props.StringProperty(
+        name="Name", update=_name_update  # type: ignore
+    )
 
     def draw_buttons(self, context: Context, layout: UILayout):
         layout.prop(self, "attribute_type")
