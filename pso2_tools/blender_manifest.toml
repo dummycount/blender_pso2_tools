@@ -1,17 +1,14 @@
 schema_version = "1.0.0"
-
 id = "pso2_tools"
-version = "2.4.0"
+version = "2.4.1"
 name = "PSO2 Tools"
 tagline = "PSO2 file format support"
 maintainer = "dummycount"
 type = "add-on"
 tags = ["Import-Export"]
 license = ["SPDX:GPL-2.0-or-later"]
-
 blender_version_min = "4.4.0"
 platforms = ["windows-x64"]
-
 wheels = [
   "./wheels/cffi-1.17.1-cp311-cp311-win_amd64.whl",
   "./wheels/clr_loader-0.2.7.post0-py3-none-any.whl",

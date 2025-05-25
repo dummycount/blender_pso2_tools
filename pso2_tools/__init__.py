@@ -8,7 +8,7 @@ import bpy
 
 bl_info = {
     "name": "PSO2 Tools",
-    "version": (2, 4, 0),
+    "version": (2, 4, 1),
     "blender": (4, 4, 0),
     "category": "Import-Export",
 }
