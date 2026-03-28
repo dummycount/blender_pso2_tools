@@ -20,12 +20,9 @@ if "reloader" in locals():
     reloader.reload_addon(__name__)  # type: ignore
     # ruff: enable[F821]
 
-from . import dotnet
-
-dotnet.load()
-
 from . import (
     classes,
+    dotnet,
     export_aqp,
     import_aqp,
     import_ice,
@@ -41,6 +38,8 @@ from .paths import ADDON_PATH
 
 
 def register():
+    dotnet.load()
+
     classes.bpy_register()
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)

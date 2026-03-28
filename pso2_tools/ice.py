@@ -5,9 +5,6 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from System.IO import FileMode, FileStream
-from Zamboni import IceFile as InternalIceFile
-
 from . import datafile
 
 
@@ -18,6 +15,8 @@ class IceDataFile:
 
     @classmethod
     def from_byte_array(cls, array: Sequence[int]):
+        from Zamboni import IceFile as InternalIceFile
+
         name = InternalIceFile.getFileName(array)
         data = bytes(array)
 
@@ -32,6 +31,9 @@ class IceFile:
 
     @classmethod
     def load(cls, path: Path | str):
+        from System.IO import FileMode, FileStream
+        from Zamboni import IceFile as InternalIceFile
+
         stream = FileStream(str(path), FileMode.Open)
         try:
             ice = InternalIceFile.LoadIceFile(stream)

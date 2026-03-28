@@ -6,38 +6,36 @@ from dataclasses import dataclass, field, fields
 from enum import StrEnum
 from io import BytesIO
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import bpy
-import System
-import System.Collections.Generic
-import System.IO
-from AquaModelLibrary.Data.PSO2.Aqua import CharacterMakingIndex, PSO2Text
-from AquaModelLibrary.Data.PSO2.Aqua.CharacterMakingIndexData import (
-    ACCEObject,
-    BBLYObject,
-    BCLNObject,
-    BODYObject,
-    EYEBObject,
-    EYEObject,
-    FACEObject,
-    FaceTextureObject,
-    FCPObject,
-    HAIRObject,
-    NGS_EarObject,
-    NGS_HornObject,
-    NGS_SKINObject,
-    NGS_TeethObject,
-    StickerObject,
-)
-from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
-from AquaModelLibrary.Data.Utility import ReferenceGenerator
 
 from . import ccl, datafile, ice, preferences
 from .colors import ColorId, ColorMapping
 from .debug import debug_print
 from .paths import get_data_path
 from .util import dict_get
+
+if TYPE_CHECKING:
+    import System.Collections.Generic
+    from AquaModelLibrary.Data.PSO2.Aqua import CharacterMakingIndex, PSO2Text
+    from AquaModelLibrary.Data.PSO2.Aqua.CharacterMakingIndexData import (
+        ACCEObject,
+        BBLYObject,
+        BCLNObject,
+        BODYObject,
+        EYEBObject,
+        EYEObject,
+        FACEObject,
+        FaceTextureObject,
+        FCPObject,
+        HAIRObject,
+        NGS_EarObject,
+        NGS_HornObject,
+        NGS_SKINObject,
+        NGS_TeethObject,
+        StickerObject,
+    )
 
 T = TypeVar("T", bound="CmxObjectBase")
 NameDict = defaultdict[int, list[str]]
@@ -161,7 +159,7 @@ class CmxColorMapping(ColorMapping):
         raise NotImplementedError()
 
     @classmethod
-    def from_body_obj(cls, obj: BODYObject):
+    def from_body_obj(cls, obj: "BODYObject"):
         mapping = obj.bodyMaskColorMapping
         return cls(
             red=ColorId(int(mapping.redIndex)),
@@ -171,7 +169,7 @@ class CmxColorMapping(ColorMapping):
         )
 
     @classmethod
-    def from_bodypaint_obj(cls, obj: BBLYObject):
+    def from_bodypaint_obj(cls, obj: "BBLYObject"):
         # TODO: unkInt0/1 are definitely used, but not sure about 2/3
         return cls(
             red=ColorId(int(obj.bbly.unkInt0)),
@@ -181,7 +179,7 @@ class CmxColorMapping(ColorMapping):
         )
 
     @classmethod
-    def from_ear_obj(cls, obj: NGS_EarObject):
+    def from_ear_obj(cls, obj: "NGS_EarObject"):
         return cls(
             red=ColorId(int(obj.ngsEar.unkInt1)),
             green=ColorId(int(obj.ngsEar.unkInt2)),
@@ -190,7 +188,7 @@ class CmxColorMapping(ColorMapping):
         )
 
     @classmethod
-    def from_hair_obj(cls, obj: HAIRObject):
+    def from_hair_obj(cls, obj: "HAIRObject"):
         red, green = split_int32(obj.hair.unkInt16)
         blue, alpha = split_int32(obj.hair.unkInt17)
         return cls(
@@ -251,6 +249,8 @@ class CmxFileName:
 
     @property
     def ex(self):
+        from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
+
         start: str = CharacterMakingDynamic.rebootStart
         ex: str = CharacterMakingDynamic.rebootExStart
 
@@ -770,6 +770,9 @@ class ObjectDatabase:
         return CmxColorSets.db_select(self.con, object_type, item_id)
 
     def update_database(self):
+        from AquaModelLibrary.Data.PSO2.Aqua import CharacterMakingIndex, PSO2Text
+        from AquaModelLibrary.Data.Utility import ReferenceGenerator
+
         bin_path = preferences.get_preferences(self.context).get_pso2_bin_path()
 
         cmx: CharacterMakingIndex = ReferenceGenerator.ExtractCMX(str(bin_path))
@@ -859,7 +862,7 @@ class ObjectDatabase:
         for object_type in _COLOR_SET_TYPES:
             self.con.execute(f"DELETE FROM {_color_set_table(object_type)}")
 
-    def _read_accessories(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_accessories(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.ACCESSORY)
         for item_id in cmx.accessoryDict.Keys:
             obj = _get_accessory(
@@ -872,7 +875,7 @@ class ObjectDatabase:
             obj.db_insert(self.con)
 
     def _read_basewear(
-        self, cmx: CharacterMakingIndex, text: PSO2Text, colors: ccl.Pso2Ccl
+        self, cmx: "CharacterMakingIndex", text: "PSO2Text", colors: ccl.Pso2Ccl
     ):
         names = _get_item_names(text, CmxCategory.BASEWEAR)
         for item_id in cmx.baseWearDict.Keys:
@@ -896,7 +899,7 @@ class ObjectDatabase:
             color_set.db_insert(self.con, ObjectType.BASEWEAR)
 
     def _read_bodies(
-        self, cmx: CharacterMakingIndex, text: PSO2Text, colors: ccl.Pso2Ccl
+        self, cmx: "CharacterMakingIndex", text: "PSO2Text", colors: ccl.Pso2Ccl
     ):
         names = _get_item_names(text, CmxCategory.COSTUME)
         names.update(_get_item_names(text, CmxCategory.BODY))
@@ -925,7 +928,7 @@ class ObjectDatabase:
         for color_set in color_sets:
             color_set.db_insert(self.con, ObjectType.COSTUME)
 
-    def _read_bodypaint(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_bodypaint(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.BODYPAINT1)
         for item_id in cmx.bodyPaintDict.Keys:
             obj = _get_bodypaint(
@@ -937,7 +940,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_cast_arms(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_cast_arms(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.ARM)
         for item_id in cmx.carmDict.Keys:
             obj = _get_body(
@@ -949,7 +952,7 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_cast_legs(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_cast_legs(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.LEG)
         for item_id in cmx.clegDict.Keys:
             obj = _get_body(
@@ -957,25 +960,25 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_ears(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_ears(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.EARS)
         for item_id in cmx.ngsEarDict.Keys:
             obj = _get_ear(ObjectType.EAR, cmx.ngsEarDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_eyes(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_eyes(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.EYE)
         for item_id in cmx.eyeDict.Keys:
             obj = _get_eye(ObjectType.EYE, cmx.eyeDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_eyebrows(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_eyebrows(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.EYEBROWS)
         for item_id in cmx.eyebrowDict.Keys:
             obj = _get_eyebrow(ObjectType.EYEBROW, cmx.eyebrowDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_eyelashes(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_eyelashes(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.EYELASHES)
         for item_id in cmx.eyelashDict.Keys:
             obj = _get_eyebrow(ObjectType.EYELASH, cmx.eyelashDict, names, item_id)
@@ -991,7 +994,7 @@ class ObjectDatabase:
             obj = _get_face(ObjectType.FACE, cmx.faceDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_face_textures(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_face_textures(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.FACEPAINT1)
         for item_id in cmx.faceTextureDict.Keys:
             obj = _get_face_texture(
@@ -999,26 +1002,26 @@ class ObjectDatabase:
             )
             obj.db_insert(self.con)
 
-    def _read_facepaint(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_facepaint(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.FACEPAINT2)
         for item_id in cmx.fcpDict.Keys:
             obj = _get_facepaint(ObjectType.FACEPAINT, cmx.fcpDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_hair(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_hair(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.HAIR)
         for item_id in cmx.hairDict.Keys:
             obj = _get_hair(ObjectType.HAIR, cmx.hairDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_horns(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_horns(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.HORN)
         for item_id in cmx.ngsHornDict.Keys:
             obj = _get_horn(ObjectType.HORN, cmx.ngsHornDict, names, item_id)
             obj.db_insert(self.con)
 
     def _read_innerwear(
-        self, cmx: CharacterMakingIndex, text: PSO2Text, colors: ccl.Pso2Ccl
+        self, cmx: "CharacterMakingIndex", text: "PSO2Text", colors: ccl.Pso2Ccl
     ):
         names = _get_item_names(text, CmxCategory.INNERWEAR)
         for item_id in cmx.innerWearDict.Keys:
@@ -1042,7 +1045,7 @@ class ObjectDatabase:
             color_set.db_insert(self.con, ObjectType.INNERWEAR)
 
     def _read_outerwear(
-        self, cmx: CharacterMakingIndex, text: PSO2Text, colors: ccl.Pso2Ccl
+        self, cmx: "CharacterMakingIndex", text: "PSO2Text", colors: ccl.Pso2Ccl
     ):
         names = _get_item_names(text, CmxCategory.COSTUME)
         for item_id in cmx.outerDict.Keys:
@@ -1061,19 +1064,19 @@ class ObjectDatabase:
         for color_set in color_sets:
             color_set.db_insert(self.con, ObjectType.OUTERWEAR)
 
-    def _read_skins(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_skins(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.SKIN)
         for item_id in cmx.ngsSkinDict.Keys:
             obj = _get_skin(ObjectType.SKIN, cmx.ngsSkinDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_stickers(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_stickers(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.BODYPAINT2)
         for item_id in cmx.stickerDict.Keys:
             obj = _get_sticker(ObjectType.STICKER, cmx.stickerDict, names, item_id)
             obj.db_insert(self.con)
 
-    def _read_teeth(self, cmx: CharacterMakingIndex, text: PSO2Text):
+    def _read_teeth(self, cmx: "CharacterMakingIndex", text: "PSO2Text"):
         names = _get_item_names(text, CmxCategory.TEETH)
         for item_id in cmx.ngsTeethDict.Keys:
             obj = _get_teeth(ObjectType.TEETH, cmx.ngsTeethDict, names, item_id)
@@ -1130,6 +1133,8 @@ def _get_adjusted_id(
 
 
 def _get_file_path_start(item_id):
+    from AquaModelLibrary.Data.PSO2.Constants import CharacterMakingDynamic
+
     if is_ngs(item_id):
         return CharacterMakingDynamic.rebootStart
 
@@ -1440,6 +1445,8 @@ def _get_accessory(
 
 
 def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
+    from System.IO import FileNotFoundException
+
     face_var_path = bin_path / "data/win32" / md5digest("ui_character_making.ice")
     result: dict[str, int] = {}
 
@@ -1449,7 +1456,7 @@ def _get_face_variation_dict(bin_path: Path) -> dict[str, int]:
         for f in icefile.get_files():
             if "face_variation.cmp.lua" in f.name.lower():
                 result.update(_parse_face_variation_lua(f))
-    except System.IO.FileNotFoundException:  # type: ignore
+    except FileNotFoundException:  # type: ignore
         pass
 
     return result
@@ -1475,6 +1482,8 @@ def _parse_face_variation_lua(script_file: datafile.DataFile) -> dict[str, int]:
 
 
 def _get_ccl(bin_path: Path) -> ccl.Pso2Ccl:
+    from System.IO import FileNotFoundException
+
     pl_default_color_path = bin_path / "data/win32/11f916ecb1c7bddfb50ad879154e9e73"
 
     try:
@@ -1485,7 +1494,7 @@ def _get_ccl(bin_path: Path) -> ccl.Pso2Ccl:
                 with BytesIO(f.data) as stream:
                     return ccl.Pso2Ccl.read(stream)
 
-    except System.IO.FileNotFoundException:  # type: ignore
+    except FileNotFoundException:  # type: ignore
         pass
 
     return ccl.Pso2Ccl([])

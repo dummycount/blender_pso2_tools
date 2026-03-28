@@ -1,18 +1,23 @@
 import itertools
 import re
+import typing
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
-import AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary
 import bpy
-import System.Numerics
 
 from . import util
+
+if typing.TYPE_CHECKING:
+    from AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary import (
+        GenericMaterial,
+    )
+    from System.Numerics import Vector4
 
 Vector4 = tuple[float, float, float, float]
 
 
-def to_vec4(v: System.Numerics.Vector4) -> Vector4:
+def to_vec4(v: "Vector4") -> "Vector4":
     return (float(v.X), float(v.Y), float(v.Z), float(v.W))
 
 
@@ -60,7 +65,7 @@ class Material:
     @classmethod
     def from_generic_material(
         cls,
-        mat: AquaModelLibrary.Data.PSO2.Aqua.AquaObjectData.Intermediary.GenericMaterial,
+        mat: "GenericMaterial",
     ):
         return cls(
             textures=[str(x) for x in mat.texNames] if mat.texNames else [],

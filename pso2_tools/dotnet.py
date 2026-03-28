@@ -18,6 +18,7 @@ _PROBING_PATH_X64 = str(BIN_PATH / "x64")
 _DOTNET_ROOT = Path("C:/Program Files/dotnet")
 
 _loaded = False
+_probing_paths_set = False
 
 
 def load():
@@ -37,8 +38,16 @@ def load():
         path = str(BIN_PATH / name)
         clr.AddReference(path)  # type: ignore
 
+    _loaded = True
+
+
+def set_assimp_probing_paths():
+    global _probing_paths_set
+    if _probing_paths_set:
+        return
+
     from Assimp.Unmanaged import AssimpLibrary
 
     AssimpLibrary.Instance.Resolver.SetProbingPaths64([_PROBING_PATH_X64])
 
-    _loaded = True
+    _probing_paths_set = True

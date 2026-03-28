@@ -6,15 +6,11 @@ from tempfile import TemporaryDirectory
 from typing import TypedDict, cast, get_type_hints
 
 import bpy
-from AquaModelLibrary.Core.General import FbxExporterNative
-from AquaModelLibrary.Data.PSO2.Aqua import AquaMotion, AquaNode, AquaPackage
-from AquaModelLibrary.Data.Utility import CoordSystem
-from System.Collections.Generic import List
-from System.Numerics import Matrix4x4
 
 from . import (
     colors,
     datafile,
+    dotnet,
     fbx_wrapper,
     ice,
     material,
@@ -326,6 +322,14 @@ def _import_aqp(
     aqn: Path | datafile.DataFile | None,
     options: ImportOptions | None = None,
 ) -> tuple[OperatorResult, list[material.Material]]:
+    from AquaModelLibrary.Core.General import FbxExporterNative
+    from AquaModelLibrary.Data.PSO2.Aqua import AquaMotion, AquaNode, AquaPackage
+    from AquaModelLibrary.Data.Utility import CoordSystem
+    from System.Collections.Generic import List
+    from System.Numerics import Matrix4x4
+
+    dotnet.set_assimp_probing_paths()
+
     options = options or {}
 
     if isinstance(aqp, Path):

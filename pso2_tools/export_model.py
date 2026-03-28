@@ -5,8 +5,6 @@ from tempfile import TemporaryDirectory
 from typing import Any, TypedDict, cast, get_type_hints
 
 import bpy
-from AquaModelLibrary.Core.General import AssimpModelImporter
-from AquaModelLibrary.Data.PSO2.Aqua import AquaNode, AquaObject, AquaPackage
 from mathutils import Matrix
 
 from . import fbx_wrapper
@@ -67,6 +65,9 @@ def export(
     overwrite_aqn=False,
     options: ExportOptions | None = None,
 ) -> OperatorResult:
+    from AquaModelLibrary.Core.General import AssimpModelImporter
+    from AquaModelLibrary.Data.PSO2.Aqua import AquaNode, AquaObject, AquaPackage
+
     options = options or {}
 
     with TemporaryDirectory() as tempdir:

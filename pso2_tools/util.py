@@ -2,10 +2,9 @@ import re
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
-import System.Collections.Generic
-
 if TYPE_CHECKING:
     import bpy.stub_internal
+    import System.Collections.Generic
 
     OperatorResult = set[bpy.stub_internal.rna_enums.OperatorReturnItems]
     BlenderIcon = bpy.stub_internal.rna_enums.IconItems
@@ -19,9 +18,11 @@ T = TypeVar("T")
 
 
 def dict_get(d: "System.Collections.Generic.Dictionary_2[K, T]", key: K) -> T | None:
+    from System.Collections.Generic import KeyNotFoundException
+
     try:
         return d[key]
-    except System.Collections.Generic.KeyNotFoundException:  # type: ignore
+    except KeyNotFoundException:  # type: ignore
         return None
 
 
