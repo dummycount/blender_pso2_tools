@@ -3,11 +3,6 @@ import bpy
 from .. import classes, parts, scene_props
 
 
-def _enum(mesh_id: parts.MeshId):
-    name = parts.MESH_ID_NAMES[mesh_id]
-    return (str(mesh_id), name, name)
-
-
 @classes.register
 class PSO2MeshIdPanel(bpy.types.Panel):
     bl_idname = "OBJECT_PT_pso2_mesh_id"
