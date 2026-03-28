@@ -19,7 +19,7 @@ reportMissingImports = false
 reportMissingModuleSource = false
 reportUnboundVariable = false
 extraPaths = [
-  "C:/Program Files/Blender Foundation/Blender 5.0/5.0/scripts/addons_core",
+  "C:/Program Files/Blender Foundation/Blender 5.1/5.1/scripts/addons_core",
 ]
 
 [tool.ruff.lint]
