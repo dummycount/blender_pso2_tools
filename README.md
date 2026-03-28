@@ -14,7 +14,7 @@ The libraries used for import/export are only compiled for Windows x64. This add
 6. Make sure **PSO2 Tools** is checked in the add-ons list.
 7. Expand **PSO2 Tools** and make sure **Path to pso2_bin/data** is correct. If not, set it to point to your game's install directory.
 
-The add-on has only recently been tested on Blender 5.0, though it may still work on versions as early as 4.4.
+The add-on has only recently been tested on Blender 5.1, though it may still work on versions as early as 4.4.
 
 ## Usage
 
@@ -78,7 +78,7 @@ If you want to export to FBX, you can run the **PSO2 bone IDs to names** operato
 
 To build and develop the extension, first install the following requirements:
 
-- [Blender 5.0](https://www.blender.org/download/releases/) or newer.
+- [Blender 5.1](https://www.blender.org/download/releases/) or newer.
 - [uv](https://github.com/astral-sh/uv)
 - [Visual Studio](https://visualstudio.microsoft.com/vs/community/) with the C# and C++ workflows installed.
 - [.NET SDK 9.0](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
