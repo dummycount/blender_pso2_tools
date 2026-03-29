@@ -424,6 +424,10 @@ class CmxObjectBase:
         return self.name_en or self.name_jp or f"Unnamed {self.id}"
 
     @property
+    def has_name(self):
+        return bool(self.name_en or self.name_jp)
+
+    @property
     def is_ngs(self):
         return is_ngs(self.id)
 
@@ -1085,7 +1089,7 @@ class ObjectDatabase:
 
 def _get_item_names(
     text, category: CmxCategory, lookup_dict: dict[str, int] | None = None
-):
+) -> NameDict:
     result = defaultdict[int, list[str]](lambda: ["", ""])
 
     index = text.categoryNames.IndexOf(str(category))
@@ -1096,7 +1100,7 @@ def _get_item_names(
 
     for lang, text_list in enumerate(lists_by_lang):
         for item in text_list:
-            name: str = item.name
+            name: str = item.name.strip()
 
             # Name may be a key into a lookup table
             if lookup_dict:
@@ -1108,7 +1112,7 @@ def _get_item_names(
             # Otherwise, it is "No ####"
             try:
                 item_id = int(name.lower().removeprefix("no"))
-                result[item_id][lang] = item.str
+                result[item_id][lang] = item.str.strip()
             except ValueError:
                 debug_print(f'Failed to parse {category} ID "{item.name}"')
 

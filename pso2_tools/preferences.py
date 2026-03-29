@@ -1,5 +1,6 @@
 import os
 import re
+from contextlib import closing
 from pathlib import Path
 from typing import cast
 
@@ -97,27 +98,37 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         name="Default Muscularity", min=0, max=1, default=0.5
     )
 
+    # Workaround for a bug: Python must keep a reference to any dynamic enum item
+    # strings or Blender will show garbage.
+    _skin_t1_enum_cache: list[tuple[str, str, str]]
+    _skin_t2_enum_cache: list[tuple[str, str, str]]
+
+    def _get_skin_t1_enum_items(self, context: bpy.types.Context | None):
+        if self._skin_t1_enum_cache:
+            return self._skin_t1_enum_cache
+
+        items = _get_skin_enum_items(context, is_t2=False)
+        Pso2ToolsPreferences._skin_t1_enum_cache = items
+        return items
+
+    def _get_skin_t2_enum_items(self, context: bpy.types.Context | None):
+        if self._skin_t2_enum_cache:
+            return self._skin_t2_enum_cache
+
+        items = _get_skin_enum_items(context, is_t2=True)
+        Pso2ToolsPreferences._skin_t2_enum_cache = items
+        return items
+
     default_skin_t1: bpy.props.EnumProperty(
         name="Default T1 Skin Texture",
-        items=[
-            ("100000", "Base Body T1", ""),
-            ("100040", "Base Body T1/B", ""),
-            ("100010", "Buff Body", ""),
-            ("100020", "Muscular Body", ""),
-            ("100030", "Scaly Body T1", ""),
-            ("100050", "Tiger Bodysuit T1", ""),
-        ],
-        default="100000",
+        description="Skin texture to load for T1 models (update object database to show all values)",
+        items=_get_skin_t1_enum_items,
     )
 
     default_skin_t2: bpy.props.EnumProperty(
         name="Default T2 Skin Texture",
-        items=[
-            ("200000", "Base Body T2", ""),
-            ("200010", "Scaly Body T2", ""),
-            ("200020", "Tiger Bodysuit T2", ""),
-        ],
-        default="200000",
+        description="Skin texture to load for T2 models (update object database to show all values)",
+        items=_get_skin_t2_enum_items,
     )
 
     model_search_sort: bpy.props.EnumProperty(
@@ -199,10 +210,23 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         default=False,
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._skin_t1_enum_cache = []
+        self._skin_t2_enum_cache = []
+
+    def clear_cache(self):
+        self._skin_t1_enum_cache = []
+        self._skin_t2_enum_cache = []
+
     def draw(self, context: bpy.types.Context):
         layout: bpy.types.UILayout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
+
+        layout.operator(PSO2_OT_UpdateObjectDatabase.bl_idname)
+        layout.separator()
 
         layout.prop(self, "pso2_data_path")
         layout.prop(self, "hide_armature")
@@ -238,3 +262,50 @@ def get_preferences(context: bpy.types.Context | None) -> Pso2ToolsPreferences:
     return cast(
         "Pso2ToolsPreferences", context.preferences.addons[__package__].preferences
     )
+
+
+def _get_skin_enum_items(
+    context: bpy.types.Context | None, is_t2=False
+) -> list[tuple[str, str, str]]:
+    # Don't use a top-level import to prevent a circular dependency
+    from . import objects
+
+    assert context is not None
+
+    with closing(objects.ObjectDatabase(context)) as db:
+        skins = [
+            skin for skin in db.get_skins() if skin.is_t2 == is_t2 and skin.has_name
+        ]
+
+    if not skins:
+        if is_t2:
+            return [("200000", "Base Body T2", "")]
+
+        return [("100000", "Base Body T1", "")]
+
+    # Sort by name, but make sure 100000 and 200000 (base body T1/T2) are always first.
+    skins.sort(
+        key=lambda skin: (
+            skin.id != 100000 and skin.id != 200000,
+            skin.name,
+        )
+    )
+
+    return [(str(skin.id), skin.name, "") for skin in skins]
+
+
+@classes.register
+class PSO2_OT_UpdateObjectDatabase(bpy.types.Operator):
+    """Update the database of models from game data"""
+
+    bl_label = "Update Object Database"
+    bl_idname = "pso2.update_object_database"
+
+    def execute(self, context):
+        # Don't use a top-level import to prevent a circular dependency
+        from . import objects
+
+        with closing(objects.ObjectDatabase(context)) as db:
+            db.update_database()
+
+        return {"FINISHED"}
