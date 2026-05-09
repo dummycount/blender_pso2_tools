@@ -12,7 +12,11 @@ import bpy
 from . import ccl, classes, import_model, import_props, objects
 from .colors import COLOR_CHANNELS, Color, ColorId
 from .debug import debug_print
-from .preferences import Pso2ToolsPreferences, color_property, get_preferences
+from .preferences import (
+    Pso2ToolsPreferences,
+    color_property,
+    get_preferences,
+)
 from .util import BlenderIcon, OperatorResult
 
 
@@ -289,9 +293,9 @@ def _get_object_class(object_type: objects.ObjectType) -> type[objects.CmxObject
 
 @classes.register
 class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
-    """Search for PSO2 models"""
+    """Search for PSO2 character models"""
 
-    bl_label = "Import PSO2 Model"
+    bl_label = "Import PSO2 Character Model"
     bl_idname = "pso2.model_search"
     bl_options = {"REGISTER", "UNDO"}
 
@@ -380,6 +384,11 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
     color_set_channel_1: bpy.props.StringProperty()
     color_set_channel_2: bpy.props.StringProperty()
 
+    def _handle_database_update(self, context: bpy.types.Context):
+        _populate_model_list(self.models, context)
+
+    handle_database_update: bpy.props.BoolProperty(update=_handle_database_update)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _populate_model_list(self.models, bpy.context)
@@ -393,10 +402,11 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
 
         preferences = get_preferences(context)
         layout = self.layout
+        layout.context_pointer_set("parent", self)
+
         split = layout.split(factor=0.65)
 
         col = split.column()
-        col.context_pointer_set("parent", self)
         col.template_list(
             PSO2_UL_ModelList.bl_idname,
             "",
@@ -410,7 +420,6 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
         col = split.column()
         col.use_property_split = True
         col.use_property_decorate = False
-        col.context_pointer_set("parent", self)
 
         if obj := self.get_selected_object():
             meta = ModelMetadata.from_object(obj, preferences.get_pso2_data_path())
@@ -465,7 +474,7 @@ class PSO2_OT_ModelSearch(bpy.types.Operator, import_props.CommonImportProps):
             self.draw_import_props_column(col, preferences)
             col.separator(factor=4, type="LINE")
 
-        col.operator(PSO2_OT_UpdateModelList.bl_idname, text="Update Model List")
+        col.operator(objects.PSO2_OT_UpdateCharacterDatabase.bl_idname)
 
     def execute(self, context) -> OperatorResult:
         if obj := self.get_selected_object():
@@ -613,22 +622,6 @@ def _populate_model_list(collection, context: bpy.types.Context):
 
     end = time.monotonic()
     debug_print(f"PSO2 items loaded in {end - start:0.1f}s")
-
-
-@classes.register
-class PSO2_OT_UpdateModelList(bpy.types.Operator):
-    """Update the database of models from game data"""
-
-    bl_label = "Update Model List"
-    bl_idname = "pso2.update_model_list"
-
-    def execute(self, context):  # type: ignore
-        with closing(objects.ObjectDatabase(context)) as db:
-            db.update_database()
-
-        _populate_model_list(context.parent.models, context)  # type: ignore
-
-        return {"FINISHED"}
 
 
 def _false(item):

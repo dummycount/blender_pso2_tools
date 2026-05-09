@@ -2,6 +2,7 @@ import hashlib
 import sqlite3
 from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable
+from contextlib import closing, suppress
 from dataclasses import dataclass, field, fields
 from enum import StrEnum
 from io import BytesIO
@@ -10,7 +11,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 import bpy
 
-from . import ccl, datafile, ice, preferences
+from . import ccl, classes, datafile, ice, preferences
 from .colors import ColorId, ColorMapping
 from .debug import debug_print
 from .paths import get_data_path
@@ -1540,3 +1541,30 @@ def _get_color_sets(
                 )
 
         yield CmxColorSets(base_id, sets)
+
+
+@classes.register
+class PSO2_OT_UpdateCharacterDatabase(bpy.types.Operator):
+    """Update the database of character models and textures from game data"""
+
+    bl_label = "Update Character Model Database"
+    bl_idname = "pso2.update_character_database"
+
+    def execute(self, context):
+        with closing(ObjectDatabase(context)) as db:
+            db.update_database()
+
+        # Since I can't find any decent way to be notified when an operator gets run, use
+        #
+        #   layout.context_pointer_set("parent", self)
+        #
+        # in any operator that contains this and wants to know when it is run. Then, add
+        #
+        #   def _handle_database_update(self, context): ...
+        #   handle_database_update: bpy.props.BoolProperty(update=_handle_database_update)
+        #
+        # to that operator.
+        with suppress(AttributeError):
+            context.parent.path_resolve("handle_database_update", False).update()  # type: ignore
+
+        return {"FINISHED"}

@@ -131,6 +131,12 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         items=_get_skin_t2_enum_items,
     )
 
+    def _handle_database_update(self, context: bpy.types.Context):
+        self._skin_t1_enum_cache = []
+        self._skin_t2_enum_cache = []
+
+    handle_database_update: bpy.props.BoolProperty(update=_handle_database_update)
+
     model_search_sort: bpy.props.EnumProperty(
         name="Sort",
         default="ALPHA",
@@ -216,16 +222,17 @@ class Pso2ToolsPreferences(bpy.types.AddonPreferences):
         self._skin_t1_enum_cache = []
         self._skin_t2_enum_cache = []
 
-    def clear_cache(self):
-        self._skin_t1_enum_cache = []
-        self._skin_t2_enum_cache = []
-
     def draw(self, context: bpy.types.Context):
+        # Don't use a top-level import to prevent a circular dependency
+        from . import objects
+
         layout: bpy.types.UILayout = self.layout
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        layout.operator(PSO2_OT_UpdateObjectDatabase.bl_idname)
+        layout.context_pointer_set("parent", self)
+
+        layout.operator(objects.PSO2_OT_UpdateCharacterDatabase.bl_idname)
         layout.separator()
 
         layout.prop(self, "pso2_data_path")
@@ -292,20 +299,3 @@ def _get_skin_enum_items(
     )
 
     return [(str(skin.id), skin.name, "") for skin in skins]
-
-
-@classes.register
-class PSO2_OT_UpdateObjectDatabase(bpy.types.Operator):
-    """Update the database of models from game data"""
-
-    bl_label = "Update Object Database"
-    bl_idname = "pso2.update_object_database"
-
-    def execute(self, context):
-        # Don't use a top-level import to prevent a circular dependency
-        from . import objects
-
-        with closing(objects.ObjectDatabase(context)) as db:
-            db.update_database()
-
-        return {"FINISHED"}
