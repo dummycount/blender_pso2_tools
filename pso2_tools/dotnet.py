@@ -6,10 +6,10 @@ import pythonnet
 from .paths import BIN_PATH
 
 _DLL_NAMES = [
-    "AssimpNet.dll",
     "AquaModelLibrary.Core.dll",
     "AquaModelLibrary.Data.dll",
     "AquaModelLibrary.Helpers.dll",
+    "SharpAssimp.dll",
     "ZamboniLib.dll",
 ]
 
@@ -46,7 +46,7 @@ def set_assimp_probing_paths():
     if _probing_paths_set:
         return
 
-    from Assimp.Unmanaged import AssimpLibrary
+    from SharpAssimp.Unmanaged import AssimpLibrary
 
     AssimpLibrary.Instance.Resolver.SetProbingPaths64([_PROBING_PATH_X64])
 

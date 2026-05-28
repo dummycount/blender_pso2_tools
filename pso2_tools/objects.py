@@ -15,7 +15,7 @@ from . import ccl, classes, datafile, ice, preferences
 from .colors import ColorId, ColorMapping
 from .debug import debug_print
 from .paths import get_data_path
-from .util import dict_get
+from .util import OperatorResult, dict_get
 
 if TYPE_CHECKING:
     import System.Collections.Generic
@@ -171,32 +171,29 @@ class CmxColorMapping(ColorMapping):
 
     @classmethod
     def from_bodypaint_obj(cls, obj: "BBLYObject"):
-        # TODO: unkInt0/1 are definitely used, but not sure about 2/3
         return cls(
-            red=ColorId(int(obj.bbly.unkInt0)),
-            green=ColorId(int(obj.bbly.unkInt1)),
-            blue=ColorId(int(obj.bbly.unkInt2)),
-            alpha=ColorId(int(obj.bbly.unkInt3)),
+            red=ColorId(int(obj.bbly.maskColorMapping.redIndex)),
+            green=ColorId(int(obj.bbly.maskColorMapping.greenIndex)),
+            blue=ColorId.UNUSED,
+            alpha=ColorId.UNUSED,
         )
 
     @classmethod
     def from_ear_obj(cls, obj: "NGS_EarObject"):
         return cls(
-            red=ColorId(int(obj.ngsEar.unkInt1)),
-            green=ColorId(int(obj.ngsEar.unkInt2)),
-            blue=ColorId(int(obj.ngsEar.unkInt3)),
-            alpha=ColorId(int(obj.ngsEar.unkInt4)),
+            red=ColorId(int(obj.ngsEar.maskColorMapping.redIndex)),
+            green=ColorId(int(obj.ngsEar.maskColorMapping.greenIndex)),
+            blue=ColorId(int(obj.ngsEar.maskColorMapping.blueIndex)),
+            alpha=ColorId(int(obj.ngsEar.maskColorMapping.alphaIndex)),
         )
 
     @classmethod
     def from_hair_obj(cls, obj: "HAIRObject"):
-        red, green = split_int32(obj.hair.unkInt16)
-        blue, alpha = split_int32(obj.hair.unkInt17)
         return cls(
-            red=ColorId(red),
-            green=ColorId(green),
-            blue=ColorId(blue),
-            alpha=ColorId(alpha),
+            red=ColorId(int(obj.hair.maskColorMapping.redIndex)),
+            green=ColorId(int(obj.hair.maskColorMapping.greenIndex)),
+            blue=ColorId(int(obj.hair.maskColorMapping.blueIndex)),
+            alpha=ColorId(int(obj.hair.maskColorMapping.alphaIndex)),
         )
 
 
@@ -1550,7 +1547,7 @@ class PSO2_OT_UpdateCharacterDatabase(bpy.types.Operator):
     bl_label = "Update Character Model Database"
     bl_idname = "pso2.update_character_database"
 
-    def execute(self, context):
+    def execute(self, context) -> OperatorResult:
         with closing(ObjectDatabase(context)) as db:
             db.update_database()
 

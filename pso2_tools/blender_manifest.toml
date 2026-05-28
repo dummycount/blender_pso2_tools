@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "pso2_tools"
-version = "2.7.0"
+version = "2.8.0"
 name = "PSO2 Tools"
 tagline = "PSO2 file format support"
 maintainer = "dummycount"
@@ -10,12 +10,12 @@ license = ["SPDX:GPL-2.0-or-later"]
 blender_version_min = "4.4.0"
 platforms = ["windows-x64"]
 wheels = [
-  "./wheels/cffi-2.0.0-cp311-cp311-win_amd64.whl",
-  "./wheels/cffi-2.0.0-cp313-cp313-win_amd64.whl",
-  "./wheels/clr_loader-0.2.10-py3-none-any.whl",
-  "./wheels/pycparser-3.0-py3-none-any.whl",
-  "./wheels/pythonnet-3.0.5-py3-none-any.whl",
-  "./wheels/watchdog-6.0.0-py3-none-win_amd64.whl",
+  "wheels/cffi-2.0.0-cp311-cp311-win_amd64.whl",
+  "wheels/cffi-2.0.0-cp313-cp313-win_amd64.whl",
+  "wheels/clr_loader-0.2.10-py3-none-any.whl",
+  "wheels/pycparser-3.0-py3-none-any.whl",
+  "wheels/pythonnet-3.0.5-py3-none-any.whl",
+  "wheels/watchdog-6.0.0-py3-none-win_amd64.whl",
 ]
 
 [permissions]

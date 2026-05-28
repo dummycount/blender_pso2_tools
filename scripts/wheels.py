@@ -8,8 +8,12 @@ import subprocess
 from itertools import product
 from pathlib import Path
 
+import tomlkit
+
 ROOT = Path(__file__).parent.parent
-WHEELS = ROOT / "pso2_tools" / "wheels"
+ADDON_PATH = ROOT / "pso2_tools"
+WHEELS = ADDON_PATH / "wheels"
+MANIFEST = ADDON_PATH / "blender_manifest.toml"
 
 DEPENDENCIES = ["pythonnet==3.0.5", "watchdog==6.0.0"]
 
@@ -33,6 +37,19 @@ def main():
                 f"--platform={platform}",
             ]
         )
+
+    manifest = tomlkit.parse(MANIFEST.read_text())
+
+    wheels = WHEELS.rglob("*.whl")
+
+    a = tomlkit.array()
+    for w in wheels:
+        a.add_line(str(w.relative_to(ADDON_PATH).as_posix()), indent="  ")
+
+    a.add_line(indent="")
+    manifest["wheels"] = a
+
+    MANIFEST.write_text(tomlkit.dumps(manifest))
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from typing import Any, TypedDict, cast, get_type_hints
 import bpy
 from mathutils import Matrix
 
-from . import fbx_wrapper
+from . import dotnet, fbx_wrapper
 from .util import OperatorResult
 
 
@@ -67,6 +67,8 @@ def export(
 ) -> OperatorResult:
     from AquaModelLibrary.Core.General import AssimpModelImporter
     from AquaModelLibrary.Data.PSO2.Aqua import AquaNode, AquaObject, AquaPackage
+
+    dotnet.set_assimp_probing_paths()
 
     options = options or {}
 

@@ -665,7 +665,7 @@ class PSO2_UL_ModelList(bpy.types.UIList):
         super().__init__(*args, **kwargs)
         self.use_filter_show = True
 
-    def filter_items(self, context, data, property):  # noqa: A002
+    def filter_items(self, context, data, property):  # noqa: A002 # type: ignore
         if property is None:
             raise TypeError()
 

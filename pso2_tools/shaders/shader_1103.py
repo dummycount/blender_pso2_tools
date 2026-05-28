@@ -90,7 +90,7 @@ class ShaderNodePso2NgsHair(group.ShaderNodeCustomGroup):
     def init(self, context):
         super().init(context)
 
-        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)
+        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)  # type: ignore
         self.input(bpy.types.NodeSocketFloat, "Alpha").default_value = 1
 
     def _build(self, node_tree):

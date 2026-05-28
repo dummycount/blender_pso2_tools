@@ -31,18 +31,16 @@ STUB_GENERATOR_SLN = ROOT / "pythonnet-stub-generator/csharp/PythonNetStubGenera
 
 PACKAGES_PATH = ROOT / "packages"
 PACKAGES = [
-    ("AssimpNet", "5.0.0-beta1"),
     ("BouncyCastle.Cryptography", "2.4.0"),
     ("DrSwizzler", "1.1.1"),
     ("prs_rs.Net.Sys", "1.0.4"),
     ("Pfim", "0.11.3"),
     ("Reloaded.Memory", "9.4.2"),
     ("SixLabors.ImageSharp", "3.1.6"),
+    ("SharpAssimp", "6.0.12"),
     ("SharpZipLib", "1.4.2"),
     ("System.Drawing.Common", "8.0.11"),
     ("System.Data.DataSetExtensions", "4.6.0-preview3.19128.7"),
-    ("System.Net.Http", "4.3.4"),
-    ("System.Text.Encoding.CodePages", "9.0.0"),
     ("System.Text.RegularExpressions", "4.3.1"),
     ("ZstdNet", "1.4.5"),
 ]
@@ -102,6 +100,9 @@ def copy_package_dlls():
         lib = src / "lib"
         runtime_x64 = src / "runtimes/win-x64/native"
 
+        if not src.exists():
+            raise Exception(f"Couldn't find {src}")
+
         try:
             framework = next(lib / f for f in frameworks if (lib / f).exists())
 
@@ -111,6 +112,7 @@ def copy_package_dlls():
             pass
 
         for dll in runtime_x64.glob("*.dll"):
+            print(" ", dll.name)
             shutil.copyfile(dll, BIN_PATH / "x64" / dll.name)
 
 

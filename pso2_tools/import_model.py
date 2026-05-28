@@ -10,7 +10,6 @@ import bpy
 from . import (
     colors,
     datafile,
-    dotnet,
     fbx_wrapper,
     ice,
     material,
@@ -284,7 +283,7 @@ def _get_ice_path(filename: objects.CmxFileName, data_path: Path, high_quality: 
 
 def _delete_empty_images():
     for image in bpy.data.images.values():
-        if image and image.size[0] == 0 and image.size[1] == 0:
+        if image and image.size[0] == 0 and image.size[1] == 0:  # type: ignore
             bpy.data.images.remove(image)
 
 
@@ -327,8 +326,6 @@ def _import_aqp(
     from AquaModelLibrary.Data.Utility import CoordSystem
     from System.Collections.Generic import List
     from System.Numerics import Matrix4x4
-
-    dotnet.set_assimp_probing_paths()
 
     options = options or {}
 

@@ -74,9 +74,9 @@ class ShaderNodePso2NgsEye(group.ShaderNodeCustomGroup):
     def init(self, context):
         super().init(context)
 
-        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)
+        self.input(bpy.types.NodeSocketColor, "Diffuse").default_value = (1, 0, 1, 1)  # type: ignore
         self.input(bpy.types.NodeSocketFloat, "Alpha").default_value = 1
-        self.input(bpy.types.NodeSocketColor, "Multi RGB").default_value = (0, 1, 1, 1)
+        self.input(bpy.types.NodeSocketColor, "Multi RGB").default_value = (0, 1, 1, 1)  # type: ignore
 
     def _build(self, node_tree):
         tree = builder.NodeTreeBuilder(node_tree)

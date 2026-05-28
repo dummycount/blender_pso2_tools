@@ -19,7 +19,7 @@ DLLS = [
     BIN_PATH / "AquaModelLibrary.Helpers.dll",
     BIN_PATH / "AquaModelLibrary.Native.X64.dll",
     BIN_PATH / "ArchiveLib.dll",
-    BIN_PATH / "AssimpNet.dll",
+    BIN_PATH / "SharpAssimp.dll",
     BIN_PATH / "NvTriStripDotNet.dll",
     BIN_PATH / "Reloaded.Memory.dll",
     BIN_PATH / "SoulsFormats.dll",
@@ -38,11 +38,7 @@ STUB_GENERATOR = (
 def main():
     shutil.rmtree(TYPES_PATH, ignore_errors=True)
 
-    paths = ",".join(str(dll) for dll in DLLS)
-
-    subprocess.call([STUB_GENERATOR, "--dest-path", TYPES_PATH, "--target-dlls", paths])
-
-    print(f'--dest-path="{TYPES_PATH}" --target-dlls="{paths}"')
+    subprocess.call([STUB_GENERATOR, "-o", TYPES_PATH, *DLLS])
 
 
 if __name__ == "__main__":
